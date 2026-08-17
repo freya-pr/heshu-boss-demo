@@ -3,6 +3,9 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   base: './',
+  define: {
+    'import.meta.env.VITE_SHARE_MODE': JSON.stringify('true')
+  },
   plugins: [vue()],
   build: {
     outDir: 'share-dist',

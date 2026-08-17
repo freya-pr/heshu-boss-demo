@@ -39,7 +39,9 @@ menuRoutes.push({
 })
 
 const router = createRouter({
-  history: location.protocol === 'file:' ? createWebHashHistory() : createWebHistory(),
+  history: location.protocol === 'file:' || import.meta.env.VITE_SHARE_MODE === 'true'
+    ? createWebHashHistory()
+    : createWebHistory(),
   routes: [
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/', component: AppLayout, redirect: '/dashboard', children: menuRoutes },
