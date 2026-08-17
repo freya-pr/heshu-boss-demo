@@ -22,7 +22,6 @@ export const v1Menus: MenuGroup[] = [
     name: '线索中心', code: 'LEAD', children: [
       { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，使用公共主模型和引流扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
       { name: '三方品线索', path: '/leads/third-party', description: '合作类及三方品线索列表，使用公共主模型和三方品扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
-      { name: '线索分配', path: '/leads/allocation', description: '统一管理待分配线索、分配策略和分配历史。', features: ['人工指定', '批量分配', '轮询', '员工负载', '改派', '失败重试'] },
       { name: '线索配置', path: '/leads/rules', description: '按线索类型、地区、渠道、员工和业务维度管理分配规则。', features: ['新增规则', '规则试算', '发布', '版本回退'] },
       { name: '活码管理', path: '/leads/qr-codes', description: '管理新旧员工活码、接待范围和备用接待人。', features: ['新增', '编辑', '启停', '下载', '标签与营期配置', '备用接待'] },
       { name: '渠道管理', path: '/leads/channels', description: '管理渠道基础信息和线索归因规则。', features: ['新增', '编辑', '详情', '启停'] },

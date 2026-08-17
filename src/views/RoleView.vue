@@ -8,7 +8,7 @@ type Role = { id:number; code:string; name:string; type:'BUILT_IN'|'CUSTOM'; des
 const keyword=ref(''), status=ref(''), drawer=ref(false), drawerMode=ref<'detail'|'member'|'operation'|'data'>('detail'), current=ref<Role|null>(null)
 const roles=ref<Role[]>([
   {id:1,code:'ROLE_SUPER_ADMIN',name:'超级管理员',type:'BUILT_IN',description:'管理合数BOSS全部功能与配置',members:2,status:'ACTIVE',operationSummary:'全部菜单及操作',dataScope:'ALL',dataScopeLabel:'全部数据'},
-  {id:2,code:'ROLE_SALES_MANAGER',name:'销售部门负责人',type:'CUSTOM',description:'负责销售团队、线索分配及经营数据',members:6,status:'ACTIVE',operationSummary:'线索、客户、报表等 32 项',dataScope:'ORG_AND_CHILDREN',dataScopeLabel:'本组织及下级'},
+  {id:2,code:'ROLE_SALES_MANAGER',name:'销售部门负责人',type:'CUSTOM',description:'负责销售团队、线索列表分配操作及经营数据',members:6,status:'ACTIVE',operationSummary:'线索、客户、报表等 32 项',dataScope:'ORG_AND_CHILDREN',dataScopeLabel:'本组织及下级'},
   {id:3,code:'ROLE_CONSULTANT',name:'课程顾问',type:'CUSTOM',description:'承接线索并维护本人客户',members:38,status:'ACTIVE',operationSummary:'线索、客户等 18 项',dataScope:'SELF',dataScopeLabel:'本人数据'},
   {id:4,code:'ROLE_CUSTOMER_SERVICE',name:'客户服务',type:'CUSTOM',description:'处理客户咨询、工单与售后协作',members:12,status:'ACTIVE',operationSummary:'客户、客服等 21 项',dataScope:'CUSTOM',dataScopeLabel:'客户服务部'},
   {id:5,code:'ROLE_FINANCE',name:'财务专员',type:'CUSTOM',description:'查询订单并处理支付、退款业务',members:4,status:'ACTIVE',operationSummary:'订单、支付等 16 项',dataScope:'ORG',dataScopeLabel:'本组织'},

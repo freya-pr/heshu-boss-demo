@@ -1,7 +1,7 @@
 type Row = Record<string, any>
 import { v1Menus } from '../config/menu'
 
-const STORAGE_KEY = 'heshu_scrm_demo_db_v2'
+const STORAGE_KEY = 'heshu_scrm_demo_db_v6'
 const USER_KEY = 'heshu_scrm_demo_user'
 const PASSWORD_KEY = 'heshu_scrm_demo_password'
 
@@ -15,10 +15,13 @@ interface DemoDb {
 
 const seed: DemoDb = {
   leads: [
-    { id: 1, lead_no: 'L202608160001', name: '周女士', mobile: '13800001111', union_id: '', source_type: 'DRAINAGE', channel_name: '暑期直播', status: 'ASSIGNED', owner_id: 2, owner_name: '王老师', created_at: '2026-08-16 09:12:10' },
-    { id: 2, lead_no: 'L202608160002', name: '赵先生', mobile: '', union_id: '', source_type: 'THIRD_PRODUCT', channel_name: '合作渠道A', status: 'PENDING_ASSIGNMENT', owner_id: null, owner_name: '', created_at: '2026-08-16 09:28:40' },
-    { id: 3, lead_no: 'L202608160003', name: '钱女士', mobile: '13800002222', union_id: 'union_qian_002', source_type: 'DRAINAGE', channel_name: '信息流广告', status: 'WECHAT_ADDED', owner_id: 3, owner_name: '陈老师', created_at: '2026-08-16 10:02:18' },
-    { id: 4, lead_no: 'L202608160004', name: '孙女士', mobile: '13700006666', union_id: '', source_type: 'REFERRAL', channel_name: '老客转介绍', status: 'PENDING_ASSIGNMENT', owner_id: null, owner_name: '', created_at: '2026-08-16 10:30:09' }
+    { id: 1, lead_no: 'L202608160001', order_no: '', order_status: 'NO_ORDER', name: '周女士', mobile: '13800001111', original_mobile: '13800001111', decrypted_mobile: '13800001111', union_id: '', wechat_nickname: '', source_type: 'DRAINAGE', lead_source: '抖音', channel_name: '暑期直播', first_product_name: '家庭教育直播课', product_remark: '直播预约线索', shop_name: '合数家庭教育旗舰店', paid_amount: 0, status: 'ASSIGNED', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', history_owner_name: '', history_owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'CHANNEL', wechat_method: '', camp_name: '2026暑期第3营', sms_send_count: 1, assigned_at: '2026-08-16 09:15:20', decrypted_at: '2026-08-16 09:12:12', created_at: '2026-08-16 09:12:10', remark: '等待客户扫码加微' },
+    { id: 2, lead_no: 'L202608160002', order_no: 'TP202608160021', order_status: 'PAID', name: '赵先生', mobile: '', original_mobile: '139****6721', decrypted_mobile: '', union_id: '', wechat_nickname: '', source_type: 'THIRD_PRODUCT', lead_source: '小鹅通', channel_name: '合作渠道A', first_product_name: '家庭学习力体验营', product_remark: '', shop_name: '合作方店铺A', paid_amount: 9.9, status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', history_owner_name: '', history_owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'PARTNER_PUSH', wechat_method: '', camp_name: '2026暑期体验营', sms_send_count: 0, created_at: '2026-08-16 09:28:40', remark: '' },
+    { id: 3, lead_no: 'L202608160003', order_no: '', order_status: 'NO_ORDER', name: '钱女士', mobile: '13800002222', original_mobile: '13800002222', decrypted_mobile: '13800002222', union_id: 'union_qian_002', wechat_nickname: '钱多多妈妈', source_type: 'DRAINAGE', lead_source: '有赞', channel_name: '信息流广告', first_product_name: '家庭教育问卷', product_remark: '已填写需求问卷', shop_name: '合数成长中心', paid_amount: 0, status: 'QUESTIONNAIRE_FILLED', lead_mark: 'VALID', follow_status: 'FOLLOWING', conversion_status: 'UNCONVERTED', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', history_owner_name: '王老师', history_owner_employee_no: 'B00126', customer_no: 'C202608160002', customer_name: '钱女士', entry_method: 'CHANNEL', wechat_method: 'WECOM', camp_name: '2026暑期第3营', sms_send_count: 2, first_follow_at: '2026-08-16 10:08:00', assigned_at: '2026-08-16 10:03:20', wechat_added_at: '2026-08-16 10:07:35', questionnaire_at: '2026-08-16 10:20:11', customer_linked_at: '2026-08-16 10:15:00', converted_at: '', decrypted_at: '2026-08-16 10:02:21', created_at: '2026-08-16 10:02:18', remark: '已完成挖需，待预约直播' },
+    { id: 4, lead_no: 'L202608160004', order_no: '', order_status: 'NO_ORDER', name: '孙女士', mobile: '13700006666', original_mobile: '13700006666', decrypted_mobile: '13700006666', union_id: '', wechat_nickname: '', source_type: 'REFERRAL', lead_source: '转介绍', channel_name: '老客转介绍', status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'REFERRAL', camp_name: '2026暑期第3营', sms_send_count: 0, created_at: '2026-08-16 10:30:09', remark: '' },
+    { id: 5, lead_no: 'L202608150008', order_no: 'O202608150088', order_status: 'PAID', name: '吴女士', mobile: '13800003333', original_mobile: '13800003333', decrypted_mobile: '13800003333', union_id: 'union_wu_003', wechat_nickname: '睿睿妈妈', source_type: 'DRAINAGE', lead_source: '抖音', channel_name: '直播间', first_product_name: '2980成长训练营', product_remark: '正式课首单', shop_name: '合数家庭教育旗舰店', paid_amount: 2980, status: 'ASSESSMENT_COMPLETED', lead_mark: 'VALID', follow_status: 'FOLLOWED', conversion_status: 'CONVERTED', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', history_owner_name: '陈老师', history_owner_employee_no: 'B00135', customer_no: 'C202608160003', customer_name: '吴女士', entry_method: 'CHANNEL', wechat_method: 'WECOM', camp_name: '2026暑期高年级1班', sms_send_count: 3, first_follow_at: '2026-08-15 15:25:00', assigned_at: '2026-08-15 15:21:00', wechat_added_at: '2026-08-15 15:23:00', questionnaire_at: '2026-08-15 16:10:00', assessment_at: '2026-08-15 17:20:00', customer_linked_at: '2026-08-15 15:30:00', converted_at: '2026-08-16 08:30:00', decrypted_at: '2026-08-15 15:20:05', created_at: '2026-08-15 15:20:00', remark: '已成交2980课程' },
+    { id: 6, lead_no: 'L202608140015', order_no: '', order_status: 'NO_ORDER', name: '郑女士', mobile: '13600004444', original_mobile: '13600004444', decrypted_mobile: '13600004444', union_id: 'union_zheng_004', wechat_nickname: '果果妈妈', source_type: 'DRAINAGE', lead_source: '百家号', channel_name: '搜索推广', first_product_name: '家庭教育公开课', product_remark: '', shop_name: '', paid_amount: 0, status: 'WECHAT_ADDED', lead_mark: 'VALID', follow_status: 'FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', customer_no: 'C202608140015', customer_name: '郑女士', entry_method: 'CHANNEL', wechat_method: 'PERSONAL_WECHAT', camp_name: '2026暑期第2营', sms_send_count: 1, first_follow_at: '2026-08-14 11:20:00', assigned_at: '2026-08-14 11:12:00', wechat_added_at: '2026-08-14 11:18:00', customer_linked_at: '2026-08-14 11:30:00', converted_at: '', decrypted_at: '2026-08-14 11:10:03', created_at: '2026-08-14 11:10:00', remark: '已加微，尚未完成转化' },
+    { id: 7, lead_no: 'L202608130027', order_no: '', order_status: 'NO_ORDER', name: '测试号码', mobile: '13000000000', original_mobile: '13000000000', decrypted_mobile: '13000000000', union_id: '', wechat_nickname: '', source_type: 'DRAINAGE', lead_source: '自有系统', channel_name: '历史名单', first_product_name: '', product_remark: '', shop_name: '', paid_amount: 0, status: 'DECRYPTED', lead_mark: 'INVALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'IMPORT', wechat_method: '', camp_name: '', sms_send_count: 0, decrypted_at: '2026-08-13 09:00:02', created_at: '2026-08-13 09:00:00', remark: '测试数据，已审核标记无效' }
   ],
   customers: [
     { id: 1, customer_no: 'C202608160001', name: '周女士', mobile: '13800001111', union_id: 'union_zhou_001', grade: 'A', owner_name: '王老师', status: 'ACTIVE', created_at: '2026-08-16 09:40:00' },
@@ -79,6 +82,24 @@ function menus(role: string) {
   return role === 'ADMIN' ? v1Menus : v1Menus.filter(group => group.code !== 'SYSTEM')
 }
 
+function buildLeadJourney(lead: Row) {
+  const events: Row[] = []
+  const add = (occurredAt: string, eventType: string, eventName: string, fromStatus: string | null, toStatus: string | null, source: string, detail: string, operator = '系统') => {
+    if (!occurredAt) return
+    events.push({ id: `${lead.id}-${eventType}-${occurredAt}`, event_type: eventType, event_name: eventName, from_status: fromStatus, to_status: toStatus, operator_name: operator, event_source: source, detail, occurred_at: occurredAt })
+  }
+  add(lead.created_at, 'LEAD_CREATED', '线索进入合数BOSS', null, 'PENDING_ASSIGNMENT', 'SYSTEM', `来源：${lead.lead_source || lead.channel_name || '未知'}`)
+  add(lead.decrypted_at, 'MOBILE_DECRYPTED', '手机号完成解密', 'PENDING_DECRYPTION', 'DECRYPTED', 'SYNC', '手机号解密结果已回写')
+  add(lead.assigned_at, 'LEAD_ASSIGNED', '线索完成分配', 'PENDING_ASSIGNMENT', 'ASSIGNED', 'MANUAL', `负责人：${lead.owner_name || '—'}；员工编号：${lead.owner_employee_no || '—'}`, lead.owner_name || '系统')
+  if (Number(lead.sms_send_count || 0) > 0) add(lead.first_follow_at || lead.assigned_at, 'SMS_SENT', '发送跟进短信', 'SMS_NOT_CLICKED', 'SMS_NOT_CLICKED', 'SMS', `累计发送 ${lead.sms_send_count} 次`, lead.owner_name || '系统')
+  add(lead.wechat_added_at, 'WECHAT_ADDED', '客户完成加微', 'WECHAT_NOT_ADDED', 'WECHAT_ADDED', 'WECOM', `加微方式：${lead.wechat_method === 'WECOM' ? '企业微信' : '个人微信'}`, lead.owner_name || '系统')
+  add(lead.customer_linked_at, 'CUSTOMER_LINKED', '建立唯一客户档案', lead.status, lead.status, 'MANUAL', `关联客户：${lead.customer_no || '—'}`, lead.owner_name || '系统')
+  add(lead.questionnaire_at, 'QUESTIONNAIRE_FILLED', '客户提交问卷', 'QUESTIONNAIRE_NOT_FILLED', 'QUESTIONNAIRE_FILLED', 'QUESTIONNAIRE', '有效问卷结果已回写', lead.owner_name || '系统')
+  add(lead.assessment_at, 'ASSESSMENT_COMPLETED', '客户完成测评', 'ASSESSMENT_NOT_COMPLETED', 'ASSESSMENT_COMPLETED', 'ASSESSMENT', '有效测评结果已回写', lead.owner_name || '系统')
+  add(lead.converted_at, 'LEAD_CONVERTED', '线索完成转化', null, null, 'ORDER', `关联订单：${lead.order_no || '—'}`)
+  return events.sort((a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at)))
+}
+
 function createCustomer(body: Row) {
   const mobile = String(body.mobile || '').replace(/\s/g, '') || null
   const unionId = String(body.unionId || body.union_id || '').trim() || null
@@ -103,11 +124,17 @@ export const demoHttp = {
       return ok({ ...user, roleName: user.role === 'ADMIN' ? '系统管理员' : '一转老师', loginAt: new Date().toLocaleString('zh-CN', { hour12: false }) })
     }
     if (path === '/auth/bindings') return ok([])
-    if (path === '/dashboard') return ok({ metrics: { leads: db.leads.length, pendingAssignment: db.leads.filter(item => item.status === 'PENDING_ASSIGNMENT').length, customers: db.customers.length, unreadMessages: db.messages.filter(item => item.read_status === 'UNREAD').length, gradeAOrS: db.customers.filter(item => ['S', 'A'].includes(item.grade)).length }, flow: ['渠道获客', '统一接入', '数据清洗', '线索识别', '线索分配', '客户加微', '客户建档', '问卷定级', '业务转化'] })
+    if (path === '/dashboard') return ok({ metrics: { leads: db.leads.length, pendingAssignment: db.leads.filter(item => item.status === 'PENDING_ASSIGNMENT').length, customers: db.customers.length, unreadMessages: db.messages.filter(item => item.read_status === 'UNREAD').length, gradeAOrS: db.customers.filter(item => ['S', 'A'].includes(item.grade)).length }, flow: ['渠道获客', '统一接入', '数据清洗', '线索识别', '员工活码分配', '客户加微', '客户建档', '问卷定级', '业务转化'] })
     if (path === '/leads') {
       const status = config.params?.status
       const sourceType = config.params?.sourceType
       return ok(db.leads.filter(item => (!status || item.status === status) && (!sourceType || item.source_type === sourceType)))
+    }
+    const journey = path.match(/^\/leads\/(\d+)\/journey$/)
+    if (journey) {
+      const lead = db.leads.find(item => item.id === Number(journey[1]))
+      if (!lead) return fail('线索不存在')
+      return ok(buildLeadJourney(lead))
     }
     if (path === '/leads/assignees') return ok(db.employees.filter(item => item.account_status === 'ACTIVE'))
     if (path === '/customers') { const grade = config.params?.grade; return ok(grade ? db.customers.filter(item => item.grade === grade) : db.customers) }
@@ -129,24 +156,25 @@ export const demoHttp = {
     if (path === '/auth/wecom-scene') return ok({ sceneId: crypto.randomUUID(), status: 'WAITING_SCAN', stub: true, expiresIn: 120 })
     if (path === '/auth/logout') { localStorage.removeItem(USER_KEY); return ok(null) }
     if (path === '/leads') {
-      const lead = { id: Math.max(0, ...db.leads.map(item => item.id)) + 1, lead_no: id('L'), name: body.name, mobile: body.mobile || '', union_id: body.unionId || '', source_type: body.sourceType, channel_name: body.channelName, status: 'PENDING_ASSIGNMENT', owner_id: null, owner_name: '', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+      const now = new Date().toLocaleString('zh-CN', { hour12: false })
+      const lead = { id: Math.max(0, ...db.leads.map(item => item.id)) + 1, lead_no: id('L'), order_no: '', order_status: 'NO_ORDER', name: body.name, mobile: body.mobile || '', original_mobile: body.mobile || '', decrypted_mobile: body.mobile || '', decrypted_at: body.mobile ? now : '', union_id: body.unionId || '', wechat_nickname: '', source_type: body.sourceType, lead_source: body.channelName, channel_name: body.channelName, first_product_name: '', product_remark: '', shop_name: '', paid_amount: 0, status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'IMPORT', wechat_method: '', camp_name: '', sms_send_count: 0, created_at: now, remark: '' }
       db.leads.unshift(lead); save(); return ok({ id: lead.id })
     }
     const assign = path.match(/^\/leads\/(\d+)\/assign$/)
     if (assign) {
       const lead = db.leads.find(item => item.id === Number(assign[1])); const employee = db.employees.find(item => item.id === Number(body.employeeId))
       if (!lead || !employee) return fail('线索或目标员工不存在')
-      Object.assign(lead, { owner_id: employee.id, owner_name: employee.name, status: 'ASSIGNED' }); save(); return ok(null)
+      Object.assign(lead, { owner_id: employee.id, owner_name: employee.name, owner_employee_no: employee.employee_no, status: 'ASSIGNED', assigned_at: new Date().toLocaleString('zh-CN', { hour12: false }) }); save(); return ok(null)
     }
     const wechat = path.match(/^\/leads\/(\d+)\/wechat-added$/)
     if (wechat) {
       const lead = db.leads.find(item => item.id === Number(wechat[1])); if (!lead) return fail('线索不存在')
-      lead.status = 'WECHAT_ADDED'; lead.union_id = body.unionId || lead.union_id || `union_demo_${lead.id}`; save(); return ok(null)
+      lead.status = 'WECHAT_ADDED'; lead.follow_status = 'FOLLOWING'; lead.wechat_method = 'WECOM'; lead.wechat_added_at = new Date().toLocaleString('zh-CN', { hour12: false }); lead.first_follow_at ||= lead.wechat_added_at; lead.union_id = body.unionId || lead.union_id || `union_demo_${lead.id}`; save(); return ok(null)
     }
     const convert = path.match(/^\/leads\/(\d+)\/convert$/)
     if (convert) {
       const lead = db.leads.find(item => item.id === Number(convert[1])); if (!lead) return fail('线索不存在')
-      const customer = createCustomer({ ...lead, ownerName: lead.owner_name }); lead.status = 'CONVERTED'; save(); return ok({ customerId: customer.id, customerNo: customer.customer_no })
+      const customer = createCustomer({ ...lead, ownerName: lead.owner_name }); Object.assign(lead, { customer_id: customer.id, customer_no: customer.customer_no, customer_name: customer.name, customer_linked_at: new Date().toLocaleString('zh-CN', { hour12: false }) }); save(); return ok({ customerId: customer.id, customerNo: customer.customer_no })
     }
     if (path === '/customers') { const customer = createCustomer(body); return ok({ id: customer.id }) }
     if (path === '/system/organizations') {

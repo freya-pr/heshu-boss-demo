@@ -6,7 +6,7 @@ import {
   Connection, CreditCard, DataLine, Document, DocumentChecked, House, Key, Link,
   Location, Menu as MenuIcon, Message, Notebook, OfficeBuilding, Opportunity,
   Platform, Postcard, PriceTag, Promotion, Rank, Refresh, School, Search, Service,
-  SetUp, Share, Shop, ShoppingBag, Setting, Switch, Tickets, Tools, TrendCharts,
+  SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools, TrendCharts,
   User, Warning
 } from '@element-plus/icons-vue'
 import { useAuthStore, type MenuItem } from '../stores/auth'
@@ -36,7 +36,6 @@ const leafIcons: Record<string, Component> = {
   '/dashboard': House,
   '/leads/drainage': Promotion,
   '/leads/third-party': Link,
-  '/leads/allocation': Share,
   '/leads/rules': SetUp,
   '/leads/qr-codes': Tickets,
   '/leads/channels': Connection,
