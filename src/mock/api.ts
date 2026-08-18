@@ -1,7 +1,7 @@
 type Row = Record<string, any>
 import { v1Menus } from '../config/menu'
 
-const STORAGE_KEY = 'heshu_scrm_demo_db_v8'
+const STORAGE_KEY = 'heshu_scrm_demo_db_v9'
 const USER_KEY = 'heshu_scrm_demo_user'
 const PASSWORD_KEY = 'heshu_scrm_demo_password'
 
@@ -24,9 +24,9 @@ const seed: DemoDb = {
     { id: 7, lead_no: 'L202608130027', order_no: '', order_status: 'NO_ORDER', name: '测试号码', mobile: '13000000000', original_mobile: '13000000000', decrypted_mobile: '13000000000', union_id: '', wechat_nickname: '', source_type: 'DRAINAGE', lead_source: '自有系统', channel_name: '历史名单', first_product_name: '', product_remark: '', shop_name: '', paid_amount: 0, status: 'DECRYPTED', lead_mark: 'INVALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'IMPORT', wechat_method: '', camp_name: '', sms_send_count: 0, decrypted_at: '2026-08-13 09:00:02', created_at: '2026-08-13 09:00:00', remark: '测试数据，已审核标记无效' }
   ],
   customers: [
-    { id: 1, customer_no: 'C202608160001', name: '周女士', mobile: '13800001111', union_id: 'union_zhou_001', grade: 'A', owner_name: '王老师', status: 'ACTIVE', created_at: '2026-08-16 09:40:00' },
-    { id: 2, customer_no: 'C202608160002', name: '钱女士', mobile: '13800002222', union_id: 'union_qian_002', grade: 'B', owner_name: '陈老师', status: 'ACTIVE', created_at: '2026-08-16 10:15:00' },
-    { id: 3, customer_no: 'C202608160003', name: '吴女士', mobile: '13800003333', union_id: 'union_wu_003', grade: 'S', owner_name: '王琴', status: 'ACTIVE', created_at: '2026-08-15 15:20:00' }
+    { id: 1, customer_no: 'C202608160001', name: '周女士', mobile: '13800001111', union_id: 'union_zhou_001', grade: 'A', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-16 09:40:00' },
+    { id: 2, customer_no: 'C202608160002', name: '钱女士', mobile: '13800002222', union_id: 'union_qian_002', grade: 'B', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', owner_organization_id: 9, owner_organization_name: '一转二组', status: 'ACTIVE', created_at: '2026-08-16 10:15:00' },
+    { id: 3, customer_no: 'C202608160003', name: '吴女士', mobile: '13800003333', union_id: 'union_wu_003', grade: 'S', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-15 15:20:00' }
   ],
   messages: [
     { id: 1, receiver_username: 'admin', message_type: 'NEW_LEAD', title: '新线索已进入待分配队列', summary: '合作渠道 A 新增 1 条线索，请及时处理。', level: 'IMPORTANT', read_status: 'UNREAD', process_status: 'PENDING', created_at: '2026-08-16 10:30:09' },
@@ -79,7 +79,7 @@ function currentUser() {
   return JSON.parse(localStorage.getItem(USER_KEY) || '{"username":"admin","userNo":"U000001","displayName":"林校长","role":"ADMIN","mobile":"13800000001","email":"admin@heshu.com","gender":"MALE","departmentName":"集团管理中心","positionName":"集团管理员","hireDate":"2021-01-05","createdAt":"2026-08-16 09:00:00"}')
 }
 function menus(role: string) {
-  return role === 'ADMIN' ? v1Menus : v1Menus.filter(group => group.code !== 'SYSTEM')
+  return role === 'ADMIN' ? v1Menus : v1Menus.filter(group => !['BUSINESS_CONFIG', 'SYSTEM'].includes(group.code))
 }
 
 function buildLeadJourney(lead: Row) {
@@ -109,7 +109,10 @@ function createCustomer(body: Row) {
   if (byMobile && byUnion && byMobile.id !== byUnion.id) throw new Error('手机号和 UnionID 分别命中不同客户，已阻断转化并记录身份冲突异常；V1.5 由撞单管理承接')
   const existing = byMobile || byUnion
   if (existing) return existing
-  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: 'UNRATED', owner_name: body.ownerName || body.owner_name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+  const ownerName = body.ownerName || body.owner_name || ''
+  const owner = db.employees.find(item => item.name === ownerName || item.legal_name === ownerName)
+  const ownerOrganization = db.organizations.find(item => Number(item.id) === Number(owner?.organization_id))
+  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: 'UNRATED', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
   db.customers.unshift(customer); save(); return customer
 }
 

@@ -6,6 +6,8 @@ import { Search, Setting } from '@element-plus/icons-vue'
 import http from '../api/http'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
+import BusinessScopeFilter, { type BusinessScopeValue } from '../components/BusinessScopeFilter.vue'
+import { useAuthStore } from '../stores/auth'
 
 const rows = ref<any[]>([])
 const selectedRows = ref<any[]>([])
@@ -28,7 +30,6 @@ const sourceFilter = ref('')
 const orderStatusFilter = ref('')
 const entryMethodFilter = ref('')
 const wechatFilter = ref('')
-const ownerFilter = ref('')
 const campFilter = ref('')
 const shopFilter = ref('')
 const dateField = ref('created_at')
@@ -47,6 +48,9 @@ const batchSubtype = ref('')
 const selectedOrganizationId = ref<number | null>(null)
 const selectedAssigneeId = ref<number | null>(null)
 const assigneeKeyword = ref('')
+const auth = useAuthStore()
+const scopeFilters = ref<BusinessScopeValue>({ viewScope: 'AUTHORIZED', organizationId: null, ownerId: null, ownerStatus: '' })
+const permissionLabel = computed(() => auth.user?.role === 'ADMIN' ? '当前公司全部数据' : '本人数据')
 const form = ref({ name: '', mobile: '', unionId: '', sourceType: 'DRAINAGE', channelName: '', thirdPartyProductId: '' })
 const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_PRODUCT' : 'DRAINAGE')
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
@@ -145,7 +149,7 @@ function resetFilters() {
   orderStatusFilter.value = ''
   entryMethodFilter.value = ''
   wechatFilter.value = ''
-  ownerFilter.value = ''
+  scopeFilters.value = { viewScope: auth.user?.role === 'ADMIN' ? 'AUTHORIZED' : 'SELF', organizationId: null, ownerId: null, ownerStatus: '' }
   campFilter.value = ''
   shopFilter.value = ''
   dateField.value = 'created_at'
@@ -285,14 +289,21 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesOrderStatus = !orderStatusFilter.value || row.order_status === orderStatusFilter.value
   const matchesEntryMethod = !entryMethodFilter.value || row.entry_method === entryMethodFilter.value
   const matchesWechat = !wechatFilter.value || row.wechat_method === wechatFilter.value
-  const matchesOwner = !ownerFilter.value.trim() || `${row.owner_name || ''} ${row.owner_employee_no || ''}`.toLowerCase().includes(ownerFilter.value.trim().toLowerCase())
+  const owner = assignees.value.find(item => Number(item.id) === Number(row.owner_id))
+  const ownerOrganizationId = Number(owner?.organization_id || row.owner_organization_id || 0)
+  const canViewAuthorizedScope = auth.user?.role === 'ADMIN' && scopeFilters.value.viewScope === 'AUTHORIZED'
+  const matchesScopeView = canViewAuthorizedScope || row.owner_name === auth.user?.displayName
+  const matchesOrganization = !scopeFilters.value.organizationId || organizationScopeIds(scopeFilters.value.organizationId).includes(ownerOrganizationId)
+  const matchesOwner = !scopeFilters.value.ownerId || Number(row.owner_id) === Number(scopeFilters.value.ownerId)
+  const normalizedOwnerStatus = !owner ? 'UNASSIGNED' : owner.employment_status === 'DEPARTED' ? 'DEPARTED' : owner.account_status === 'INACTIVE' ? 'INACTIVE' : owner.employment_status || 'ACTIVE'
+  const matchesOwnerStatus = !scopeFilters.value.ownerStatus || normalizedOwnerStatus === scopeFilters.value.ownerStatus
   const matchesCamp = !campFilter.value.trim() || String(row.camp_name || '').toLowerCase().includes(campFilter.value.trim().toLowerCase())
   const matchesShop = !shopFilter.value.trim() || String(row.shop_name || '').toLowerCase().includes(shopFilter.value.trim().toLowerCase())
   const selectedDate = String(row[dateField.value] || '').slice(0, 10)
   const matchesDate = createdRange.value.length !== 2 || (!!selectedDate && selectedDate >= createdRange.value[0] && selectedDate <= createdRange.value[1])
   const text = [row.lead_no, row.third_party_product_id, row.order_no, row.name, row.mobile, row.original_mobile, row.decrypted_mobile, row.wechat_nickname, row.customer_no, row.customer_name].join(' ').toLowerCase()
   const matchesKeyword = !keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())
-  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesOwner && matchesCamp && matchesShop && matchesDate && matchesKeyword
+  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesOwnerStatus && matchesCamp && matchesShop && matchesDate && matchesKeyword
 }))
 const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
@@ -343,6 +354,14 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 
     <div class="surface table-shell">
       <div class="search-panel">
+        <BusinessScopeFilter
+          v-model="scopeFilters"
+          :organizations="organizations"
+          :employees="assignees"
+          owner-label="当前线索负责人"
+          :permission-label="permissionLabel"
+          :role="auth.user?.role"
+        />
         <div class="search-grid">
           <el-input v-model="keyword" clearable placeholder="线索/订单/客户/手机号/微信昵称"/>
           <el-select v-model="currentActionFilter" placeholder="当前待办状态" clearable><el-option v-for="(label, value) in currentActionLabels" :key="value" :label="label" :value="value"/></el-select>
@@ -361,7 +380,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="orderStatusFilter" placeholder="订单状态" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="wechatFilter" placeholder="加微方式" clearable><el-option label="企业微信" value="WECOM"/><el-option label="个人微信" value="PERSONAL_WECHAT"/></el-select>
-            <el-input v-model="ownerFilter" clearable placeholder="负责人姓名/员工编号"/>
             <el-select v-model="campFilter" placeholder="所属营期" clearable filterable><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select>
             <el-input v-model="shopFilter" clearable placeholder="店铺名称"/>
             <div class="date-filter"><el-select v-model="dateField" aria-label="日期类型"><el-option v-for="item in dateFieldOptions" :key="item.value" :label="item.label" :value="item.value"/></el-select><el-date-picker v-model="createdRange" type="daterange" value-format="YYYY-MM-DD" start-placeholder="开始日期" end-placeholder="结束日期"/></div>
@@ -563,6 +581,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   grid-template-columns: minmax(280px, 1.4fr) repeat(3, minmax(160px, 1fr));
   gap: 12px;
 }
+.business-scope-filter + .search-grid { margin-top: 12px; }
 .advanced-search {
   grid-template-columns: repeat(5, minmax(170px, 1fr));
 }

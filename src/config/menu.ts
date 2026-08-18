@@ -22,12 +22,10 @@ export const v1Menus: MenuGroup[] = [
     name: '线索中心', code: 'LEAD', children: [
       { name: '数据分析', path: '/leads/analytics', description: '分析线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['营期/日期/渠道/团队筛选', '转化漏斗', 'GMV与退款', '团队效能', '指标口径', '下钻与导出'] },
       { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，使用公共主模型和引流扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
-      { name: '线索配置', path: '/leads/rules', description: '按线索类型、地区、渠道、员工和业务维度管理分配规则。', features: ['新增规则', '规则试算', '发布', '版本回退'] },
-      { name: '活码管理', path: '/leads/qr-codes', description: '按营期、班级和接量日期管理员工活码及轮询容量。', features: ['列表', '新增', '编辑', '详情', '所属营期', '所属班级（选填）', '接量日期区间', '员工轮询上限', '启停', '下载'] },
-      { name: '渠道管理', path: '/leads/channels', description: '管理渠道基础信息和线索归因规则。', features: ['新增', '编辑', '详情', '启停'] },
-      { name: '渠道分析', path: '/leads/channel-analysis', description: '分析渠道从线索到客户的转化效果。', features: ['渠道筛选', '时间筛选', '组织筛选', '下钻', '导出'] },
-      { name: '店铺管理', path: '/leads/stores', description: '管理店铺、主体、渠道及线索来源映射。', features: ['列表', '新增', '编辑', '变更', '权限'] },
-      { name: 'IP 管理', path: '/leads/ip', description: '管理业务 IP、品牌归属及线索来源映射。', features: ['列表', '新增', '编辑', '启停'] }
+      { name: '线索配置', path: '/leads/rules', description: '分类管理活码分配、营期名单流转等规则，并支持试算、冲突检测和版本发布。', features: ['规则分类', '活码分配规则', '营期名单流转规则', '条件组合', '规则试算', '冲突检测', '发布停用', '版本回退'] },
+      { name: '活码管理', path: '/leads/qr-codes', description: '按分组及可选的营期、班级、接量日期管理员工活码、标签与轮询容量。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属营期（选填）', '所属班级（选填）', '接量日期区间（选填）', '员工轮询上限', '启停', '下载'] },
+      { name: '渠道管理', path: '/leads/channels', description: '通过渠道列表和数据分析两个页签，统一管理渠道主数据、归因规则及转化效果。', features: ['渠道列表', '数据分析', '新增', '编辑', '详情', '启停', '渠道/时间/组织筛选', '转化漏斗', '下钻', '导出'] },
+      { name: '店铺管理', path: '/leads/stores', description: '按平台类型和第三方店铺ID统一管理店铺、负责人、访问权限及经营归因。', features: ['店铺列表', '平台类型', '店铺名称', '第三方店铺ID', '店铺负责人', '创建/更新/启停日期', '新增', '编辑', '启停', '店铺权限', '线索归因口径', '业务发生口径', '业务日期类型', '线索/加微', '订单/支付', '净GMV', '经营详情', '归因异常'] }
     ]
   },
   {
@@ -43,8 +41,7 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '订单中心', code: 'ORDER', children: [
-      { name: '正式课订单', path: '/orders/formal', description: '正式课程订单列表和客户关联。', features: ['列表', '详情', '客户关联', '产品关联', '负责人', '支付状态'] },
-      { name: '诊断订单', path: '/orders/diagnosis', description: '诊断类订单列表及问卷、诊断服务关联。', features: ['列表', '详情', '客户关联', '问卷关联', '诊断服务'] }
+      { name: '正式课订单', path: '/orders/formal', description: '正式课程订单列表和客户关联。', features: ['列表', '详情', '客户关联', '产品关联', '负责人', '支付状态'] }
     ]
   },
   {
@@ -59,11 +56,7 @@ export const v1Menus: MenuGroup[] = [
     ]
   },
   {
-    name: '系统管理', code: 'SYSTEM', children: [
-      { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
-      { name: '员工管理', path: '/system/employees', description: '管理自有员工主数据及企微/飞书外部身份。', features: ['飞书初始化', '企微/飞书同步', '编辑', '启停', '离职触发'] },
-      { name: '角色管理', path: '/system/roles', description: '管理合数BOSS菜单、操作、字段和数据权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '数据范围', '影响预览'] },
-      { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },
+    name: '业务配置', code: 'BUSINESS_CONFIG', children: [
       { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
       { name: '短信管理', description: '复用历史短信服务配置和发送结果。', features: ['下单短信', '签名', '短信模板', '发送结果'], children: [
         { name: '下单短信', path: '/system/sms/orders', description: '查询短信发送任务。', features: ['查询','详情'] },
@@ -80,7 +73,15 @@ export const v1Menus: MenuGroup[] = [
         { name: '落地页配置', path: '/system/configurations/landing', description: '维护落地页及回传配置。', features: ['新增','校验','启停'] }
       ] },
       { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] },
-      { name: '支付管理', path: '/system/payments', description: '管理历史支付服务配置和退款凭据。', features: ['支付配置', 'SM2 密钥', '连接测试', '默认切换', '退款凭据'] },
+      { name: '支付管理', path: '/system/payments', description: '管理历史支付服务配置和退款凭据。', features: ['支付配置', 'SM2 密钥', '连接测试', '默认切换', '退款凭据'] }
+    ]
+  },
+  {
+    name: '系统管理', code: 'SYSTEM', children: [
+      { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
+      { name: '员工管理', path: '/system/employees', description: '管理自有员工主数据及企微/飞书外部身份。', features: ['飞书初始化', '企微/飞书同步', '编辑', '启停', '离职触发'] },
+      { name: '角色管理', path: '/system/roles', description: '管理合数BOSS菜单、操作、字段和数据权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '数据范围', '影响预览'] },
+      { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },
       { name: '日志查询', path: '/system/logs', description: '查询登录、操作、权限、配置和接口日志。', features: ['查询', '详情', '审批导出', '归档'] },
       { name: '地区管理', path: '/system/regions', description: '管理国家、省、市、区县标准地区树。', features: ['导入', '新增', '编辑', '启停', '差异更新'] }
     ]

@@ -2,11 +2,11 @@
 import { onMounted, reactive, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  Aim, ArrowDown, ArrowRight, Avatar, Bell, Calendar, ChatDotRound, Clock, Close,
+  ArrowDown, ArrowRight, Avatar, Bell, Calendar, ChatDotRound, Clock, Close,
   Connection, CreditCard, DataLine, Document, DocumentChecked, House, Key, Link,
   Location, Menu as MenuIcon, Message, Notebook, OfficeBuilding, Opportunity,
   Platform, Postcard, PriceTag, Promotion, Rank, Refresh, School, Search, Service,
-  SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools, TrendCharts,
+  SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools,
   User, Warning
 } from '@element-plus/icons-vue'
 import { useAuthStore, type MenuItem } from '../stores/auth'
@@ -29,6 +29,7 @@ const groupIcons: Record<string, Component> = {
   ORDER: ShoppingBag,
   DELIVERY: School,
   QUESTIONNAIRE: DocumentChecked,
+  BUSINESS_CONFIG: Tools,
   SYSTEM: Setting
 }
 
@@ -39,9 +40,7 @@ const leafIcons: Record<string, Component> = {
   '/leads/rules': SetUp,
   '/leads/qr-codes': Tickets,
   '/leads/channels': Connection,
-  '/leads/channel-analysis': TrendCharts,
   '/leads/stores': Shop,
-  '/leads/ip': Aim,
   '/customers/overview': DataLine,
   '/customers/list': User,
   '/customers/conflicts': Warning,
@@ -52,7 +51,6 @@ const leafIcons: Record<string, Component> = {
   '/customers/opportunities': Opportunity,
   '/customers/inheritance': Switch,
   '/orders/formal': ShoppingBag,
-  '/orders/diagnosis': Tickets,
   '/delivery/periods': Calendar,
   '/delivery/classes': School,
   '/questionnaires/list': Notebook,

@@ -7,7 +7,11 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/leads/drainage': () => import('../views/LeadsView.vue'),
   '/leads/analytics': () => import('../views/LeadAnalyticsView.vue'),
   '/leads/qr-codes': () => import('../views/QrCodeManagementView.vue'),
+  '/leads/rules': () => import('../views/LeadRuleManagementView.vue'),
+  '/leads/channels': () => import('../views/ChannelManagementView.vue'),
+  '/leads/stores': () => import('../views/StoreManagementView.vue'),
   '/customers/list': () => import('../views/CustomersView.vue'),
+  '/orders/formal': () => import('../views/FormalOrdersView.vue'),
   '/system/organizations': () => import('../views/SystemView.vue'),
   '/system/employees': () => import('../views/SystemView.vue'),
   '/system/roles': () => import('../views/RoleView.vue'),
@@ -32,6 +36,10 @@ const menuRoutes: RouteRecordRaw[] = menuLeaves.map(item => ({
   component: specificComponents[item.path!] || (() => import('../views/ModulePlaceholderView.vue')),
   meta: { title: item.name, groupName: item.groupName, groupCode: item.groupCode, description: item.description, features: item.features }
 }))
+
+menuRoutes.push({ path: 'leads/channel-analysis', redirect: '/leads/channels?tab=analysis' })
+menuRoutes.push({ path: 'leads/ip', redirect: '/leads/channels' })
+menuRoutes.push({ path: 'orders/diagnosis', redirect: '/orders/formal' })
 
 menuRoutes.push({
   path: 'profile',
