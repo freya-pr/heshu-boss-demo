@@ -45,13 +45,13 @@ const seed: DemoDb = {
     { id: 9, parent_id: 2, code: 'ORG-TEM-000008', name: '一转二组', type: 'GROUP_TEAM', owner_name: '陈老师', status: 'INACTIVE', employee_count: 1, created_at: '2026-08-05 09:30:00' },
   ],
   employees: [
-    { id: 1, employee_no: 'B00001', name: '李士文', legal_name: '李士文', mobile_masked: '138****1201', email: 'lishiwen@heshu.com', organization_id: 2, position_name: '部门负责人', wecom_user_id: 'wx_lishiwen', feishu_user_id: 'ou_lishiwen', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 18 },
-    { id: 2, employee_no: 'B00126', name: '王老师', legal_name: '王琴', mobile_masked: '139****4508', email: 'wangqin@heshu.com', organization_id: 3, position_name: '课程顾问', wecom_user_id: 'wx_wang', feishu_user_id: 'ou_wang', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 12 },
-    { id: 3, employee_no: 'B00135', name: '陈老师', legal_name: '陈晨', mobile_masked: '136****8821', email: 'chenchen@heshu.com', organization_id: 9, position_name: '课程顾问', wecom_user_id: 'wx_chen', feishu_user_id: 'ou_chen', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 16 },
-    { id: 4, employee_no: 'B00208', name: '刘老师', legal_name: '刘子云', mobile_masked: '157****5728', email: 'liuziyun@heshu.com', organization_id: 5, position_name: '客服专员', wecom_user_id: 'wx_liu', feishu_user_id: 'ou_liu', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 9 },
-    { id: 5, employee_no: 'B00281', name: '吴老师', legal_name: '吴若燕', mobile_masked: '136****0104', email: 'wuruoyan@heshu.com', organization_id: 6, position_name: '运营专员', wecom_user_id: '', feishu_user_id: 'ou_wu', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 7 },
-    { id: 6, employee_no: 'B00293', name: '李经理', legal_name: '李景', mobile_masked: '136****8265', email: 'lijing@heshu.com', organization_id: 7, position_name: '财务经理', wecom_user_id: 'wx_lijing', feishu_user_id: 'ou_lijing', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 3 },
-    { id: 7, employee_no: 'B00297', name: '赵主管', legal_name: '赵梅', mobile_masked: '183****9828', email: 'zhaomei@heshu.com', organization_id: 8, position_name: '人事主管', wecom_user_id: 'wx_zhao', feishu_user_id: '', employment_status: 'ACTIVE', account_status: 'INACTIVE', load: 0 }
+    { id: 1, employee_no: 'B00001', name: '李士文', legal_name: '李士文', mobile_masked: '138****1201', email: 'lishiwen@heshu.com', organization_id: 2, position_name: '部门负责人', wecom_user_id: 'wx_lishiwen', feishu_user_id: 'ou_lishiwen', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 18, assignment_limit: 30, qr_camp_name: '2026暑期第3营' },
+    { id: 2, employee_no: 'B00126', name: '王老师', legal_name: '王琴', mobile_masked: '139****4508', email: 'wangqin@heshu.com', organization_id: 3, position_name: '课程顾问', wecom_user_id: 'wx_wang', feishu_user_id: 'ou_wang', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 12, assignment_limit: 20, qr_camp_name: '2026暑期第3营' },
+    { id: 3, employee_no: 'B00135', name: '陈老师', legal_name: '陈晨', mobile_masked: '136****8821', email: 'chenchen@heshu.com', organization_id: 9, position_name: '课程顾问', wecom_user_id: 'wx_chen', feishu_user_id: 'ou_chen', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 16, assignment_limit: 18, qr_camp_name: '2026暑期第3营' },
+    { id: 4, employee_no: 'B00208', name: '刘老师', legal_name: '刘子云', mobile_masked: '157****5728', email: 'liuziyun@heshu.com', organization_id: 5, position_name: '客服专员', wecom_user_id: 'wx_liu', feishu_user_id: 'ou_liu', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 9, assignment_limit: 15, qr_camp_name: '2026暑期第3营' },
+    { id: 5, employee_no: 'B00281', name: '吴老师', legal_name: '吴若燕', mobile_masked: '136****0104', email: 'wuruoyan@heshu.com', organization_id: 6, position_name: '运营专员', wecom_user_id: '', feishu_user_id: 'ou_wu', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 7, assignment_limit: 10, qr_camp_name: '' },
+    { id: 6, employee_no: 'B00293', name: '李经理', legal_name: '李景', mobile_masked: '136****8265', email: 'lijing@heshu.com', organization_id: 7, position_name: '财务经理', wecom_user_id: 'wx_lijing', feishu_user_id: 'ou_lijing', employment_status: 'ACTIVE', account_status: 'ACTIVE', load: 3, assignment_limit: 8, qr_camp_name: '' },
+    { id: 7, employee_no: 'B00297', name: '赵主管', legal_name: '赵梅', mobile_masked: '183****9828', email: 'zhaomei@heshu.com', organization_id: 8, position_name: '人事主管', wecom_user_id: 'wx_zhao', feishu_user_id: '', employment_status: 'ACTIVE', account_status: 'INACTIVE', load: 0, assignment_limit: 0, qr_camp_name: '' }
   ]
 }
 
@@ -125,6 +125,24 @@ export const demoHttp = {
     }
     if (path === '/auth/bindings') return ok([])
     if (path === '/dashboard') return ok({ metrics: { leads: db.leads.length, pendingAssignment: db.leads.filter(item => item.status === 'PENDING_ASSIGNMENT').length, customers: db.customers.length, unreadMessages: db.messages.filter(item => item.read_status === 'UNREAD').length, gradeAOrS: db.customers.filter(item => ['S', 'A'].includes(item.grade)).length }, flow: ['渠道获客', '统一接入', '数据清洗', '线索识别', '员工活码分配', '客户加微', '客户建档', '问卷定级', '业务转化'] })
+    if (path === '/leads/analytics') return ok({
+      updatedAt: '2026-08-18 16:30:00', periodName: '2026 暑期第 3 营',
+      funnel: { leads: 30000, wechat: 18600, questionnaire: 12900, reservation: 9450, arrival: 7320, completion: 5870, deal: 1286, online: 618, refund: 74 },
+      finance: { grossGmv: 3842000, refundAmount: 126000, netGmv: 3716000, targetGmv: 4200000 },
+      efficiency: { serviceStaff: 252, peopleServiceRatio: 119.0, perCapitaGmv: 14746, conversionDispersion: 12.8 },
+      trend: [
+        { label: '08/12', leads: 3920, deals: 142 }, { label: '08/13', leads: 4180, deals: 161 },
+        { label: '08/14', leads: 4460, deals: 178 }, { label: '08/15', leads: 4320, deals: 184 },
+        { label: '08/16', leads: 4610, deals: 205 }, { label: '08/17', leads: 4380, deals: 197 },
+        { label: '08/18', leads: 4130, deals: 219 }
+      ],
+      channels: [
+        { name: '抖音', leads: 12480, wechat: 8120, questionnaire: 5520, deals: 586, conversionRate: 4.70, netGmv: 1688000 },
+        { name: '有赞', leads: 7060, wechat: 4480, questionnaire: 3260, deals: 318, conversionRate: 4.50, netGmv: 912000 },
+        { name: '小鹅通', leads: 6240, wechat: 3610, questionnaire: 2480, deals: 236, conversionRate: 3.78, netGmv: 694000 },
+        { name: '百家号', leads: 4220, wechat: 2390, questionnaire: 1640, deals: 146, conversionRate: 3.46, netGmv: 422000 }
+      ]
+    })
     if (path === '/leads') {
       const status = config.params?.status
       const sourceType = config.params?.sourceType

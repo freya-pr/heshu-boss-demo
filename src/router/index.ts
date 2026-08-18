@@ -6,6 +6,7 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/dashboard': () => import('../views/DashboardView.vue'),
   '/leads/drainage': () => import('../views/LeadsView.vue'),
   '/leads/third-party': () => import('../views/LeadsView.vue'),
+  '/leads/analytics': () => import('../views/LeadAnalyticsView.vue'),
   '/customers/list': () => import('../views/CustomersView.vue'),
   '/system/organizations': () => import('../views/SystemView.vue'),
   '/system/employees': () => import('../views/SystemView.vue'),

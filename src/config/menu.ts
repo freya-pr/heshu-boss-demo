@@ -26,6 +26,7 @@ export const v1Menus: MenuGroup[] = [
       { name: '活码管理', path: '/leads/qr-codes', description: '管理新旧员工活码、接待范围和备用接待人。', features: ['新增', '编辑', '启停', '下载', '标签与营期配置', '备用接待'] },
       { name: '渠道管理', path: '/leads/channels', description: '管理渠道基础信息和线索归因规则。', features: ['新增', '编辑', '详情', '启停'] },
       { name: '渠道分析', path: '/leads/channel-analysis', description: '分析渠道从线索到客户的转化效果。', features: ['渠道筛选', '时间筛选', '组织筛选', '下钻', '导出'] },
+      { name: '数据分析', path: '/leads/analytics', description: '分析线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['营期/日期/渠道/团队筛选', '转化漏斗', 'GMV与退款', '团队效能', '指标口径', '下钻与导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '管理店铺、主体、渠道及线索来源映射。', features: ['列表', '新增', '编辑', '变更', '权限'] },
       { name: 'IP 管理', path: '/leads/ip', description: '管理业务 IP、品牌归属及线索来源映射。', features: ['列表', '新增', '编辑', '启停'] }
     ]

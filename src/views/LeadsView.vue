@@ -11,6 +11,7 @@ const rows = ref<any[]>([])
 const selectedRows = ref<any[]>([])
 const route = useRoute()
 const assignees = ref<any[]>([])
+const organizations = ref<any[]>([])
 const loading = ref(false)
 const error = ref('')
 const currentActionFilter = ref('')
@@ -43,6 +44,8 @@ const columnSettingVisible = ref(false)
 const batchDialogVisible = ref(false)
 const batchAction = ref('')
 const batchSubtype = ref('')
+const selectedOrganizationId = ref<number | null>(null)
+const selectedAssigneeId = ref<number | null>(null)
 const form = ref({ name: '', mobile: '', unionId: '', sourceType: 'DRAINAGE', channelName: '', thirdPartyProductId: '' })
 const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_PRODUCT' : 'DRAINAGE')
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
@@ -81,12 +84,14 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [leadRes, employeeRes]: any = await Promise.all([
+    const [leadRes, employeeRes, organizationRes]: any = await Promise.all([
       http.get('/leads', { params: { sourceType: sourceType.value } }),
-      http.get('/leads/assignees')
+      http.get('/leads/assignees'),
+      http.get('/system/organizations')
     ])
     rows.value = leadRes.data.map(normalizeLeadState)
     assignees.value = employeeRes.data
+    organizations.value = organizationRes.data
   } catch (e: any) {
     error.value = e.message
   } finally {
@@ -104,7 +109,7 @@ async function create() {
 }
 
 async function assign(row: any) {
-  const options = assignees.value.map(item => ({ value: item.id, label: `${item.name}（当前负载 ${item.load ?? '-'}）` }))
+  const options = assignees.value.map(item => ({ value: item.id, label: `${item.name}（已分配 ${item.load ?? 0}/${item.assignment_limit ?? '未配置'}）` }))
   const result: any = await ElMessageBox.prompt(`可选员工：${options.map(item => `${item.value}-${item.label}`).join('；')}`, '人工指定分配', {
     confirmButtonText: '确认分配', cancelButtonText: '取消', inputValue: String(options[0]?.value || 2), inputPattern: /^\d+$/, inputErrorMessage: '请输入有效员工 ID'
   })
@@ -185,25 +190,57 @@ const batchActionLabels: Record<string, string> = {
   IMPORT: '批量导入', EXPORT: '批量导出', QUERY_ABNORMAL_ORDER: '查询异常订单'
 }
 const batchSubtypeOptions = computed(() => ({
-  ASSIGN: ['人工指定', '轮询分配', '员工负载分配'],
+  ASSIGN: ['人工指定', '轮询分配'],
   SYNC_ORDER: ['同步缺失订单', '重新同步当前订单', '异常订单补偿同步'],
   SYNC_MOBILE: ['同步手机号', '导入解密结果'],
   IMPORT: ['导入线索', '导入订单', '导入外部订单', '导入解密数据'],
   EXPORT: ['导出当前查询结果', '导出已勾选线索', '导出重复订单', '导出非解密数据'],
   QUERY_ABNORMAL_ORDER: ['查询当前结果中的异常订单', '查询全部未处理异常订单']
 }[batchAction.value] || []))
+const organizationTree = computed(() => {
+  const byParent = new Map<any, any[]>()
+  organizations.value.forEach(item => { const key = item.parent_id ?? null; byParent.set(key, [...(byParent.get(key) || []), { ...item, label: item.name }]) })
+  const build = (parentId: any): any[] => (byParent.get(parentId) || []).map(item => ({ ...item, children: build(item.id) }))
+  return build(null)
+})
+function organizationScopeIds(id: number | null) {
+  if (!id) return organizations.value.map(item => item.id)
+  const ids = [id]
+  for (let index = 0; index < ids.length; index++) organizations.value.filter(item => item.parent_id === ids[index]).forEach(item => ids.push(item.id))
+  return ids
+}
+const visibleAssignees = computed(() => {
+  const scope = organizationScopeIds(selectedOrganizationId.value)
+  return assignees.value.filter(item => scope.includes(item.organization_id))
+})
+const latestCampName = computed(() => assignees.value.find(item => item.qr_camp_name)?.qr_camp_name || '最新营期')
+const latestCampEligibleCount = computed(() => assignees.value.filter(item => item.qr_camp_name === latestCampName.value && Number(item.load || 0) < Number(item.assignment_limit || 0)).length)
+function assigneeUnavailable(item: any) { return !item.qr_camp_name || !Number(item.assignment_limit || 0) || Number(item.load || 0) >= Number(item.assignment_limit || 0) }
+function selectOrganization(node: any) { selectedOrganizationId.value = node.id; selectedAssigneeId.value = null }
+function chooseAssignee(item: any) {
+  if (assigneeUnavailable(item)) return
+  selectedAssigneeId.value = item.id
+}
 function openBatchAction(command: string) {
   if (['ASSIGN','SYNC_ORDER','SYNC_MOBILE'].includes(command) && !selectedRows.value.length) {
     return ElMessage.warning('请先勾选需要处理的线索')
   }
   batchAction.value = command
   batchSubtype.value = ({ ASSIGN: '人工指定', SYNC_ORDER: '同步缺失订单', SYNC_MOBILE: '同步手机号', IMPORT: '导入线索', EXPORT: '导出当前查询结果', QUERY_ABNORMAL_ORDER: '查询当前结果中的异常订单' } as Record<string,string>)[command] || ''
+  selectedOrganizationId.value = null
+  selectedAssigneeId.value = null
   batchDialogVisible.value = true
 }
-function confirmBatchAction() {
+async function confirmBatchAction() {
   const scopeCount = selectedRows.value.length || displayedRows.value.length
+  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定' && !selectedAssigneeId.value) return ElMessage.warning('请从组织架构中选择接收线索的员工')
+  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '轮询分配' && !latestCampEligibleCount.value) return ElMessage.warning('最新营期暂无可接待人员，请先维护活码人员名单和分配上限')
+  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定') {
+    await Promise.all(selectedRows.value.map(row => http.post(`/leads/${row.id}/assign`, { employeeId: selectedAssigneeId.value })))
+  }
   ElMessage.success(`${batchActionLabels[batchAction.value]} · ${batchSubtype.value}任务已创建，共 ${scopeCount} 条数据`)
   batchDialogVisible.value = false
+  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定') await load()
 }
 
 watch(() => route.path, () => { form.value.sourceType = sourceType.value; load() })
@@ -428,7 +465,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <template #footer><el-button @click="dialog = false">取消</el-button><el-button type="primary" @click="create">创建线索</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" width="560px">
+    <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : '560px'" class="batch-dialog">
       <div class="batch-dialog-content">
         <el-alert :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
         <el-form label-position="top">
@@ -438,6 +475,23 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             </el-radio-group>
           </el-form-item>
         </el-form>
+        <div v-if="batchAction === 'ASSIGN' && batchSubtype === '人工指定'" class="assignee-picker">
+          <aside class="organization-pane">
+            <div class="picker-title"><strong>选择组织</strong><span>公司 / 部门 / 小组</span></div>
+            <el-tree :data="organizationTree" node-key="id" default-expand-all highlight-current :expand-on-click-node="false" @node-click="selectOrganization"/>
+          </aside>
+          <section class="employee-pane">
+            <div class="picker-title"><strong>选择员工</strong><span>{{ visibleAssignees.length }} 人</span></div>
+            <div class="employee-grid">
+              <button v-for="item in visibleAssignees" :key="item.id" type="button" class="employee-card" :class="{ selected: selectedAssigneeId === item.id, full: assigneeUnavailable(item) }" @click="chooseAssignee(item)">
+                <i>{{ item.name.slice(0, 1) }}</i><span><b>{{ item.name }}</b><small>{{ item.employee_no }} · {{ item.position_name }}</small><em>已分配 {{ item.load || 0 }} / 上限 {{ item.assignment_limit || '未配置' }}</em></span><u>{{ !item.qr_camp_name ? '未配置活码' : Number(item.load || 0) >= Number(item.assignment_limit || 0) ? '已达上限' : selectedAssigneeId === item.id ? '已选择' : '可分配' }}</u>
+              </button>
+            </div>
+            <el-empty v-if="!visibleAssignees.length" :image-size="52" description="当前组织暂无可分配员工"/>
+          </section>
+        </div>
+        <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新营期配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
+        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>分配上限说明</b><span>员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新营期活码名单的员工，不参与轮询。</span></div>
         <p class="batch-warning">系统将生成可追踪的批量任务，执行进度、成功数量和失败原因会保留在任务记录中。</p>
       </div>
       <template #footer><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">确认创建任务</el-button></template>
@@ -568,6 +622,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   color: #64748b;
   font-size: 13px;
 }
+.assignee-picker{display:grid;grid-template-columns:250px 1fr;min-height:286px;border:1px solid #e4ebf4;border-radius:10px;overflow:hidden;background:#fff}.organization-pane{padding:16px;border-right:1px solid #e4ebf4;background:#f8fafc}.employee-pane{padding:16px}.picker-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:13px}.picker-title strong{color:#24324a}.picker-title span{color:#94a3b8;font-size:11px}.organization-pane :deep(.el-tree){background:transparent;color:#53657e}.organization-pane :deep(.el-tree-node__content){height:34px;border-radius:6px}.organization-pane :deep(.el-tree-node__content:hover),.organization-pane :deep(.is-current>.el-tree-node__content){background:#eaf2ff;color:#2875e6}.employee-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;max-height:246px;overflow:auto;padding-right:3px}.employee-card{min-height:86px;padding:11px;border:1px solid #e4ebf4;border-radius:9px;background:#fff;display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:start;text-align:left;color:#24324a;cursor:pointer}.employee-card:hover{border-color:#9fc2f2;background:#f8fbff}.employee-card.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.employee-card.full{opacity:.55;cursor:not-allowed;background:#f7f8fa}.employee-card>i{width:36px;height:36px;display:grid;place-items:center;border-radius:9px;background:#eaf2ff;color:#2875e6;font-style:normal;font-weight:700}.employee-card span b,.employee-card span small,.employee-card span em{display:block}.employee-card span small{margin-top:4px;color:#708097;font-size:10px}.employee-card span em{margin-top:8px;color:#5c7190;font-size:10px;font-style:normal}.employee-card u{color:#2875e6;font-size:10px;text-decoration:none}.employee-card.full u{color:#8b98a9}.capacity-note{display:flex;gap:12px;padding:12px 14px;border-radius:8px;background:#fff8ec;color:#79551f;font-size:12px;line-height:1.6}.capacity-note b{white-space:nowrap}.capacity-note span{color:#8b6a36}
 .cell-sub {
   display: block;
   margin-top: 4px;
@@ -604,5 +659,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   .search-grid,
   .advanced-search { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
   .date-filter { grid-column: span 2; }
+  .assignee-picker { grid-template-columns: 1fr; }
+  .organization-pane { border-right: 0; border-bottom: 1px solid #e5edf7; }
 }
 </style>
