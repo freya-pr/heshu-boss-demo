@@ -106,11 +106,79 @@ function createCustomer(body: Row) {
   if (!mobile && !unionId) throw new Error('手机号或 UnionID 至少填写一项')
   const byMobile = mobile ? db.customers.find(item => item.mobile === mobile) : undefined
   const byUnion = unionId ? db.customers.find(item => item.union_id === unionId) : undefined
-  if (byMobile && byUnion && byMobile.id !== byUnion.id) throw new Error('手机号和 UnionID 分别命中不同客户，请进入撞单管理')
+  if (byMobile && byUnion && byMobile.id !== byUnion.id) throw new Error('手机号和 UnionID 分别命中不同客户，已阻断转化并记录身份冲突异常；V1.5 由撞单管理承接')
   const existing = byMobile || byUnion
   if (existing) return existing
   const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: 'UNRATED', owner_name: body.ownerName || body.owner_name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
   db.customers.unshift(customer); save(); return customer
+}
+
+const analyticsChannels = [
+  { name: '抖音', leads: 12480, wechat: 8120, questionnaire: 5520, deals: 586, netGmv: 1688000 },
+  { name: '有赞', leads: 7060, wechat: 4480, questionnaire: 3260, deals: 318, netGmv: 912000 },
+  { name: '小鹅通', leads: 6240, wechat: 3610, questionnaire: 2480, deals: 236, netGmv: 694000 },
+  { name: '百家号', leads: 4220, wechat: 2390, questionnaire: 1640, deals: 146, netGmv: 422000 }
+]
+
+function scaleNumber(value: number, scale: number) { return Math.max(0, Math.round(value * scale)) }
+
+function buildLeadAnalytics(params: Row = {}) {
+  const periodName = String(params.period || '2026 暑期第 3 营')
+  const selectedChannel = String(params.channel || '全部渠道')
+  const selectedTeam = String(params.team || '一转销售部')
+  const periodScale = ({ '2026 暑期第 3 营': 1, '2026 暑期第 2 营': 0.86, '2026 暑期体验营': 0.62 } as Row)[periodName] || 1
+  const teamScale = ({ '一转销售部': 1, '一转一组': 0.54, '一转二组': 0.46 } as Row)[selectedTeam] || 1
+  const selectedRows = selectedChannel === '全部渠道' ? analyticsChannels : analyticsChannels.filter(item => item.name === selectedChannel)
+  const totals = selectedRows.reduce((sum, item) => ({
+    leads: sum.leads + item.leads,
+    wechat: sum.wechat + item.wechat,
+    questionnaire: sum.questionnaire + item.questionnaire,
+    deals: sum.deals + item.deals,
+    netGmv: sum.netGmv + item.netGmv
+  }), { leads: 0, wechat: 0, questionnaire: 0, deals: 0, netGmv: 0 })
+  const scale = periodScale * teamScale
+  const leads = scaleNumber(totals.leads, scale)
+  const wechat = scaleNumber(totals.wechat, scale)
+  const questionnaire = scaleNumber(totals.questionnaire, scale)
+  const reservation = scaleNumber(questionnaire, 0.733)
+  const arrival = scaleNumber(reservation, 0.775)
+  const completion = scaleNumber(arrival, 0.802)
+  const deal = scaleNumber(totals.deals, scale)
+  const refund = scaleNumber(deal, 0.0575)
+  const grossGmv = scaleNumber(deal, 2987)
+  const refundAmount = scaleNumber(refund, 1703)
+  const netGmv = grossGmv - refundAmount
+  const serviceStaff = Math.max(1, scaleNumber(252, teamScale))
+  const targetGmv = scaleNumber(4200000 * (totals.leads / 30000), periodScale * teamScale)
+  const trendBase = [142, 161, 178, 184, 205, 197, 219]
+  const labels = ['08/12', '08/13', '08/14', '08/15', '08/16', '08/17', '08/18']
+  const trendRatio = deal / 1286
+  const trend = labels.map((label, index) => ({
+    label,
+    leads: scaleNumber([3920, 4180, 4460, 4320, 4610, 4380, 4130][index], leads / 30000),
+    deals: scaleNumber(trendBase[index], trendRatio)
+  }))
+  const channels = selectedRows.map(item => {
+    const channelLeads = scaleNumber(item.leads, scale)
+    const channelDeals = scaleNumber(item.deals, scale)
+    return {
+      ...item,
+      leads: channelLeads,
+      wechat: scaleNumber(item.wechat, scale),
+      questionnaire: scaleNumber(item.questionnaire, scale),
+      deals: channelDeals,
+      conversionRate: channelLeads ? channelDeals / channelLeads * 100 : 0,
+      netGmv: scaleNumber(item.netGmv, scale)
+    }
+  })
+  return {
+    dataMode: 'DEMO', updatedAt: '2026-08-18 18:00:00', periodName,
+    funnel: { leads, wechat, questionnaire, reservation, arrival, completion, deal, online: scaleNumber(618, scale), refund },
+    finance: { grossGmv, refundAmount, netGmv, targetGmv },
+    efficiency: { serviceStaff, peopleServiceRatio: Number((leads / serviceStaff).toFixed(1)), perCapitaGmv: Math.round(netGmv / serviceStaff), conversionDispersion: selectedTeam === '一转销售部' ? 12.8 : selectedTeam === '一转一组' ? 9.6 : 15.2 },
+    trend,
+    channels
+  }
 }
 
 export const isDemoMode = import.meta.env.VITE_DEMO_MODE !== 'false'
@@ -125,24 +193,7 @@ export const demoHttp = {
     }
     if (path === '/auth/bindings') return ok([])
     if (path === '/dashboard') return ok({ metrics: { leads: db.leads.length, pendingAssignment: db.leads.filter(item => item.status === 'PENDING_ASSIGNMENT').length, customers: db.customers.length, unreadMessages: db.messages.filter(item => item.read_status === 'UNREAD').length, gradeAOrS: db.customers.filter(item => ['S', 'A'].includes(item.grade)).length }, flow: ['渠道获客', '统一接入', '数据清洗', '线索识别', '员工活码分配', '客户加微', '客户建档', '问卷定级', '业务转化'] })
-    if (path === '/leads/analytics') return ok({
-      updatedAt: '2026-08-18 16:30:00', periodName: '2026 暑期第 3 营',
-      funnel: { leads: 30000, wechat: 18600, questionnaire: 12900, reservation: 9450, arrival: 7320, completion: 5870, deal: 1286, online: 618, refund: 74 },
-      finance: { grossGmv: 3842000, refundAmount: 126000, netGmv: 3716000, targetGmv: 4200000 },
-      efficiency: { serviceStaff: 252, peopleServiceRatio: 119.0, perCapitaGmv: 14746, conversionDispersion: 12.8 },
-      trend: [
-        { label: '08/12', leads: 3920, deals: 142 }, { label: '08/13', leads: 4180, deals: 161 },
-        { label: '08/14', leads: 4460, deals: 178 }, { label: '08/15', leads: 4320, deals: 184 },
-        { label: '08/16', leads: 4610, deals: 205 }, { label: '08/17', leads: 4380, deals: 197 },
-        { label: '08/18', leads: 4130, deals: 219 }
-      ],
-      channels: [
-        { name: '抖音', leads: 12480, wechat: 8120, questionnaire: 5520, deals: 586, conversionRate: 4.70, netGmv: 1688000 },
-        { name: '有赞', leads: 7060, wechat: 4480, questionnaire: 3260, deals: 318, conversionRate: 4.50, netGmv: 912000 },
-        { name: '小鹅通', leads: 6240, wechat: 3610, questionnaire: 2480, deals: 236, conversionRate: 3.78, netGmv: 694000 },
-        { name: '百家号', leads: 4220, wechat: 2390, questionnaire: 1640, deals: 146, conversionRate: 3.46, netGmv: 422000 }
-      ]
-    })
+    if (path === '/leads/analytics') return ok(buildLeadAnalytics(config.params || {}))
     if (path === '/leads') {
       const status = config.params?.status
       const sourceType = config.params?.sourceType

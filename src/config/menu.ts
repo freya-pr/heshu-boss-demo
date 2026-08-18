@@ -20,13 +20,12 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '线索中心', code: 'LEAD', children: [
+      { name: '数据分析', path: '/leads/analytics', description: '分析线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['营期/日期/渠道/团队筛选', '转化漏斗', 'GMV与退款', '团队效能', '指标口径', '下钻与导出'] },
       { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，使用公共主模型和引流扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
-      { name: '三方品线索', path: '/leads/third-party', description: '合作类及三方品线索列表，使用公共主模型和三方品扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
       { name: '线索配置', path: '/leads/rules', description: '按线索类型、地区、渠道、员工和业务维度管理分配规则。', features: ['新增规则', '规则试算', '发布', '版本回退'] },
-      { name: '活码管理', path: '/leads/qr-codes', description: '管理新旧员工活码、接待范围和备用接待人。', features: ['新增', '编辑', '启停', '下载', '标签与营期配置', '备用接待'] },
+      { name: '活码管理', path: '/leads/qr-codes', description: '按营期、班级和接量日期管理员工活码及轮询容量。', features: ['列表', '新增', '编辑', '详情', '所属营期', '所属班级（选填）', '接量日期区间', '员工轮询上限', '启停', '下载'] },
       { name: '渠道管理', path: '/leads/channels', description: '管理渠道基础信息和线索归因规则。', features: ['新增', '编辑', '详情', '启停'] },
       { name: '渠道分析', path: '/leads/channel-analysis', description: '分析渠道从线索到客户的转化效果。', features: ['渠道筛选', '时间筛选', '组织筛选', '下钻', '导出'] },
-      { name: '数据分析', path: '/leads/analytics', description: '分析线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['营期/日期/渠道/团队筛选', '转化漏斗', 'GMV与退款', '团队效能', '指标口径', '下钻与导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '管理店铺、主体、渠道及线索来源映射。', features: ['列表', '新增', '编辑', '变更', '权限'] },
       { name: 'IP 管理', path: '/leads/ip', description: '管理业务 IP、品牌归属及线索来源映射。', features: ['列表', '新增', '编辑', '启停'] }
     ]
@@ -35,8 +34,6 @@ export const v1Menus: MenuGroup[] = [
     name: '客户中心', code: 'CUSTOMER', children: [
       { name: '客户总览', path: '/customers/overview', description: '客户经营数据概览。', features: ['组织筛选', '来源筛选', '等级筛选', '归属筛选', '进入明细'] },
       { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理身份和客户档案。', features: ['查看', '编辑', '身份补录', '负责人', '标签', '跟进', '商机关联'] },
-      { name: '撞单管理', path: '/customers/conflicts', description: '处理客户身份或负责人归属冲突。', features: ['证据对比', '身份划归', '归属裁决', '合并', '拆分', '复核'] },
-      { name: '公海客户', path: '/customers/pool', description: '管理客户公海池、回收和领取。', features: ['回收', '领取', '管理员分配', '保护', '释放', '历史'] },
       { name: '跟进记录', path: '/customers/follow-ups', description: '客户跟进时间轴和待办。', features: ['新增跟进', '跟进结果', '下次跟进', '查看历史'] },
       { name: '标签管理', path: '/customers/tags', description: '管理客户标签及规则。', features: ['新增', '编辑', '停用', '手动打标', '规则打标', '历史'] },
       { name: '等级管理', path: '/customers/grades', description: '配置 S/A/B/C 等级及问卷指标评分规则。', features: ['等级定义', '问卷指标', '评分规则', '试算', '发布', '版本历史'] },

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Setting } from '@element-plus/icons-vue'
+import { Search, Setting } from '@element-plus/icons-vue'
 import http from '../api/http'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
@@ -46,6 +46,7 @@ const batchAction = ref('')
 const batchSubtype = ref('')
 const selectedOrganizationId = ref<number | null>(null)
 const selectedAssigneeId = ref<number | null>(null)
+const assigneeKeyword = ref('')
 const form = ref({ name: '', mobile: '', unionId: '', sourceType: 'DRAINAGE', channelName: '', thirdPartyProductId: '' })
 const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_PRODUCT' : 'DRAINAGE')
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
@@ -120,7 +121,7 @@ async function assign(row: any) {
 
 async function convert(row: any) {
   try {
-    await ElMessageBox.confirm('系统将使用手机号或 UnionID 匹配唯一客户，冲突数据会进入撞单管理。', '转为正式客户', { confirmButtonText: '确认转客户', cancelButtonText: '取消', type: 'warning' })
+    await ElMessageBox.confirm('系统将使用手机号或 UnionID 匹配唯一客户。身份冲突时将阻断转化并记录异常，V1.5 再由撞单管理承接。', '转为正式客户', { confirmButtonText: '确认转客户', cancelButtonText: '取消', type: 'warning' })
     const result: any = await http.post(`/leads/${row.id}/convert`)
     ElMessage.success(`转客户成功：${result.data.customerNo || '已关联存量客户'}`)
     await load()
@@ -211,14 +212,17 @@ function organizationScopeIds(id: number | null) {
 }
 const visibleAssignees = computed(() => {
   const scope = organizationScopeIds(selectedOrganizationId.value)
-  return assignees.value.filter(item => scope.includes(item.organization_id))
+  const query = assigneeKeyword.value.trim().toLowerCase()
+  return assignees.value.filter(item => {
+    if (!scope.includes(item.organization_id)) return false
+    if (!query) return true
+    return String(item.name || '').toLowerCase().includes(query) || String(item.employee_no || '').toLowerCase().includes(query)
+  })
 })
 const latestCampName = computed(() => assignees.value.find(item => item.qr_camp_name)?.qr_camp_name || '最新营期')
 const latestCampEligibleCount = computed(() => assignees.value.filter(item => item.qr_camp_name === latestCampName.value && Number(item.load || 0) < Number(item.assignment_limit || 0)).length)
-function assigneeUnavailable(item: any) { return !item.qr_camp_name || !Number(item.assignment_limit || 0) || Number(item.load || 0) >= Number(item.assignment_limit || 0) }
 function selectOrganization(node: any) { selectedOrganizationId.value = node.id; selectedAssigneeId.value = null }
 function chooseAssignee(item: any) {
-  if (assigneeUnavailable(item)) return
   selectedAssigneeId.value = item.id
 }
 function openBatchAction(command: string) {
@@ -229,6 +233,7 @@ function openBatchAction(command: string) {
   batchSubtype.value = ({ ASSIGN: '人工指定', SYNC_ORDER: '同步缺失订单', SYNC_MOBILE: '同步手机号', IMPORT: '导入线索', EXPORT: '导出当前查询结果', QUERY_ABNORMAL_ORDER: '查询当前结果中的异常订单' } as Record<string,string>)[command] || ''
   selectedOrganizationId.value = null
   selectedAssigneeId.value = null
+  assigneeKeyword.value = ''
   batchDialogVisible.value = true
 }
 async function confirmBatchAction() {
@@ -458,7 +463,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <el-form label-position="top">
         <el-form-item label="客户称呼" required><el-input v-model="form.name"/></el-form-item>
         <div class="form-grid"><el-form-item label="手机号"><el-input v-model="form.mobile"/></el-form-item><el-form-item label="UnionID"><el-input v-model="form.unionId"/></el-form-item></div>
-        <el-form-item label="线索类型" required><el-select v-model="form.sourceType"><el-option label="引流线索" value="DRAINAGE"/><el-option label="三方品线索" value="THIRD_PRODUCT"/><el-option label="转介绍" value="REFERRAL"/></el-select></el-form-item>
+        <el-form-item label="线索类型" required><el-select v-model="form.sourceType"><el-option label="引流线索" value="DRAINAGE"/><el-option label="转介绍" value="REFERRAL"/></el-select></el-form-item>
         <el-form-item label="渠道"><el-input v-model="form.channelName"/></el-form-item>
         <el-form-item label="第三方商品ID"><el-input v-model="form.thirdPartyProductId" placeholder="来源平台商品ID，没有可不填"/></el-form-item>
       </el-form>
@@ -482,16 +487,17 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           </aside>
           <section class="employee-pane">
             <div class="picker-title"><strong>选择员工</strong><span>{{ visibleAssignees.length }} 人</span></div>
+            <el-input v-model="assigneeKeyword" class="employee-search" clearable placeholder="搜索员工姓名或员工编号" :prefix-icon="Search"/>
             <div class="employee-grid">
-              <button v-for="item in visibleAssignees" :key="item.id" type="button" class="employee-card" :class="{ selected: selectedAssigneeId === item.id, full: assigneeUnavailable(item) }" @click="chooseAssignee(item)">
-                <i>{{ item.name.slice(0, 1) }}</i><span><b>{{ item.name }}</b><small>{{ item.employee_no }} · {{ item.position_name }}</small><em>已分配 {{ item.load || 0 }} / 上限 {{ item.assignment_limit || '未配置' }}</em></span><u>{{ !item.qr_camp_name ? '未配置活码' : Number(item.load || 0) >= Number(item.assignment_limit || 0) ? '已达上限' : selectedAssigneeId === item.id ? '已选择' : '可分配' }}</u>
+              <button v-for="item in visibleAssignees" :key="item.id" type="button" class="employee-card" :class="{ selected: selectedAssigneeId === item.id }" @click="chooseAssignee(item)">
+                <i>{{ item.name.slice(0, 1) }}</i><span><b>{{ item.name }}</b><small>{{ item.employee_no }} · {{ item.position_name }}</small><em>当前负责 {{ item.load || 0 }} 条未转化线索</em></span><u>{{ selectedAssigneeId === item.id ? '已选择' : '可指定' }}</u>
               </button>
             </div>
-            <el-empty v-if="!visibleAssignees.length" :image-size="52" description="当前组织暂无可分配员工"/>
+            <el-empty v-if="!visibleAssignees.length" :image-size="52" :description="assigneeKeyword ? '未找到匹配的员工，请更换姓名或员工编号' : '当前组织暂无可分配员工'"/>
           </section>
         </div>
         <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新营期配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
-        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>分配上限说明</b><span>员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新营期活码名单的员工，不参与轮询。</span></div>
+        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受营期活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新营期活码名单的员工，不参与轮询。' }}</span></div>
         <p class="batch-warning">系统将生成可追踪的批量任务，执行进度、成功数量和失败原因会保留在任务记录中。</p>
       </div>
       <template #footer><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">确认创建任务</el-button></template>
@@ -622,7 +628,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   color: #64748b;
   font-size: 13px;
 }
-.assignee-picker{display:grid;grid-template-columns:250px 1fr;min-height:286px;border:1px solid #e4ebf4;border-radius:10px;overflow:hidden;background:#fff}.organization-pane{padding:16px;border-right:1px solid #e4ebf4;background:#f8fafc}.employee-pane{padding:16px}.picker-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:13px}.picker-title strong{color:#24324a}.picker-title span{color:#94a3b8;font-size:11px}.organization-pane :deep(.el-tree){background:transparent;color:#53657e}.organization-pane :deep(.el-tree-node__content){height:34px;border-radius:6px}.organization-pane :deep(.el-tree-node__content:hover),.organization-pane :deep(.is-current>.el-tree-node__content){background:#eaf2ff;color:#2875e6}.employee-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;max-height:246px;overflow:auto;padding-right:3px}.employee-card{min-height:86px;padding:11px;border:1px solid #e4ebf4;border-radius:9px;background:#fff;display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:start;text-align:left;color:#24324a;cursor:pointer}.employee-card:hover{border-color:#9fc2f2;background:#f8fbff}.employee-card.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.employee-card.full{opacity:.55;cursor:not-allowed;background:#f7f8fa}.employee-card>i{width:36px;height:36px;display:grid;place-items:center;border-radius:9px;background:#eaf2ff;color:#2875e6;font-style:normal;font-weight:700}.employee-card span b,.employee-card span small,.employee-card span em{display:block}.employee-card span small{margin-top:4px;color:#708097;font-size:10px}.employee-card span em{margin-top:8px;color:#5c7190;font-size:10px;font-style:normal}.employee-card u{color:#2875e6;font-size:10px;text-decoration:none}.employee-card.full u{color:#8b98a9}.capacity-note{display:flex;gap:12px;padding:12px 14px;border-radius:8px;background:#fff8ec;color:#79551f;font-size:12px;line-height:1.6}.capacity-note b{white-space:nowrap}.capacity-note span{color:#8b6a36}
+.assignee-picker{display:grid;grid-template-columns:250px 1fr;min-height:286px;border:1px solid #e4ebf4;border-radius:10px;overflow:hidden;background:#fff}.organization-pane{padding:16px;border-right:1px solid #e4ebf4;background:#f8fafc}.employee-pane{padding:16px}.picker-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:13px}.picker-title strong{color:#24324a}.picker-title span{color:#94a3b8;font-size:11px}.employee-search{margin-bottom:12px}.employee-search :deep(.el-input__wrapper){border-radius:8px;box-shadow:0 0 0 1px #dbe5f1 inset}.employee-search :deep(.el-input__wrapper.is-focus){box-shadow:0 0 0 1px #2875e6 inset}.organization-pane :deep(.el-tree){background:transparent;color:#53657e}.organization-pane :deep(.el-tree-node__content){height:34px;border-radius:6px}.organization-pane :deep(.el-tree-node__content:hover),.organization-pane :deep(.is-current>.el-tree-node__content){background:#eaf2ff;color:#2875e6}.employee-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;max-height:202px;overflow:auto;padding-right:3px}.employee-card{min-height:86px;padding:11px;border:1px solid #e4ebf4;border-radius:9px;background:#fff;display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:start;text-align:left;color:#24324a;cursor:pointer}.employee-card:hover{border-color:#9fc2f2;background:#f8fbff}.employee-card.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.employee-card>i{width:36px;height:36px;display:grid;place-items:center;border-radius:9px;background:#eaf2ff;color:#2875e6;font-style:normal;font-weight:700}.employee-card span b,.employee-card span small,.employee-card span em{display:block}.employee-card span small{margin-top:4px;color:#708097;font-size:10px}.employee-card span em{margin-top:8px;color:#5c7190;font-size:10px;font-style:normal}.employee-card u{color:#2875e6;font-size:10px;text-decoration:none}.capacity-note{display:flex;gap:12px;padding:12px 14px;border-radius:8px;background:#fff8ec;color:#79551f;font-size:12px;line-height:1.6}.capacity-note b{white-space:nowrap}.capacity-note span{color:#8b6a36}
 .cell-sub {
   display: block;
   margin-top: 4px;
