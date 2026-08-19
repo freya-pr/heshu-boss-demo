@@ -22,7 +22,7 @@ export const v1Menus: MenuGroup[] = [
     name: '线索中心', code: 'LEAD', children: [
       { name: '数据分析', path: '/leads/analytics', description: '分析线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['营期/日期/渠道/团队筛选', '转化漏斗', 'GMV与退款', '团队效能', '指标口径', '下钻与导出'] },
       { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，使用公共主模型和引流扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
-      { name: '线索配置', path: '/leads/rules', description: '分类管理活码分配、营期名单流转等规则，并支持试算、冲突检测和版本发布。', features: ['规则分类', '活码分配规则', '营期名单流转规则', '条件组合', '规则试算', '冲突检测', '发布停用', '版本回退'] },
+      { name: '线索配置', path: '/leads/rules', description: '分类管理活码分配、营期名单流转和问卷等级规则，并支持试算、冲突检测和版本发布。', features: ['规则分类', '活码分配规则', '营期名单流转规则', '等级规则', '问卷指标与分数区间', '规则试算', '冲突检测', '发布停用', '版本回退'] },
       { name: '活码管理', path: '/leads/qr-codes', description: '按分组及可选的营期、班级、接量日期管理员工活码、标签与轮询容量。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属营期（选填）', '所属班级（选填）', '接量日期区间（选填）', '员工轮询上限', '启停', '下载'] },
       { name: '渠道管理', path: '/leads/channels', description: '通过渠道列表和数据分析两个页签，统一管理渠道主数据、归因规则及转化效果。', features: ['渠道列表', '数据分析', '新增', '编辑', '详情', '启停', '渠道/时间/组织筛选', '转化漏斗', '下钻', '导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '按平台类型和第三方店铺ID统一管理店铺、负责人、访问权限及经营归因。', features: ['店铺列表', '平台类型', '店铺名称', '第三方店铺ID', '店铺负责人', '创建/更新/启停日期', '新增', '编辑', '启停', '店铺权限', '线索归因口径', '业务发生口径', '业务日期类型', '线索/加微', '订单/支付', '净GMV', '经营详情', '归因异常'] }
@@ -34,7 +34,7 @@ export const v1Menus: MenuGroup[] = [
       { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理身份和客户档案。', features: ['查看', '编辑', '身份补录', '负责人', '标签', '跟进', '商机关联'] },
       { name: '跟进记录', path: '/customers/follow-ups', description: '客户跟进时间轴和待办。', features: ['新增跟进', '跟进结果', '下次跟进', '查看历史'] },
       { name: '标签管理', path: '/customers/tags', description: '管理客户标签及规则。', features: ['新增', '编辑', '停用', '手动打标', '规则打标', '历史'] },
-      { name: '等级管理', path: '/customers/grades', description: '配置 S/A/B/C 等级及问卷指标评分规则。', features: ['等级定义', '问卷指标', '评分规则', '试算', '发布', '版本历史'] },
+      { name: '等级管理', path: '/customers/grades', description: '查看 S/A/B/C 当前结果、人工调整与完整评级历史；规则统一在线索配置维护。', features: ['等级结果', '人工调整', '调整原因', '评级来源', '问卷与规则版本', '结果历史'] },
       { name: '商机管理', path: '/customers/opportunities', description: '管理基础商机、阶段、负责人和状态。', features: ['新增', '编辑', '负责人', '阶段', '状态', '跟进'] },
       { name: '离职继承', path: '/customers/inheritance', description: '将离职员工名下客户等业务数据移交给明确继承人。', features: ['指定继承人', '范围预览', '执行', '失败补偿', '反向恢复'] }
     ]

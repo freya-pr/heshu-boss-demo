@@ -4,7 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Aim, Connection, CopyDocument, DataAnalysis, Plus, Search, SetUp, Tickets, VideoPlay } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
-type RuleCategory = '活码分配' | '营期名单流转'
+type RuleCategory = '活码分配' | '营期名单流转' | '等级规则'
 type RuleStatus = '草稿' | '已发布' | '已停用'
 type Rule = {
   id: number
@@ -25,7 +25,8 @@ type Rule = {
 const categories = [
   { key: 'all', label: '全部规则', description: '统一查看与检索', icon: Tickets },
   { key: '活码分配', label: '分配与接待', description: '活码轮询和接量资格', icon: Aim },
-  { key: '营期名单流转', label: '营期名单流转', description: '跨营期员工名单同步', icon: Connection }
+  { key: '营期名单流转', label: '营期名单流转', description: '跨营期员工名单同步', icon: Connection },
+  { key: '等级规则', label: '等级规则', description: '问卷自动评定 S/A/B/C', icon: DataAnalysis }
 ] as const
 
 const rules = ref<Rule[]>([
@@ -43,6 +44,11 @@ const rules = ref<Rule[]>([
     id: 3, code: 'RULE-CAMP-002', name: '秋季营期名单预演', category: '营期名单流转',
     trigger: '手动试算', condition: '来源营期=暑期三营，转化率≥20%',
     action: '生成秋季体验营候选名单', scope: '课程顾问岗位', priority: 30, status: '草稿', version: 'V0.2', updatedBy: '张铭钰', updatedAt: '2026-08-19 14:12'
+  },
+  {
+    id: 4, code: 'RULE-GRADE-001', name: '家庭教育需求问卷 SABC 自动评级', category: '等级规则',
+    trigger: '有效问卷提交 / 重新解析', condition: '总分≥90为S，75—89为A，60—74为B，低于60为C',
+    action: '生成线索等级并写入评级历史', scope: '一转业务有效问卷', priority: 5, status: '已发布', version: 'V1.0', updatedBy: '张铭钰', updatedAt: '2026-08-19 16:20'
   }
 ])
 
@@ -58,6 +64,7 @@ const form = reactive({
   name: '', category: '活码分配' as RuleCategory, description: '', scope: '全部一转活码', priority: 10,
   triggerMode: '事件触发', triggerEvent: '客户扫码', sourceCamp: '2026 暑期第 3 营', targetCamp: '2026 秋季体验营',
   minLeads: 30, conversionRate: 18, employeeStatus: true, liveCodeStatus: true, underLimit: true,
+  questionnaireTemplate: '家庭教育需求问卷', sMin: 90, aMin: 75, bMin: 60,
   allocationMode: '轮询分配', conflictStrategy: '命中后停止', failureStrategy: '进入异常中心', effectiveAt: '', versionNote: ''
 })
 
@@ -81,6 +88,7 @@ function resetForm() {
     name: '', category: selectedCategory.value === 'all' ? '活码分配' : selectedCategory.value, description: '', scope: '全部一转活码', priority: 10,
     triggerMode: '事件触发', triggerEvent: '客户扫码', sourceCamp: '2026 暑期第 3 营', targetCamp: '2026 秋季体验营',
     minLeads: 30, conversionRate: 18, employeeStatus: true, liveCodeStatus: true, underLimit: true,
+    questionnaireTemplate: '家庭教育需求问卷', sMin: 90, aMin: 75, bMin: 60,
     allocationMode: '轮询分配', conflictStrategy: '命中后停止', failureStrategy: '进入异常中心', effectiveAt: '', versionNote: ''
   })
 }
@@ -104,25 +112,30 @@ function ruleCondition() {
     const values = [form.liveCodeStatus && '活码启用', form.employeeStatus && '员工在职且启用', form.underLimit && '未达接量上限'].filter(Boolean)
     return values.join('，') || '无附加条件'
   }
-  return `有效分配≥${form.minLeads}条，转化率≥${form.conversionRate}%，员工在职且启用`
+  if (form.category === '营期名单流转') return `有效分配≥${form.minLeads}条，转化率≥${form.conversionRate}%，员工在职且启用`
+  return `总分≥${form.sMin}为S，${form.aMin}—${form.sMin - 1}为A，${form.bMin}—${form.aMin - 1}为B，低于${form.bMin}为C`
 }
 function ruleTrigger() {
   if (form.category === '活码分配') return form.triggerMode === '事件触发' ? form.triggerEvent : form.triggerMode
-  return form.triggerMode === '定时触发' ? '营期结束后每日 02:00' : form.triggerMode
+  if (form.category === '营期名单流转') return form.triggerMode === '定时触发' ? '营期结束后每日 02:00' : form.triggerMode
+  return '有效问卷提交 / 重新解析'
 }
 function ruleAction() {
-  return form.category === '活码分配' ? `${form.allocationMode}接待员工` : `加入${form.targetCamp}活码轮询名单`
+  if (form.category === '活码分配') return `${form.allocationMode}接待员工`
+  if (form.category === '营期名单流转') return `加入${form.targetCamp}活码轮询名单`
+  return '生成线索等级并写入评级历史'
 }
 function saveDraft(publish = false) {
   if (!form.name.trim()) return ElMessage.warning('请输入规则名称')
   if (form.category === '营期名单流转' && form.sourceCamp === form.targetCamp) return ElMessage.warning('来源营期和目标营期不能相同')
+  if (form.category === '等级规则' && !(form.sMin > form.aMin && form.aMin > form.bMin && form.bMin > 0)) return ElMessage.warning('等级分数必须满足 S > A > B > 0，且区间不能重叠')
   const now = new Date().toLocaleString('zh-CN', { hour12: false })
   const status: RuleStatus = publish ? '已发布' : '草稿'
   if (editingId.value) {
     const old = rules.value.find(rule => rule.id === editingId.value)!
     Object.assign(old, { name: form.name, category: form.category, trigger: ruleTrigger(), condition: ruleCondition(), action: ruleAction(), scope: form.scope, priority: form.priority, status, version: publish ? `V${Number(old.version.slice(1) || 0) + 0.1}` : old.version, updatedBy: '林校长', updatedAt: now })
   } else {
-    rules.value.unshift({ id: Date.now(), code: `RULE-${form.category === '活码分配' ? 'LIVE' : 'CAMP'}-${String(rules.value.length + 1).padStart(3, '0')}`, name: form.name, category: form.category, trigger: ruleTrigger(), condition: ruleCondition(), action: ruleAction(), scope: form.scope, priority: form.priority, status, version: publish ? 'V1.0' : 'V0.1', updatedBy: '林校长', updatedAt: now })
+    rules.value.unshift({ id: Date.now(), code: `RULE-${form.category === '活码分配' ? 'LIVE' : form.category === '营期名单流转' ? 'CAMP' : 'GRADE'}-${String(rules.value.length + 1).padStart(3, '0')}`, name: form.name, category: form.category, trigger: ruleTrigger(), condition: ruleCondition(), action: ruleAction(), scope: form.scope, priority: form.priority, status, version: publish ? 'V1.0' : 'V0.1', updatedBy: '林校长', updatedAt: now })
   }
   drawerVisible.value = false
   ElMessage.success(publish ? '规则已发布并进入生效队列' : '规则草稿已保存')
@@ -172,7 +185,7 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
       <main class="rule-main">
         <div class="filter-bar surface">
           <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索规则名称、编号、条件或动作" />
-          <el-select v-if="selectedCategory === 'all'" v-model="query.category" clearable placeholder="规则分类"><el-option label="活码分配" value="活码分配"/><el-option label="营期名单流转" value="营期名单流转"/></el-select>
+          <el-select v-if="selectedCategory === 'all'" v-model="query.category" clearable placeholder="规则分类"><el-option label="活码分配" value="活码分配"/><el-option label="营期名单流转" value="营期名单流转"/><el-option label="等级规则" value="等级规则"/></el-select>
           <el-select v-model="query.status" clearable placeholder="规则状态"><el-option v-for="item in ['草稿','已发布','已停用']" :key="item" :label="item" :value="item"/></el-select>
           <el-select v-model="query.trigger" clearable placeholder="触发方式"><el-option label="事件触发" value="扫码"/><el-option label="定时触发" value="02:00"/><el-option label="手动触发" value="手动"/></el-select>
           <el-button type="primary">查询</el-button><el-button @click="resetQuery">重置</el-button>
@@ -200,23 +213,24 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
         <template v-if="currentStep === 0">
           <section><h4>规则基本信息</h4><div class="form-grid">
             <el-form-item label="规则名称" required><el-input v-model="form.name" maxlength="40" show-word-limit placeholder="请输入可识别的业务规则名称"/></el-form-item>
-            <el-form-item label="规则分类" required><el-select v-model="form.category"><el-option label="活码分配" value="活码分配"/><el-option label="营期名单流转" value="营期名单流转"/></el-select></el-form-item>
+            <el-form-item label="规则分类" required><el-select v-model="form.category"><el-option label="活码分配" value="活码分配"/><el-option label="营期名单流转" value="营期名单流转"/><el-option label="等级规则" value="等级规则"/></el-select></el-form-item>
             <el-form-item label="适用范围" required><el-input v-model="form.scope" placeholder="例如：全部一转活码 / 一转事业部"/></el-form-item>
             <el-form-item label="执行优先级"><el-input-number v-model="form.priority" :min="1" :max="999"/><small>数值越小越先执行；相同对象规则按优先级依次判断。</small></el-form-item>
             <el-form-item label="规则说明" class="span-2"><el-input v-model="form.description" type="textarea" :rows="3" placeholder="说明业务目的、适用边界和负责人"/></el-form-item>
           </div></section>
-          <section><h4>触发方式</h4><el-radio-group v-model="form.triggerMode" class="trigger-options"><el-radio-button value="事件触发">事件触发</el-radio-button><el-radio-button value="定时触发">定时触发</el-radio-button><el-radio-button value="手动试算">手动试算</el-radio-button></el-radio-group><div v-if="form.category === '活码分配'" class="trigger-tip"><b>推荐：事件触发</b><span>客户扫码或执行批量轮询时实时判断接待资格。</span></div><div v-else class="trigger-tip"><b>推荐：营期结束后定时执行</b><span>每日 02:00 重算，可手动补跑；同一员工不会重复加入同一目标营期。</span></div></section>
+          <section><h4>触发方式</h4><el-radio-group v-model="form.triggerMode" class="trigger-options"><el-radio-button value="事件触发">事件触发</el-radio-button><el-radio-button value="定时触发">定时触发</el-radio-button><el-radio-button value="手动试算">手动试算</el-radio-button></el-radio-group><div v-if="form.category === '活码分配'" class="trigger-tip"><b>推荐：事件触发</b><span>客户扫码或执行批量轮询时实时判断接待资格。</span></div><div v-else-if="form.category === '营期名单流转'" class="trigger-tip"><b>推荐：营期结束后定时执行</b><span>每日 02:00 重算，可手动补跑；同一员工不会重复加入同一目标营期。</span></div><div v-else class="trigger-tip"><b>固定：有效问卷事件触发</b><span>答卷完成关联与解析后自动计算；规则变更可发起受控重算。</span></div></section>
         </template>
 
         <template v-else-if="currentStep === 1">
           <section v-if="form.category === '活码分配'"><h4>活码分配条件</h4><div class="condition-list"><el-checkbox v-model="form.liveCodeStatus">活码状态为启用</el-checkbox><el-checkbox v-model="form.employeeStatus">员工账号在职且启用</el-checkbox><el-checkbox v-model="form.underLimit">员工当前接量未达到活码配置上限</el-checkbox></div><div class="business-note"><b>规则边界</b><span>员工接量上限仅约束自动轮询。人工指定分配不受营期活码名单和接量上限限制。</span></div></section>
-          <section v-else><h4>营期名单流转条件</h4><div class="form-grid"><el-form-item label="来源营期" required><el-select v-model="form.sourceCamp" filterable><el-option label="2026 暑期第 3 营" value="2026 暑期第 3 营"/><el-option label="2026 暑期第 2 营" value="2026 暑期第 2 营"/></el-select></el-form-item><el-form-item label="目标营期" required><el-select v-model="form.targetCamp" filterable><el-option label="2026 秋季体验营" value="2026 秋季体验营"/><el-option label="2026 暑期第 3 营" value="2026 暑期第 3 营"/></el-select></el-form-item><el-form-item label="最小有效分配量"><el-input-number v-model="form.minLeads" :min="1"/><small>避免少量样本造成虚高转化率。</small></el-form-item><el-form-item label="最低转化率"><el-input-number v-model="form.conversionRate" :min="0" :max="100"><template #suffix>%</template></el-input-number><small>转化率=已转化有效线索数÷有效分配线索数。</small></el-form-item></div><el-checkbox v-model="form.employeeStatus">仅同步在职且启用的员工</el-checkbox></section>
-          <section><h4>执行动作与冲突处理</h4><div class="form-grid"><el-form-item label="执行动作"><el-select v-if="form.category === '活码分配'" v-model="form.allocationMode"><el-option label="轮询分配" value="轮询分配"/><el-option label="按顺序分配" value="按顺序分配"/></el-select><el-input v-else :model-value="`加入 ${form.targetCamp} 活码轮询名单`" disabled/></el-form-item><el-form-item label="同对象规则冲突"><el-select v-model="form.conflictStrategy"><el-option label="命中后停止" value="命中后停止"/><el-option label="合并非冲突动作" value="合并非冲突动作"/><el-option label="高优先级覆盖" value="高优先级覆盖"/></el-select></el-form-item><el-form-item label="失败处理"><el-select v-model="form.failureStrategy"><el-option label="进入异常中心" value="进入异常中心"/><el-option label="自动重试3次后转人工" value="自动重试3次后转人工"/></el-select></el-form-item><el-form-item label="重复数据策略"><el-input model-value="已在目标名单则跳过，不删除人工加入人员" disabled/></el-form-item></div></section>
+          <section v-else-if="form.category === '营期名单流转'"><h4>营期名单流转条件</h4><div class="form-grid"><el-form-item label="来源营期" required><el-select v-model="form.sourceCamp" filterable><el-option label="2026 暑期第 3 营" value="2026 暑期第 3 营"/><el-option label="2026 暑期第 2 营" value="2026 暑期第 2 营"/></el-select></el-form-item><el-form-item label="目标营期" required><el-select v-model="form.targetCamp" filterable><el-option label="2026 秋季体验营" value="2026 秋季体验营"/><el-option label="2026 暑期第 3 营" value="2026 暑期第 3 营"/></el-select></el-form-item><el-form-item label="最小有效分配量"><el-input-number v-model="form.minLeads" :min="1"/><small>避免少量样本造成虚高转化率。</small></el-form-item><el-form-item label="最低转化率"><el-input-number v-model="form.conversionRate" :min="0" :max="100"><template #suffix>%</template></el-input-number><small>转化率=已转化有效线索数÷有效分配线索数。</small></el-form-item></div><el-checkbox v-model="form.employeeStatus">仅同步在职且启用的员工</el-checkbox></section>
+          <section v-else><h4>问卷等级条件</h4><div class="form-grid"><el-form-item label="适用问卷" required><el-select v-model="form.questionnaireTemplate" filterable><el-option label="家庭教育需求问卷" value="家庭教育需求问卷"/><el-option label="直播课预约问卷" value="直播课预约问卷"/></el-select></el-form-item><el-form-item label="评级对象"><el-input model-value="线索；建档后转为客户当前等级" disabled/></el-form-item><el-form-item label="S级最低分"><el-input-number v-model="form.sMin" :min="1" :max="100"/></el-form-item><el-form-item label="A级最低分"><el-input-number v-model="form.aMin" :min="1" :max="100"/></el-form-item><el-form-item label="B级最低分"><el-input-number v-model="form.bMin" :min="1" :max="100"/></el-form-item><el-form-item label="C级区间"><el-input :model-value="`低于 ${form.bMin} 分`" disabled/></el-form-item></div><div class="business-note"><b>优先级规则</b><span>问卷自动评级生成系统结果；人工调整拥有更高优先级。人工结果解除前，后续问卷重算只生成候选结果，不覆盖当前等级。</span></div></section>
+          <section><h4>执行动作与冲突处理</h4><div class="form-grid"><el-form-item label="执行动作"><el-select v-if="form.category === '活码分配'" v-model="form.allocationMode"><el-option label="轮询分配" value="轮询分配"/><el-option label="按顺序分配" value="按顺序分配"/></el-select><el-input v-else-if="form.category === '营期名单流转'" :model-value="`加入 ${form.targetCamp} 活码轮询名单`" disabled/><el-input v-else model-value="生成线索等级并写入评级历史" disabled/></el-form-item><el-form-item label="同对象规则冲突"><el-select v-model="form.conflictStrategy"><el-option label="命中后停止" value="命中后停止"/><el-option label="合并非冲突动作" value="合并非冲突动作"/><el-option label="高优先级覆盖" value="高优先级覆盖"/></el-select></el-form-item><el-form-item label="失败处理"><el-select v-model="form.failureStrategy"><el-option label="进入异常中心" value="进入异常中心"/><el-option label="自动重试3次后转人工" value="自动重试3次后转人工"/></el-select></el-form-item><el-form-item label="重复数据策略"><el-input :model-value="form.category === '等级规则' ? '保留全部评级历史，人工结果不被自动覆盖' : '已在目标名单则跳过，不删除人工加入人员'" disabled/></el-form-item></div></section>
         </template>
 
         <template v-else>
           <section><h4>发布前预览</h4><div class="preview-chain"><div><small>触发</small><b>{{ ruleTrigger() }}</b></div><i>→</i><div><small>条件</small><b>{{ ruleCondition() }}</b></div><i>→</i><div><small>动作</small><b>{{ ruleAction() }}</b></div></div></section>
-          <section><h4>规则试算</h4><div class="simulation-card"><div><span>模拟数据范围</span><b>{{ form.category === '活码分配' ? '近 7 日扫码线索' : form.sourceCamp }}</b></div><div><span>预计命中</span><b>{{ form.category === '活码分配' ? '1,284 条线索' : '18 名员工' }}</b></div><div><span>冲突 / 异常</span><b>0 / 2</b></div><el-button :icon="VideoPlay" @click="ElMessage.success('试算完成，明细已刷新')">重新试算</el-button></div></section>
+          <section><h4>规则试算</h4><div class="simulation-card"><div><span>模拟数据范围</span><b>{{ form.category === '活码分配' ? '近 7 日扫码线索' : form.category === '营期名单流转' ? form.sourceCamp : '近30日有效答卷' }}</b></div><div><span>预计命中</span><b>{{ form.category === '活码分配' ? '1,284 条线索' : form.category === '营期名单流转' ? '18 名员工' : 'S 126 / A 368 / B 512 / C 94' }}</b></div><div><span>冲突 / 异常</span><b>0 / 2</b></div><el-button :icon="VideoPlay" @click="ElMessage.success('试算完成，明细已刷新')">重新试算</el-button></div></section>
           <section><h4>版本信息</h4><div class="form-grid"><el-form-item label="计划生效时间"><el-date-picker v-model="form.effectiveAt" type="datetime" placeholder="发布后立即生效"/></el-form-item><el-form-item label="版本说明" required><el-input v-model="form.versionNote" placeholder="说明本次新增或变更内容"/></el-form-item></div><div class="publish-note">发布后生成不可变版本；再次编辑将创建新草稿，可从版本记录回退。</div></section>
         </template>
       </el-form>

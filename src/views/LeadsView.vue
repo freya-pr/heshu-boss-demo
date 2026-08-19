@@ -24,6 +24,7 @@ const wechatStatusFilter = ref('')
 const questionnaireFilter = ref('')
 const assessmentFilter = ref('')
 const leadMark = ref('')
+const leadGradeFilter = ref('')
 const conversionStatus = ref('')
 const keyword = ref('')
 const sourceFilter = ref('')
@@ -41,8 +42,10 @@ const journeyVisible = ref(false)
 const journeyLoading = ref(false)
 const journeyRows = ref<any[]>([])
 const activeLead = ref<any>(null)
+const gradeForm = ref({ grade: 'UNRATED', reason: '' })
 const columnSettingVisible = ref(false)
 const batchDialogVisible = ref(false)
+const gradeDialogVisible = ref(false)
 const batchAction = ref('')
 const batchSubtype = ref('')
 const selectedOrganizationId = ref<number | null>(null)
@@ -56,12 +59,12 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['lead_no', 'lead_source', 'operation']
-const defaultColumns = ['lead_no','lead_source','third_party_product_id','order_no','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','remark','operation']
+const defaultColumns = ['lead_no','lead_source','lead_grade','third_party_product_id','order_no','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','remark','operation']
 const columnOptions = [
   { value: 'lead_no', label: '线索编号', mandatory: true }, { value: 'order_no', label: '订单编号' }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
   { value: 'original_mobile', label: '原始手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
-  { value: 'third_party_product_id', label: '第三方商品ID' },
+  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' },
   { value: 'first_product_name', label: '首单商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
   { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' }, { value: 'current_action_status', label: '当前待办状态' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
@@ -74,7 +77,7 @@ const columnOptions = [
   { value: 'camp_name', label: '所属营期' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v3'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v4'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -143,6 +146,7 @@ function resetFilters() {
   questionnaireFilter.value = ''
   assessmentFilter.value = ''
   leadMark.value = ''
+  leadGradeFilter.value = ''
   conversionStatus.value = ''
   keyword.value = ''
   sourceFilter.value = ''
@@ -175,12 +179,27 @@ function openDetail(row: any) {
   detailVisible.value = true
 }
 
+function openGradeChange(row: any) {
+  activeLead.value = row
+  gradeForm.value = { grade: row.lead_grade || 'UNRATED', reason: '' }
+  gradeDialogVisible.value = true
+}
+
+async function confirmGradeChange() {
+  if (!gradeForm.value.reason.trim()) return ElMessage.warning('请填写人工变更原因')
+  const result: any = await http.post(`/leads/${activeLead.value.id}/grade`, gradeForm.value)
+  gradeDialogVisible.value = false
+  ElMessage.success(result.data.customerSynced ? '线索等级已变更，并同步更新关联客户当前等级' : '线索等级已变更')
+  await load()
+}
+
 function handleOperation(command: string, row: any) {
   const operationLabels: Record<string, string> = {
-    CREATE_CUSTOMER: '建立客户档案', EDIT: '编辑线索', FOLLOW_UP: '添加跟进', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
+    CREATE_CUSTOMER: '建立客户档案', EDIT: '编辑线索', FOLLOW_UP: '添加跟进', CHANGE_GRADE: '变更线索等级', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
     SMS_REMINDER: '短信提醒', VOICE_REMINDER: '语音提醒', REMARK: '备注'
   }
   if (command === 'CREATE_CUSTOMER') return convert(row)
+  if (command === 'CHANGE_GRADE') return openGradeChange(row)
   ElMessage.success(`${operationLabels[command] || command}：已为线索 ${row.lead_no} 创建处理任务`)
 }
 
@@ -258,6 +277,8 @@ onMounted(() => { form.value.sourceType = sourceType.value; load() })
 
 function normalizeLeadState(source: any) {
   const row = { ...source }
+  row.lead_grade ||= row.questionnaire_at ? (row.customer_no === 'C202608160003' ? 'S' : 'B') : 'UNRATED'
+  row.grade_source ||= row.questionnaire_at ? 'QUESTIONNAIRE_AUTO' : ''
   row.assignment_status ||= row.owner_id ? 'ASSIGNED' : 'PENDING'
   row.decrypt_status ||= row.decrypted_at || row.decrypted_mobile ? 'DECRYPTED' : 'PENDING'
   row.sms_status ||= row.sms_clicked_at ? 'CLICKED' : Number(row.sms_send_count || 0) > 0 ? 'SENT_NOT_CLICKED' : 'NOT_SENT'
@@ -284,6 +305,7 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesQuestionnaire = !questionnaireFilter.value || row.questionnaire_status === questionnaireFilter.value
   const matchesAssessment = !assessmentFilter.value || row.assessment_status === assessmentFilter.value
   const matchesMark = !leadMark.value || row.lead_mark === leadMark.value
+  const matchesGrade = !leadGradeFilter.value || row.lead_grade === leadGradeFilter.value
   const matchesConversion = !conversionStatus.value || row.conversion_status === conversionStatus.value
   const matchesSource = !sourceFilter.value || row.lead_source === sourceFilter.value
   const matchesOrderStatus = !orderStatusFilter.value || row.order_status === orderStatusFilter.value
@@ -303,7 +325,7 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesDate = createdRange.value.length !== 2 || (!!selectedDate && selectedDate >= createdRange.value[0] && selectedDate <= createdRange.value[1])
   const text = [row.lead_no, row.third_party_product_id, row.order_no, row.name, row.mobile, row.original_mobile, row.decrypted_mobile, row.wechat_nickname, row.customer_no, row.customer_name].join(' ').toLowerCase()
   const matchesKeyword = !keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())
-  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesOwnerStatus && matchesCamp && matchesShop && matchesDate && matchesKeyword
+  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesOwnerStatus && matchesCamp && matchesShop && matchesDate && matchesKeyword
 }))
 const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
@@ -325,6 +347,9 @@ const leadMarkLabels: any = { VALID: '有效线索', INVALID: '无效线索', DU
 const leadMarkTagTypes: any = { VALID: 'success', INVALID: 'danger', DUPLICATE: 'warning' }
 const conversionLabels: any = { UNCONVERTED: '未转化', CONVERTED: '已转化' }
 const conversionTagTypes: any = { UNCONVERTED: 'info', CONVERTED: 'success' }
+const gradeLabels: any = { S: 'S级', A: 'A级', B: 'B级', C: 'C级', UNRATED: '未定级' }
+const gradeTagTypes: any = { S: 'danger', A: 'warning', B: 'success', C: 'info', UNRATED: 'info' }
+const gradeSourceLabels: any = { QUESTIONNAIRE_AUTO: '问卷自动评级', MANUAL: '人工调整', LEAD_INHERITED: '线索继承' }
 const orderLabels: any = { NO_ORDER: '无订单', UNPAID: '未支付', PAID: '已支付', REFUNDING: '退款中', REFUNDED: '已退款' }
 const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', FOLLOWED: '已跟进' }
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
@@ -376,6 +401,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="wechatStatusFilter" placeholder="加微状态" clearable><el-option v-for="(label, value) in wechatStatusLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="questionnaireFilter" placeholder="问卷状态" clearable><el-option v-for="(label, value) in questionnaireLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="assessmentFilter" placeholder="测评状态" clearable><el-option v-for="(label, value) in assessmentLabels" :key="value" :label="label" :value="value"/></el-select>
+            <el-select v-model="leadGradeFilter" placeholder="线索等级" clearable><el-option v-for="(label, value) in gradeLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="sourceFilter" placeholder="线索来源" clearable filterable><el-option v-for="item in leadSourceOptions" :key="item" :label="item" :value="item"/></el-select>
             <el-select v-model="orderStatusFilter" placeholder="订单状态" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
@@ -421,6 +447,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column type="selection" width="48" fixed="left"/>
           <el-table-column prop="lead_no" label="线索编号" width="168" fixed="left"/>
           <el-table-column v-if="showColumn('lead_source')" prop="lead_source" label="线索来源" width="110" fixed="left"><template #default="{ row }">{{ textOrDash(row.lead_source || row.channel_name) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('lead_grade')" label="线索等级" width="116"><template #default="{ row }"><el-tag :type="gradeTagTypes[row.lead_grade] || 'info'">{{ gradeLabels[row.lead_grade] || row.lead_grade }}</el-tag><small class="cell-sub">{{ gradeSourceLabels[row.grade_source] || '尚未评级' }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('third_party_product_id')" prop="third_party_product_id" label="第三方商品ID" width="170"><template #default="{ row }">{{ textOrDash(row.third_party_product_id) }}</template></el-table-column>
           <el-table-column v-if="showColumn('order_no')" prop="order_no" label="订单编号" width="160"><template #default="{ row }">{{ textOrDash(row.order_no) }}</template></el-table-column>
           <el-table-column v-if="showColumn('source_type')" prop="source_type" label="线索类型" width="110"><template #default="{ row }">{{ sourceLabels[row.source_type] || row.source_type }}</template></el-table-column>
@@ -467,6 +494,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
               <template #dropdown><el-dropdown-menu>
                 <el-dropdown-item v-if="row.wechat_status === 'ADDED' && !row.customer_no" command="CREATE_CUSTOMER">建立客户档案</el-dropdown-item>
                 <el-dropdown-item command="EDIT">编辑线索</el-dropdown-item><el-dropdown-item command="FOLLOW_UP">添加跟进</el-dropdown-item>
+                <el-dropdown-item command="CHANGE_GRADE">变更线索等级</el-dropdown-item>
                 <el-dropdown-item command="CHANGE_MARK">变更线索标记</el-dropdown-item><el-dropdown-item command="REASSIGN">改派负责人</el-dropdown-item>
                 <el-dropdown-item divided command="SMS_REMINDER">短信提醒</el-dropdown-item><el-dropdown-item command="VOICE_REMINDER">语音提醒</el-dropdown-item>
                 <el-dropdown-item divided command="REMARK">备注</el-dropdown-item>
@@ -531,6 +559,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="短信状态">{{ smsLabels[activeLead.sms_status] || activeLead.sms_status }}</el-descriptions-item>
         <el-descriptions-item label="加微状态">{{ wechatStatusLabels[activeLead.wechat_status] || activeLead.wechat_status }}</el-descriptions-item>
         <el-descriptions-item label="问卷/测评">{{ questionnaireLabels[activeLead.questionnaire_status] }} / {{ assessmentLabels[activeLead.assessment_status] }}</el-descriptions-item>
+        <el-descriptions-item label="线索等级"><el-tag :type="gradeTagTypes[activeLead.lead_grade] || 'info'">{{ gradeLabels[activeLead.lead_grade] }}</el-tag> · {{ gradeSourceLabels[activeLead.grade_source] || '尚未评级' }}</el-descriptions-item>
         <el-descriptions-item label="转化状态">{{ conversionLabels[activeLead.conversion_status] || activeLead.conversion_status }}</el-descriptions-item>
         <el-descriptions-item label="线索来源">{{ textOrDash(activeLead.lead_source) }}</el-descriptions-item>
         <el-descriptions-item label="第三方商品ID">{{ textOrDash(activeLead.third_party_product_id) }}</el-descriptions-item>
@@ -543,6 +572,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="加微时间">{{ textOrDash(activeLead.wechat_added_at) }}</el-descriptions-item>
         <el-descriptions-item label="线索备注" :span="2">{{ textOrDash(activeLead.remark) }}</el-descriptions-item>
       </el-descriptions>
+      <div v-if="activeLead" class="detail-actions"><el-button type="primary" plain @click="openGradeChange(activeLead)">人工变更等级</el-button><span>变更必须填写原因；已关联客户时同步更新客户当前等级并保留历史。</span></div>
     </el-drawer>
 
     <el-drawer v-model="journeyVisible" size="560px" :title="`${activeLead?.lead_no || ''} · 线索生命旅程`">
@@ -551,6 +581,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-tag type="info">{{ assignmentLabels[activeLead.assignment_status] }}</el-tag>
         <el-tag type="info">{{ decryptLabels[activeLead.decrypt_status] }}</el-tag>
         <el-tag :type="leadMarkTagTypes[activeLead.lead_mark] || 'info'">{{ leadMarkLabels[activeLead.lead_mark] }}</el-tag>
+        <el-tag :type="gradeTagTypes[activeLead.lead_grade] || 'info'">{{ gradeLabels[activeLead.lead_grade] }}</el-tag>
         <el-tag :type="conversionTagTypes[activeLead.conversion_status] || 'info'">{{ conversionLabels[activeLead.conversion_status] }}</el-tag>
       </div>
       <StatePanel :loading="journeyLoading" :empty="!journeyRows.length" empty-text="暂无旅程日志">
@@ -565,6 +596,16 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         </el-timeline>
       </StatePanel>
     </el-drawer>
+
+    <el-dialog v-model="gradeDialogVisible" title="人工变更线索等级" width="520px">
+      <el-alert :closable="false" type="info" show-icon title="问卷会按已发布规则自动评级；人工调整拥有更高优先级，必须保留原因和操作历史。"/>
+      <el-form label-position="top" class="grade-form">
+        <el-form-item label="线索"><el-input :model-value="`${activeLead?.lead_no || ''} · ${activeLead?.name || ''}`" disabled/></el-form-item>
+        <el-form-item label="目标等级" required><el-select v-model="gradeForm.grade"><el-option v-for="(label, value) in gradeLabels" :key="value" :label="label" :value="value"/></el-select></el-form-item>
+        <el-form-item label="变更原因" required><el-input v-model="gradeForm.reason" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="请说明人工判断依据或业务原因"/></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="gradeDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmGradeChange">确认变更</el-button></template>
+    </el-dialog>
   </section>
 </template>
 
@@ -582,6 +623,8 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   gap: 12px;
 }
 .business-scope-filter + .search-grid { margin-top: 12px; }
+.detail-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px; border-radius: 10px; background: #f7faff; color: #64748b; font-size: 13px; }
+.grade-form { margin-top: 18px; }
 .advanced-search {
   grid-template-columns: repeat(5, minmax(170px, 1fr));
 }

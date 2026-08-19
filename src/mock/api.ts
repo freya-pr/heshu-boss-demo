@@ -1,7 +1,7 @@
 type Row = Record<string, any>
 import { v1Menus } from '../config/menu'
 
-const STORAGE_KEY = 'heshu_scrm_demo_db_v9'
+const STORAGE_KEY = 'heshu_scrm_demo_db_v10'
 const USER_KEY = 'heshu_scrm_demo_user'
 const PASSWORD_KEY = 'heshu_scrm_demo_password'
 
@@ -78,12 +78,19 @@ function organizationCode(type: string) {
 function currentUser() {
   return JSON.parse(localStorage.getItem(USER_KEY) || '{"username":"admin","userNo":"U000001","displayName":"林校长","role":"ADMIN","mobile":"13800000001","email":"admin@heshu.com","gender":"MALE","departmentName":"集团管理中心","positionName":"集团管理员","hireDate":"2021-01-05","createdAt":"2026-08-16 09:00:00"}')
 }
+function effectiveLeadGrade(lead: Row) {
+  const grade = String(lead.lead_grade || '')
+  if (['S', 'A', 'B', 'C', 'UNRATED'].includes(grade)) return grade
+  if (!lead.questionnaire_at) return 'UNRATED'
+  return lead.customer_no === 'C202608160003' ? 'S' : 'B'
+}
 function menus(role: string) {
   return role === 'ADMIN' ? v1Menus : v1Menus.filter(group => !['BUSINESS_CONFIG', 'SYSTEM'].includes(group.code))
 }
 
 function buildLeadJourney(lead: Row) {
   const events: Row[] = []
+  const currentGrade = effectiveLeadGrade(lead)
   const add = (occurredAt: string, eventType: string, eventName: string, fromStatus: string | null, toStatus: string | null, source: string, detail: string, operator = '系统') => {
     if (!occurredAt) return
     events.push({ id: `${lead.id}-${eventType}-${occurredAt}`, event_type: eventType, event_name: eventName, from_status: fromStatus, to_status: toStatus, operator_name: operator, event_source: source, detail, occurred_at: occurredAt })
@@ -95,6 +102,8 @@ function buildLeadJourney(lead: Row) {
   add(lead.wechat_added_at, 'WECHAT_ADDED', '客户完成加微', 'WECHAT_NOT_ADDED', 'WECHAT_ADDED', 'WECOM', `加微方式：${lead.wechat_method === 'WECOM' ? '企业微信' : '个人微信'}`, lead.owner_name || '系统')
   add(lead.customer_linked_at, 'CUSTOMER_LINKED', '建立唯一客户档案', lead.status, lead.status, 'MANUAL', `关联客户：${lead.customer_no || '—'}`, lead.owner_name || '系统')
   add(lead.questionnaire_at, 'QUESTIONNAIRE_FILLED', '客户提交问卷', 'QUESTIONNAIRE_NOT_FILLED', 'QUESTIONNAIRE_FILLED', 'QUESTIONNAIRE', '有效问卷结果已回写', lead.owner_name || '系统')
+  if (lead.questionnaire_at && currentGrade !== 'UNRATED') add(lead.grade_changed_at || lead.questionnaire_at, 'LEAD_GRADED', '问卷自动评定线索等级', 'UNRATED', currentGrade, 'GRADE_RULE', `规则版本：${lead.grade_rule_version || 'V1.0'}；来源：有效问卷`, '系统')
+  if (lead.grade_source === 'MANUAL') add(lead.grade_changed_at, 'LEAD_GRADE_CHANGED', '人工变更线索等级', lead.previous_grade || 'UNRATED', lead.lead_grade, 'MANUAL', `变更原因：${lead.grade_change_reason || '未填写'}`, lead.grade_changed_by || '系统管理员')
   add(lead.assessment_at, 'ASSESSMENT_COMPLETED', '客户完成测评', 'ASSESSMENT_NOT_COMPLETED', 'ASSESSMENT_COMPLETED', 'ASSESSMENT', '有效测评结果已回写', lead.owner_name || '系统')
   add(lead.converted_at, 'LEAD_CONVERTED', '线索完成转化', null, null, 'ORDER', `关联订单：${lead.order_no || '—'}`)
   return events.sort((a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at)))
@@ -112,7 +121,8 @@ function createCustomer(body: Row) {
   const ownerName = body.ownerName || body.owner_name || ''
   const owner = db.employees.find(item => item.name === ownerName || item.legal_name === ownerName)
   const ownerOrganization = db.organizations.find(item => Number(item.id) === Number(owner?.organization_id))
-  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: 'UNRATED', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+  const inheritedGrade = effectiveLeadGrade(body)
+  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: inheritedGrade, grade_source: 'LEAD_INHERITED', source_lead_no: body.lead_no || '', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
   db.customers.unshift(customer); save(); return customer
 }
 
@@ -248,6 +258,31 @@ export const demoHttp = {
       const lead = db.leads.find(item => item.id === Number(convert[1])); if (!lead) return fail('线索不存在')
       const customer = createCustomer({ ...lead, ownerName: lead.owner_name }); Object.assign(lead, { customer_id: customer.id, customer_no: customer.customer_no, customer_name: customer.name, customer_linked_at: new Date().toLocaleString('zh-CN', { hour12: false }) }); save(); return ok({ customerId: customer.id, customerNo: customer.customer_no })
     }
+    const autoGrade = path.match(/^\/leads\/(\d+)\/auto-grade$/)
+    if (autoGrade) {
+      const lead = db.leads.find(item => item.id === Number(autoGrade[1])); if (!lead) return fail('线索不存在')
+      if (!['S', 'A', 'B', 'C'].includes(body.grade)) return fail('自动评级结果无效')
+      const candidate = { grade: body.grade, score: Number(body.score || 0), questionnaire_submission_id: body.questionnaireSubmissionId || '', rule_version: body.ruleVersion || 'V1.0', calculated_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+      if (lead.grade_source === 'MANUAL' || lead.customer_no) {
+        Object.assign(lead, { auto_grade_candidate: candidate, grade_difference_status: 'PENDING_REVIEW' })
+        save(); return ok({ applied: false, reason: lead.grade_source === 'MANUAL' ? 'MANUAL_RESULT_PROTECTED' : 'EXISTING_CUSTOMER_PROTECTED', candidate })
+      }
+      Object.assign(lead, { previous_grade: effectiveLeadGrade(lead), lead_grade: body.grade, grade_source: 'QUESTIONNAIRE_AUTO', grade_score: candidate.score, questionnaire_submission_id: candidate.questionnaire_submission_id, grade_rule_version: candidate.rule_version, grade_changed_at: candidate.calculated_at })
+      save(); return ok({ applied: true, grade: lead.lead_grade })
+    }
+    const changeGrade = path.match(/^\/leads\/(\d+)\/grade$/)
+    if (changeGrade) {
+      const lead = db.leads.find(item => item.id === Number(changeGrade[1])); if (!lead) return fail('线索不存在')
+      if (!['S', 'A', 'B', 'C', 'UNRATED'].includes(body.grade)) return fail('线索等级无效')
+      if (!String(body.reason || '').trim()) return fail('人工变更必须填写原因')
+      const previousGrade = effectiveLeadGrade(lead)
+      Object.assign(lead, { previous_grade: previousGrade, lead_grade: body.grade, grade_source: 'MANUAL', grade_change_reason: String(body.reason).trim(), grade_changed_by: currentUser().displayName, grade_changed_at: new Date().toLocaleString('zh-CN', { hour12: false }) })
+      if (lead.customer_no) {
+        const customer = db.customers.find(item => item.customer_no === lead.customer_no)
+        if (customer) Object.assign(customer, { grade: body.grade, grade_source: 'MANUAL', grade_changed_at: lead.grade_changed_at })
+      }
+      save(); return ok({ grade: lead.lead_grade, customerSynced: Boolean(lead.customer_no) })
+    }
     if (path === '/customers') { const customer = createCustomer(body); return ok({ id: customer.id }) }
     if (path === '/system/organizations') {
       const parent = db.organizations.find(item => item.id === Number(body.parent_id))
@@ -256,6 +291,19 @@ export const demoHttp = {
       if (parent?.type === 'GROUP_TEAM') return fail('小组节点不能新增下级')
       const organization = { ...body, code: organizationCode(body.type), id: Math.max(0, ...db.organizations.map(item => item.id)) + 1, employee_count: 0, created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
       db.organizations.push(organization); save(); return ok(organization)
+    }
+    if (path === '/system/employees') {
+      const organization = db.organizations.find(item => item.id === Number(body.organization_id))
+      if (!organization || organization.status !== 'ACTIVE' || !['DEPARTMENT', 'GROUP_TEAM'].includes(organization.type)) return fail('主组织必须是启用的部门或小组')
+      const mobile = String(body.mobile || '').trim()
+      if (!/^1[3-9]\d{9}$/.test(mobile)) return fail('请输入有效的 11 位手机号')
+      if (db.employees.some(item => item.mobile === mobile)) return fail('该手机号已关联员工')
+      const email = String(body.email || '').trim().toLowerCase()
+      if (email && db.employees.some(item => String(item.email || '').toLowerCase() === email)) return fail('该邮箱已关联员工')
+      const nextNo = Math.max(0, ...db.employees.map(item => Number(String(item.employee_no || '').replace(/\D/g, '')) || 0)) + 1
+      const initialPassword = body.create_login ? `Hs@${crypto.randomUUID().slice(0, 8)}` : ''
+      const employee = { id: Math.max(0, ...db.employees.map(item => item.id)) + 1, employee_no: `B${String(nextNo).padStart(5, '0')}`, name: String(body.name).trim(), legal_name: String(body.legal_name).trim(), mobile, mobile_masked: `${mobile.slice(0, 3)}****${mobile.slice(-4)}`, email, organization_id: Number(body.organization_id), position_name: String(body.position_name).trim(), role_codes: body.role_codes || ['EMPLOYEE'], wecom_user_id: '', feishu_user_id: '', employment_status: 'ACTIVE', account_status: body.create_login ? body.account_status || 'ACTIVE' : 'INACTIVE', source: 'MANUAL', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+      db.employees.unshift(employee); organization.employee_count = Number(organization.employee_count || 0) + 1; save(); return ok({ ...employee, initial_password: initialPassword })
     }
     const read = path.match(/^\/messages\/(\d+)\/read$/)
     if (read) { const message = db.messages.find(item => item.id === Number(read[1])); if (message) message.read_status = 'READ'; save(); return ok(null) }
