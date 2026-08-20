@@ -80,7 +80,7 @@ export const v1Menus: MenuGroup[] = [
   {
     name: '系统管理', code: 'SYSTEM', children: [
       { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
-      { name: '员工管理', path: '/system/employees', description: '由合数BOSS维护员工主数据，并同步企业微信身份与通讯录状态。', features: ['企微基线导入', '同步至企微', '企微差异对账', '飞书历史工号归档', '业务角色绑定', '数据岗位绑定', '启停', '离职触发'] },
+      { name: '员工管理', path: '/system/employees', description: '以企业微信为唯一初始基线，由合数BOSS维护正式员工主数据并同步企微。', features: ['企微基线导入', '同步至企微', '企微差异对账', '业务角色绑定', '数据岗位绑定', '启停', '离职触发'] },
       { name: '岗位管理', path: '/system/positions', description: '配置本人、小组、部门、跨部门及公司级数据可见范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
       { name: '角色管理', path: '/system/roles', description: '按运营、客服、规划师等业务角色配置菜单、操作和字段权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '关联员工', '影响预览'] },
       { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },

@@ -11,7 +11,12 @@ if (!cssMatch || !jsMatch) throw new Error('未找到构建后的 CSS 或 JavaSc
 const [css, js] = await Promise.all([readFile(resolve(dist, cssMatch[1]), 'utf8'), readFile(resolve(dist, jsMatch[1]), 'utf8')])
 html = html.replace(cssMatch[0], () => `<style>${css}</style>`).replace(jsMatch[0], () => `<script type="module">${js}</script>`)
 html = html.replace('<title>合数 BOSS</title>', '<title>合数BOSS · 可分享演示版</title>')
-const output = resolve(root, '../preview/heshu-boss-share.html')
-await mkdir(dirname(output), { recursive: true })
-await writeFile(output, html)
-console.log(output)
+const outputs = [
+  resolve(root, '../preview/heshu-boss-share.html'),
+  resolve(root, '../vercel-share/index.html'),
+]
+for (const output of outputs) {
+  await mkdir(dirname(output), { recursive: true })
+  await writeFile(output, html)
+  console.log(output)
+}
