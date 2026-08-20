@@ -14,9 +14,9 @@ const orderRange = ref<string[]>([])
 const scopeFilters = ref<BusinessScopeValue>({ viewScope: 'AUTHORIZED', organizationId: null, ownerId: null, ownerStatus: '' })
 const permissionLabel = computed(() => auth.user?.role === 'ADMIN' ? '当前公司全部数据' : '本人数据')
 const rows = ref([
-  { orderNo: 'O202608180126', customerName: '吴女士', productName: '2980成长训练营', amount: 2980, paymentStatus: 'PAID', ownerId: 2, ownerName: '王老师', ownerNo: 'B00126', organizationName: '一转一组', orderedAt: '2026-08-18 10:26:18' },
-  { orderNo: 'O202608180119', customerName: '钱女士', productName: '家庭学习力训练营', amount: 2980, paymentStatus: 'UNPAID', ownerId: 3, ownerName: '陈老师', ownerNo: 'B00135', organizationName: '一转二组', orderedAt: '2026-08-18 09:45:02' },
-  { orderNo: 'O202608170088', customerName: '周女士', productName: '家庭教育正式课', amount: 6980, paymentStatus: 'REFUNDING', ownerId: 2, ownerName: '王老师', ownerNo: 'B00126', organizationName: '一转一组', orderedAt: '2026-08-17 16:18:44' }
+  { orderNo: 'O202608180126', customerName: '吴女士', productName: '2980成长训练营', amount: 2980, paymentStatus: 'PAID', ownerId: 2, ownerName: '王老师', ownerNo: 'B000126', organizationName: '一转一组', orderedAt: '2026-08-18 10:26:18' },
+  { orderNo: 'O202608180119', customerName: '钱女士', productName: '家庭学习力训练营', amount: 2980, paymentStatus: 'UNPAID', ownerId: 3, ownerName: '陈老师', ownerNo: 'B000135', organizationName: '一转二组', orderedAt: '2026-08-18 09:45:02' },
+  { orderNo: 'O202608170088', customerName: '周女士', productName: '家庭教育正式课', amount: 6980, paymentStatus: 'REFUNDING', ownerId: 2, ownerName: '王老师', ownerNo: 'B000126', organizationName: '一转一组', orderedAt: '2026-08-17 16:18:44' }
 ])
 
 function organizationScopeIds(id: number | null) {

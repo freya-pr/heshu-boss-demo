@@ -24,11 +24,11 @@ const classes = [
   { id: 503, campId: 302, name: '暑期二营 · 体验班' }, { id: 504, campId: 303, name: '秋季体验营 · A班' }
 ]
 const employeePool: Employee[] = [
-  { id: 1, name: '李士文', no: 'B00001', role: '部门负责人', limit: 30, received: 18 },
-  { id: 2, name: '王老师', no: 'B00126', role: '课程顾问', limit: 20, received: 12 },
-  { id: 3, name: '陈老师', no: 'B00135', role: '课程顾问', limit: 18, received: 16 },
-  { id: 4, name: '刘老师', no: 'B00208', role: '客服专员', limit: 15, received: 9 },
-  { id: 5, name: '周老师', no: 'B00236', role: '课程顾问', limit: 25, received: 4 }
+  { id: 1, name: '李士文', no: 'B000001', role: '部门负责人', limit: 30, received: 18 },
+  { id: 2, name: '王老师', no: 'B000126', role: '课程顾问', limit: 20, received: 12 },
+  { id: 3, name: '陈老师', no: 'B000135', role: '课程顾问', limit: 18, received: 16 },
+  { id: 4, name: '刘老师', no: 'B000208', role: '客服专员', limit: 15, received: 9 },
+  { id: 5, name: '周老师', no: 'B000236', role: '课程顾问', limit: 25, received: 4 }
 ]
 
 const groups = ref<LiveCodeGroup[]>([

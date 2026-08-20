@@ -52,11 +52,11 @@ const platforms: Array<{ name: Platform; code: string; color: string }> = [
   { name: '其他', code: 'OTHER', color: '#75859b' }
 ]
 const employees = [
-  { id: 1, no: 'B00001', name: '李士文', org: '一转事业部 / 销售一组' },
-  { id: 2, no: 'B00126', name: '王老师', org: '一转事业部 / 销售二组' },
-  { id: 3, no: 'B00135', name: '陈老师', org: '运营中心 / 渠道组' },
-  { id: 4, no: 'B00208', name: '刘老师', org: '客户运营部 / 客服组' },
-  { id: 5, no: 'B00236', name: '周老师', org: '集团管理中心' }
+  { id: 1, no: 'B000001', name: '李士文', org: '一转事业部 / 销售一组' },
+  { id: 2, no: 'B000126', name: '王老师', org: '一转事业部 / 销售二组' },
+  { id: 3, no: 'B000135', name: '陈老师', org: '运营中心 / 渠道组' },
+  { id: 4, no: 'B000208', name: '刘老师', org: '客户运营部 / 客服组' },
+  { id: 5, no: 'B000236', name: '周老师', org: '集团管理中心' }
 ]
 const organizations = [
   { id: 10, name: '一转事业部' },
