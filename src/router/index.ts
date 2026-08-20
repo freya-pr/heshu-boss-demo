@@ -18,6 +18,8 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/positions': () => import('../views/PositionManagementView.vue'),
   '/system/roles': () => import('../views/RoleView.vue'),
   '/system/menus': () => import('../views/AdminConfigView.vue'),
+  '/system/parameters': () => import('../views/SystemParameterView.vue'),
+  '/system/dictionaries': () => import('../views/DictionaryManagementView.vue'),
   '/system/exceptions': () => import('../views/AdminConfigView.vue'),
   '/system/sms': () => import('../views/SystemToolsView.vue'),
   '/system/sms/orders': () => import('../views/SystemToolsView.vue'),

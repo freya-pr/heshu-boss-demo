@@ -84,6 +84,8 @@ export const v1Menus: MenuGroup[] = [
       { name: '岗位管理', path: '/system/positions', description: '配置本人、小组、部门、跨部门及公司级数据可见范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
       { name: '角色管理', path: '/system/roles', description: '按运营、客服、规划师等业务角色配置菜单、操作和字段权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '关联员工', '影响预览'] },
       { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },
+      { name: '系统参数', path: '/system/parameters', description: '作为全局设置中心，统一维护影响合数BOSS运行行为的参数、密钥引用和版本记录。', features: ['参数分组', '类型校验', '敏感值保护', '新增', '编辑', '启停', '版本历史', '审计'] },
+      { name: '字典管理', path: '/system/dictionaries', description: '统一管理业务枚举类型与字典项，保证页面展示、接口值和历史数据口径一致。', features: ['字典类型', '字典项', '排序', '显示标签', '新增', '编辑', '启停', '历史兼容'] },
       { name: '日志查询', path: '/system/logs', description: '查询登录、操作、权限、配置和接口日志。', features: ['查询', '详情', '审批导出', '归档'] },
       { name: '地区管理', path: '/system/regions', description: '管理国家、省、市、区县标准地区树。', features: ['导入', '新增', '编辑', '启停', '差异更新'] }
     ]
