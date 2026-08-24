@@ -24,11 +24,23 @@ type ProductRow = {
 
 const route = useRoute()
 const loading = ref(false)
+const syncPanelVisible = ref(false)
+const syncRunning = ref(false)
 const remarkVisible = ref(false)
 const activeProduct = ref<ProductRow | null>(null)
 const remark = ref('')
 const page = ref(1)
 const pageSize = ref(10)
+const syncPlatforms = [
+  { code: 'DOUYIN', name: '抖店' },
+  { code: 'BAIDU', name: '百度' },
+  { code: 'XIAOHONGSHU', name: '小红书' },
+  { code: 'KUAISHOU', name: '快手' },
+  { code: 'WECHAT_STORE', name: '微信小店' }
+] as const
+type SyncState = 'IDLE' | 'WAITING' | 'RUNNING' | 'SUCCESS' | 'FAILED'
+const syncState = reactive<Record<string, SyncState>>(Object.fromEntries(syncPlatforms.map(item => [item.code, 'IDLE'])))
+const syncStateLabel: Record<SyncState, string> = { IDLE: '可同步', WAITING: '等待中', RUNNING: '同步中', SUCCESS: '已完成', FAILED: '失败' }
 
 const rows = ref<ProductRow[]>([
   { id: 1, createdAt: '2026-08-20 21:48:45', updatedAt: '2026-08-20 21:48:46', name: '阿留教育规划3天精华课', qrAssigned: true, productId: '71967409586', status: '在线', storeName: '阿留状元教育规划', storeType: '百家号', ipNo: 'IP000001', ipName: '阿留皮皮', remark: '店播主推商品' },
@@ -59,10 +71,20 @@ watch(() => route.query.ipNo, value => { query.ipNo = typeof value === 'string' 
 watch(() => [query.keyword, query.storeType, query.status, query.qrAssigned, query.ipNo], () => { page.value = 1 })
 
 function resetQuery() { Object.assign(query, { keyword: '', storeType: '', status: '', qrAssigned: '', ipNo: '' }) }
-function syncProducts() {
-  loading.value = true
-  window.setTimeout(() => { loading.value = false; ElMessage.success('商品同步任务已完成，数据已刷新') }, 650)
+async function syncProducts(platforms = syncPlatforms.map(item => item.code)) {
+  if (syncRunning.value) return
+  syncRunning.value = true
+  platforms.forEach(code => { syncState[code] = 'WAITING' })
+  for (const code of platforms) {
+    syncState[code] = 'RUNNING'
+    await new Promise(resolve => window.setTimeout(resolve, 420))
+    syncState[code] = 'SUCCESS'
+  }
+  syncRunning.value = false
+  ElMessage.success(platforms.length === syncPlatforms.length ? '全部平台商品已按顺序同步完成' : '平台商品同步完成')
 }
+function resetSyncState() { syncPlatforms.forEach(item => { syncState[item.code] = 'IDLE' }) }
+function closeSyncPanel() { if (!syncRunning.value) syncPanelVisible.value = false }
 function openRemark(row: ProductRow) { activeProduct.value = row; remark.value = row.remark; remarkVisible.value = true }
 function saveRemark() {
   if (activeProduct.value) activeProduct.value.remark = remark.value.trim()
@@ -76,7 +98,19 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
   <section class="page product-page">
     <PageHeader title="商品列表" description="统一查看第三方商品、店铺归属、活码分配状态与IP关联，商品主数据由各渠道同步进入。">
       <el-button :icon="Download" @click="exportRows">导出</el-button>
-      <el-button type="primary" :icon="Refresh" :loading="loading" @click="syncProducts">同步商品</el-button>
+      <el-popover v-model:visible="syncPanelVisible" placement="bottom-end" :width="760" trigger="click" popper-class="product-sync-popover" @show="resetSyncState">
+        <template #reference><el-button type="primary" :icon="Refresh" :loading="syncRunning">同步商品</el-button></template>
+        <section class="sync-panel">
+          <header><div><b>选择商品同步范围</b><small>多平台任务按照页面顺序依次执行，避免并发拉取造成限流。</small></div><button type="button" :disabled="syncRunning" @click="closeSyncPanel">×</button></header>
+          <button class="sync-all" type="button" :disabled="syncRunning" @click="syncProducts()"><el-icon><Refresh/></el-icon><span>同步所有商品</span><small>抖店 → 百度 → 小红书 → 快手 → 微信小店</small></button>
+          <div class="sync-platforms">
+            <button v-for="item in syncPlatforms" :key="item.code" type="button" :class="syncState[item.code].toLowerCase()" :disabled="syncRunning" @click="syncProducts([item.code])">
+              <span>同步{{ item.name }}商品</span><small>{{ syncStateLabel[syncState[item.code]] }}</small>
+            </button>
+          </div>
+          <p>每个平台生成独立后台任务，记录开始时间、完成时间、成功数、失败数及失败原因。</p>
+        </section>
+      </el-popover>
     </PageHeader>
 
     <div v-if="activeIp" class="ip-context">
@@ -121,4 +155,8 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
 
 <style scoped>
 .product-page{--ink:#152640;--blue:#2875e6}.ip-context{display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:14px;border:1px solid #cfe0f7;border-left:4px solid var(--blue);border-radius:9px;background:#f4f8ff;color:#6d7e96;font-size:12px}.ip-context code,.product-ledger code,.remark-product code{padding:4px 7px;border:1px solid #dae5f2;border-radius:6px;background:#f2f6fb;color:#426790;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}.ip-context b{color:var(--ink)}.ip-context button{margin-left:auto;border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer}.product-filter{display:grid;grid-template-columns:1.5fr repeat(4,.72fr) auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.product-ledger{padding:0 18px 18px}.product-ledger>header{height:62px;display:flex;align-items:center;justify-content:space-between}.product-ledger header>div{display:flex;align-items:baseline;gap:9px}.product-ledger h3{margin:0;color:var(--ink)}.product-ledger header span,.product-ledger header p{color:#8b99ab;font-size:10px}.product-ledger footer{display:flex;justify-content:flex-end;padding-top:18px}.product-name b,.product-name small,.ip-cell b,.ip-cell code{display:block}.product-name b{color:var(--ink)}.product-name small{margin-top:5px;color:#8796aa;font-size:10px}.ip-cell b{margin-bottom:5px;color:var(--ink);font-size:12px}.ip-cell code{width:max-content;padding:2px 5px;font-size:8px}.remark-product{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;margin-bottom:14px;border-radius:8px;background:#f5f8fc}.remark-product b{color:var(--ink)}@media(max-width:1200px){.product-filter{grid-template-columns:repeat(3,1fr)}}
+</style>
+
+<style>
+.product-sync-popover{padding:0!important;border-radius:14px!important;box-shadow:0 18px 50px rgba(24,48,82,.18)!important}.sync-panel{padding:18px;color:#172943}.sync-panel header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}.sync-panel header div{display:grid;gap:4px}.sync-panel header b{font-size:16px}.sync-panel header small,.sync-panel>p{color:#8291a6;font-size:11px}.sync-panel header button{border:0;background:transparent;color:#98a5b5;font-size:24px;cursor:pointer}.sync-all{width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:14px 16px;border:1px solid #2875e6;border-radius:10px;background:#eff6ff;color:#1e69d5;text-align:left;cursor:pointer}.sync-all span{font-weight:800}.sync-all small{color:#6582a8}.sync-platforms{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}.sync-platforms button{display:grid;gap:6px;padding:12px 9px;border:1px solid #d9e3ef;border-radius:9px;background:#fff;color:#344861;cursor:pointer}.sync-platforms button span{font-weight:700}.sync-platforms button small{color:#8c99aa}.sync-platforms button.waiting{background:#f7f9fc}.sync-platforms button.running{border-color:#2875e6;background:#eff6ff;color:#2875e6}.sync-platforms button.success{border-color:#8ddac2;background:#f0fbf7;color:#148969}.sync-platforms button:disabled,.sync-all:disabled{cursor:not-allowed;opacity:.78}.sync-panel>p{margin:14px 0 0;padding-top:12px;border-top:1px solid #edf1f6}
 </style>

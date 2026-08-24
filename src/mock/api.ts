@@ -24,9 +24,9 @@ const seed: DemoDb = {
     { id: 7, lead_no: 'L202608130027', order_no: '', order_status: 'NO_ORDER', name: '测试号码', mobile: '13000000000', original_mobile: '13000000000', decrypted_mobile: '13000000000', union_id: '', wechat_nickname: '', source_type: 'DRAINAGE', lead_source: '自有系统', channel_name: '历史名单', first_product_name: '', product_remark: '', shop_name: '', paid_amount: 0, status: 'DECRYPTED', lead_mark: 'INVALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'IMPORT', wechat_method: '', camp_name: '', sms_send_count: 0, decrypted_at: '2026-08-13 09:00:02', created_at: '2026-08-13 09:00:00', remark: '测试数据，已审核标记无效' }
   ],
   customers: [
-    { id: 1, customer_no: 'C202608160001', name: '周女士', mobile: '13800001111', union_id: 'union_zhou_001', grade: 'A', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-16 09:40:00' },
-    { id: 2, customer_no: 'C202608160002', name: '钱女士', mobile: '13800002222', union_id: 'union_qian_002', grade: 'B', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', owner_organization_id: 9, owner_organization_name: '一转二组', status: 'ACTIVE', created_at: '2026-08-16 10:15:00' },
-    { id: 3, customer_no: 'C202608160003', name: '吴女士', mobile: '13800003333', union_id: 'union_wu_003', grade: 'S', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-15 15:20:00' }
+    { id: 1, customer_no: 'C202608160001', name: '周女士', mobile: '13800001111', union_id: 'union_zhou_001', grade: 'A', grade_source: 'LEAD_INHERITED', lifecycle: 'INTENT', add_method: 'QR_CODE', source_name: '抖店 · 合数教育官方旗舰店', source_lead_no: 'L202608160001', camp_name: '2026暑期第3营', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-16 09:40:00' },
+    { id: 2, customer_no: 'C202608160002', name: '钱女士', mobile: '13800002222', union_id: 'union_qian_002', grade: 'B', grade_source: 'LEAD_INHERITED', lifecycle: 'INTENT', add_method: 'LINK', source_name: '有赞 · 合数成长中心', source_lead_no: 'L202608160003', camp_name: '2026暑期第3营', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', owner_organization_id: 9, owner_organization_name: '一转二组', status: 'ACTIVE', created_at: '2026-08-16 10:15:00' },
+    { id: 3, customer_no: 'C202608160003', name: '吴女士', mobile: '13800003333', union_id: 'union_wu_003', grade: 'S', grade_source: 'LEAD_INHERITED', lifecycle: 'DEAL', add_method: 'BUSINESS_CARD', source_name: '抖音 · 直播间', source_lead_no: 'L202608150008', camp_name: '2026暑期高年级1班', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-15 15:20:00' }
   ],
   messages: [
     { id: 1, receiver_username: 'admin', message_type: 'NEW_LEAD', title: '新线索已进入待分配队列', summary: '合作渠道 A 新增 1 条线索，请及时处理。', level: 'IMPORTANT', read_status: 'UNREAD', process_status: 'PENDING', created_at: '2026-08-16 10:30:09' },
@@ -60,7 +60,7 @@ function normalizeEmployeeNo(value: unknown) { const text=String(value||'');retu
 function normalizeDb(source: DemoDb): DemoDb {
   source.employees.forEach(item=>{item.employee_no=normalizeEmployeeNo(item.employee_no)})
   source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no)})
-  source.customers.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no)})
+  source.customers.forEach((item,index)=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.grade_source=item.grade_source||'LEAD_INHERITED';item.lifecycle=item.lifecycle||(item.grade==='S'?'DEAL':'INTENT');item.add_method=item.add_method||(['QR_CODE','LINK','BUSINESS_CARD'][index%3]);item.source_name=item.source_name||'历史数据';item.source_lead_no=item.source_lead_no||'';item.camp_name=item.camp_name||''})
   return source
 }
 function load(): DemoDb {
@@ -129,7 +129,7 @@ function createCustomer(body: Row) {
   const owner = db.employees.find(item => item.name === ownerName || item.legal_name === ownerName)
   const ownerOrganization = db.organizations.find(item => Number(item.id) === Number(owner?.organization_id))
   const inheritedGrade = effectiveLeadGrade(body)
-  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: inheritedGrade, grade_source: 'LEAD_INHERITED', source_lead_no: body.lead_no || '', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: inheritedGrade, grade_source: 'LEAD_INHERITED', lifecycle: body.lifecycle || 'LEAD', add_method: body.addMethod || body.add_method || 'LINK', source_name: body.source_name || body.lead_source || '人工建档', source_lead_no: body.lead_no || '', camp_name: body.camp_name || '', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
   db.customers.unshift(customer); save(); return customer
 }
 
@@ -145,9 +145,15 @@ function scaleNumber(value: number, scale: number) { return Math.max(0, Math.rou
 function buildLeadAnalytics(params: Row = {}) {
   const periodName = String(params.period || '2026 暑期第 3 营')
   const selectedChannel = String(params.channel || '全部渠道')
+  const selectedStore = String(params.store || '全部店铺')
+  const selectedIpChannel = String(params.ipChannel || '全部IP渠道')
+  const selectedIpName = String(params.ipName || '全部IP')
   const selectedTeam = String(params.team || '一转销售部')
   const periodScale = ({ '2026 暑期第 3 营': 1, '2026 暑期第 2 营': 0.86, '2026 暑期体验营': 0.62 } as Row)[periodName] || 1
   const teamScale = ({ '一转销售部': 1, '一转一组': 0.54, '一转二组': 0.46 } as Row)[selectedTeam] || 1
+  const storeScale = ({ '全部店铺': 1, '合数教育官方旗舰店': 0.43, '合数精品课程店': 0.27, '合数成长课堂': 0.19, '合数教育体验课': 0.11 } as Row)[selectedStore] || 1
+  const ipChannelScale = ({ '全部IP渠道': 1, '店播': 0.61, '阿留专属': 0.39 } as Row)[selectedIpChannel] || 1
+  const ipNameScale = ({ '全部IP': 1, '阿留皮皮': 0.38, '周老师': 0.34, '王老师': 0.28 } as Row)[selectedIpName] || 1
   const selectedRows = selectedChannel === '全部渠道' ? analyticsChannels : analyticsChannels.filter(item => item.name === selectedChannel)
   const totals = selectedRows.reduce((sum, item) => ({
     leads: sum.leads + item.leads,
@@ -156,7 +162,7 @@ function buildLeadAnalytics(params: Row = {}) {
     deals: sum.deals + item.deals,
     netGmv: sum.netGmv + item.netGmv
   }), { leads: 0, wechat: 0, questionnaire: 0, deals: 0, netGmv: 0 })
-  const scale = periodScale * teamScale
+  const scale = periodScale * teamScale * storeScale * ipChannelScale * ipNameScale
   const leads = scaleNumber(totals.leads, scale)
   const wechat = scaleNumber(totals.wechat, scale)
   const questionnaire = scaleNumber(totals.questionnaire, scale)
@@ -191,13 +197,64 @@ function buildLeadAnalytics(params: Row = {}) {
       netGmv: scaleNumber(item.netGmv, scale)
     }
   })
+  const ipChannelSeeds = [
+    { name: '阿留专属', code: 'CH000002', ipCount: 3, leads: 12680, wechat: 8876, questionnaire: 6213, reservation: 4680, arrival: 3587, completion: 2916, deals: 718, refunds: 38, grossGmv: 2148900, refundAmount: 64600 },
+    { name: '店播', code: 'CH000001', ipCount: 8, leads: 10920, wechat: 7028, questionnaire: 4696, reservation: 3420, arrival: 2635, completion: 2074, deals: 416, refunds: 25, grossGmv: 1243800, refundAmount: 42500 },
+    { name: '通用投放', code: 'CH000003', ipCount: 4, leads: 6400, wechat: 2696, questionnaire: 1991, reservation: 1368, arrival: 1026, completion: 812, deals: 152, refunds: 11, grossGmv: 454600, refundAmount: 18700 }
+  ]
+  const ipChannels = ipChannelSeeds
+    .filter(item => selectedIpChannel === '全部IP渠道' || item.name === selectedIpChannel)
+    .map(item => {
+      const rowScale = periodScale * teamScale * storeScale * ipNameScale
+      const row = Object.fromEntries(Object.entries(item).map(([key, value]) => [key, typeof value === 'number' && key !== 'ipCount' ? scaleNumber(value, rowScale) : value])) as Row
+      row.conversionRate = row.leads ? Number((row.deals / row.leads * 100).toFixed(1)) : 0
+      row.finalConversionRate = row.leads ? Number(((row.deals - row.refunds) / row.leads * 100).toFixed(1)) : 0
+      row.netGmv = row.grossGmv - row.refundAmount
+      return row
+    })
+  const productSeeds = [
+    { productId: '71967409586', name: '阿留教育规划3天精华课', platform: '百家号', store: '阿留洪元教育规划', ipName: '阿留皮皮', ipChannel: '阿留专属', leads: 9820, wechat: 7064, questionnaire: 5012, deals: 538, refunds: 29, grossGmv: 1609200, refundAmount: 49300 },
+    { productId: '3825549661721198679', name: '阿留教育规划精华家长课-读书卡', platform: '抖店', store: '安数教育旗舰店', ipName: '阿留皮皮', ipChannel: '阿留专属', leads: 7260, wechat: 4937, questionnaire: 3378, deals: 346, refunds: 21, grossGmv: 1034700, refundAmount: 35700 },
+    { productId: 'XET-HS-2026003', name: '家庭学习力体验营', platform: '小鹅通', store: '合数成长课堂', ipName: '皮皮老师', ipChannel: '店播', leads: 8460, wechat: 5521, questionnaire: 3640, deals: 294, refunds: 17, grossGmv: 879100, refundAmount: 28900 },
+    { productId: 'YZ-100893572', name: '2026暑期家庭教育公开课', platform: '有赞', store: '合数精品课程店', ipName: '周老师', ipChannel: '店播', leads: 4460, wechat: 2504, questionnaire: 1670, deals: 108, refunds: 7, grossGmv: 322800, refundAmount: 11900 }
+  ]
+  const products = productSeeds
+    .filter(item => (selectedStore === '全部店铺' || item.store === selectedStore) && (selectedIpChannel === '全部IP渠道' || item.ipChannel === selectedIpChannel) && (selectedIpName === '全部IP' || item.ipName === selectedIpName))
+    .map(item => {
+      const rowScale = periodScale * teamScale
+      const row = Object.fromEntries(Object.entries(item).map(([key, value]) => [key, typeof value === 'number' ? scaleNumber(value, rowScale) : value])) as Row
+      row.conversionRate = row.leads ? Number((row.deals / row.leads * 100).toFixed(1)) : 0
+      row.finalConversionRate = row.leads ? Number(((row.deals - row.refunds) / row.leads * 100).toFixed(1)) : 0
+      row.netGmv = row.grossGmv - row.refundAmount
+      return row
+    })
+  const detailSources = ['抖店', '百家号', '小鹅通', '有赞']
+  const detailOwners = ['李士文', '王老师', '陈老师', '刘老师']
+  const details = Array.from({ length: 24 }, (_, index) => ({
+    orderNo: `TP202608${String(180001 + index)}`,
+    customerName: ['周女士', '赵先生', '钱女士', '孙女士'][index % 4],
+    mobile: `13${8 + index % 2}****${String(1100 + index).slice(-4)}`,
+    source: detailSources[index % detailSources.length],
+    store: productSeeds[index % productSeeds.length].store,
+    productName: productSeeds[index % productSeeds.length].name,
+    ipChannel: index % 3 === 0 ? '阿留专属' : '店播',
+    ipName: index % 3 === 0 ? '阿留皮皮' : index % 2 ? '皮皮老师' : '周老师',
+    ownerName: detailOwners[index % detailOwners.length],
+    period: periodName,
+    eventTime: `2026-08-${String(12 + index % 7).padStart(2, '0')} ${String(9 + index % 10).padStart(2, '0')}:${String(10 + index).slice(-2)}:00`,
+    stage: ['已加微', '已填问卷', '已预约', '已到课', '已完课', '已成交', '已退款'][index % 7]
+  }))
   return {
     dataMode: 'DEMO', updatedAt: '2026-08-18 18:00:00', periodName,
     funnel: { leads, wechat, questionnaire, reservation, arrival, completion, deal, online: scaleNumber(618, scale), refund },
     finance: { grossGmv, refundAmount, netGmv, targetGmv },
     efficiency: { serviceStaff, peopleServiceRatio: Number((leads / serviceStaff).toFixed(1)), perCapitaGmv: Math.round(netGmv / serviceStaff), conversionDispersion: selectedTeam === '一转销售部' ? 12.8 : selectedTeam === '一转一组' ? 9.6 : 15.2 },
     trend,
-    channels
+    channels,
+    ipChannels,
+    products,
+    details,
+    metricVersion: 'LEAD-KPI-1.0.0'
   }
 }
 
@@ -244,6 +301,32 @@ export const demoHttp = {
     }
     if (path === '/auth/wecom-scene') return ok({ sceneId: crypto.randomUUID(), status: 'WAITING_SCAN', stub: true, expiresIn: 120 })
     if (path === '/auth/logout') { localStorage.removeItem(USER_KEY); return ok(null) }
+    if (path === '/leads/import-decrypted') {
+      const records = Array.isArray(body.records) ? body.records : []
+      if (!records.length) return fail('请上传包含有效数据的固定模板')
+      if (records.length > 5000) return fail('单次最多导入 5000 条解密数据')
+      const failures: Row[] = []
+      const seen = new Set<string>()
+      let successCount = 0
+      records.forEach((record: Row, index: number) => {
+        const orderNo = String(record.orderNo || '').trim()
+        const mobile = String(record.mobile || '').replace(/\s+/g, '')
+        const rowNumber = index + 2
+        if (!orderNo) { failures.push({ rowNumber, orderNo, reason: '订单编号不能为空' }); return }
+        if (!/^1\d{10}$/.test(mobile)) { failures.push({ rowNumber, orderNo, reason: '手机号格式错误' }); return }
+        if (seen.has(orderNo)) { failures.push({ rowNumber, orderNo, reason: '文件内订单编号重复' }); return }
+        seen.add(orderNo)
+        const matched = db.leads.filter(item => item.source_type === 'DRAINAGE' && String(item.order_no || '') === orderNo)
+        if (!matched.length) { failures.push({ rowNumber, orderNo, reason: '未找到对应引流线索订单' }); return }
+        if (matched.length > 1) { failures.push({ rowNumber, orderNo, reason: '订单编号匹配到多条引流线索' }); return }
+        const lead = matched[0]
+        const now = new Date().toLocaleString('zh-CN', { hour12: false })
+        Object.assign(lead, { mobile, decrypted_mobile: mobile, decrypted_at: lead.decrypted_at || now, updated_at: now })
+        successCount++
+      })
+      save()
+      return ok({ totalCount: records.length, successCount, failureCount: failures.length, failures })
+    }
     if (path === '/leads') {
       const now = new Date().toLocaleString('zh-CN', { hour12: false })
       const lead = { id: Math.max(0, ...db.leads.map(item => item.id)) + 1, lead_no: id('L'), order_no: '', order_status: 'NO_ORDER', name: body.name, mobile: body.mobile || '', original_mobile: body.mobile || '', decrypted_mobile: body.mobile || '', decrypted_at: body.mobile ? now : '', union_id: body.unionId || '', wechat_nickname: '', source_type: body.sourceType, lead_source: body.channelName, channel_name: body.channelName, third_party_product_id: body.thirdPartyProductId || '', first_product_name: '', product_remark: '', shop_name: '', paid_amount: 0, status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'IMPORT', wechat_method: '', camp_name: '', sms_send_count: 0, created_at: now, remark: '' }
@@ -280,15 +363,22 @@ export const demoHttp = {
     const changeGrade = path.match(/^\/leads\/(\d+)\/grade$/)
     if (changeGrade) {
       const lead = db.leads.find(item => item.id === Number(changeGrade[1])); if (!lead) return fail('线索不存在')
-      if (!['S', 'A', 'B', 'C', 'UNRATED'].includes(body.grade)) return fail('线索等级无效')
+      if (!['S', 'A', 'B', 'C'].includes(body.grade)) return fail('线索等级无效')
       if (!String(body.reason || '').trim()) return fail('人工变更必须填写原因')
       const previousGrade = effectiveLeadGrade(lead)
       Object.assign(lead, { previous_grade: previousGrade, lead_grade: body.grade, grade_source: 'MANUAL', grade_change_reason: String(body.reason).trim(), grade_changed_by: currentUser().displayName, grade_changed_at: new Date().toLocaleString('zh-CN', { hour12: false }) })
-      if (lead.customer_no) {
-        const customer = db.customers.find(item => item.customer_no === lead.customer_no)
-        if (customer) Object.assign(customer, { grade: body.grade, grade_source: 'MANUAL', grade_changed_at: lead.grade_changed_at })
-      }
-      save(); return ok({ grade: lead.lead_grade, customerSynced: Boolean(lead.customer_no) })
+      save(); return ok({ grade: lead.lead_grade, customerSynced: false, customerGradeProtected: Boolean(lead.customer_no) })
+    }
+    const changeCustomerGrade = path.match(/^\/customers\/(\d+)\/grade$/)
+    if (changeCustomerGrade) {
+      const customer = db.customers.find(item => item.id === Number(changeCustomerGrade[1])); if (!customer) return fail('客户不存在')
+      if (!['S', 'A', 'B', 'C'].includes(body.grade)) return fail('客户等级无效')
+      if (!String(body.reason || '').trim()) return fail('人工变更必须填写原因')
+      const changedAt = new Date().toLocaleString('zh-CN', { hour12: false })
+      const history = Array.isArray(customer.grade_history) ? customer.grade_history : []
+      history.unshift({ from_grade: customer.grade || 'UNRATED', to_grade: body.grade, reason: String(body.reason).trim(), changed_by: currentUser().displayName, changed_at: changedAt })
+      Object.assign(customer, { previous_grade: customer.grade || 'UNRATED', grade: body.grade, grade_source: 'CUSTOMER_MANUAL', grade_change_reason: String(body.reason).trim(), grade_changed_by: currentUser().displayName, grade_changed_at: changedAt, grade_history: history })
+      save(); return ok({ grade: customer.grade, source: customer.grade_source })
     }
     if (path === '/customers') { const customer = createCustomer(body); return ok({ id: customer.id }) }
     if (path === '/system/organizations') {

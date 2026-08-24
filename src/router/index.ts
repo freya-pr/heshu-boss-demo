@@ -3,7 +3,6 @@ import AppLayout from '../layouts/AppLayout.vue'
 import { menuLeaves } from '../config/menu'
 
 const specificComponents: Record<string, () => Promise<any>> = {
-  '/dashboard': () => import('../views/DashboardView.vue'),
   '/leads/drainage': () => import('../views/LeadsView.vue'),
   '/leads/analytics': () => import('../views/LeadAnalyticsView.vue'),
   '/leads/qr-codes': () => import('../views/QrCodeManagementView.vue'),
@@ -12,8 +11,11 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/leads/stores': () => import('../views/StoreManagementView.vue'),
   '/leads/ip': () => import('../views/IpListView.vue'),
   '/leads/products': () => import('../views/ProductListView.vue'),
+  '/leads/sms-config': () => import('../views/ProductSmsConfigurationView.vue'),
+  '/customers/overview': () => import('../views/CustomerOverviewView.vue'),
   '/customers/list': () => import('../views/CustomersView.vue'),
-  '/orders/formal': () => import('../views/FormalOrdersView.vue'),
+  '/customers/tags': () => import('../views/TagManagementView.vue'),
+  '/customers/opportunities': () => import('../views/OpportunityManagementView.vue'),
   '/system/organizations': () => import('../views/SystemView.vue'),
   '/system/employees': () => import('../views/EmployeeManagementView.vue'),
   '/system/positions': () => import('../views/PositionManagementView.vue'),
@@ -23,7 +25,6 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/dictionaries': () => import('../views/DictionaryManagementView.vue'),
   '/system/exceptions': () => import('../views/AdminConfigView.vue'),
   '/system/sms': () => import('../views/SystemToolsView.vue'),
-  '/system/sms/orders': () => import('../views/SystemToolsView.vue'),
   '/system/sms/signatures': () => import('../views/SystemToolsView.vue'),
   '/system/sms/templates': () => import('../views/SystemToolsView.vue'),
   '/system/sms/results': () => import('../views/SystemToolsView.vue'),
@@ -42,7 +43,7 @@ const menuRoutes: RouteRecordRaw[] = menuLeaves.map(item => ({
 }))
 
 menuRoutes.push({ path: 'leads/channel-analysis', redirect: '/leads/channels?tab=analysis' })
-menuRoutes.push({ path: 'orders/diagnosis', redirect: '/orders/formal' })
+menuRoutes.push({ path: 'dashboard', redirect: '/leads/analytics' })
 
 menuRoutes.push({
   path: 'profile',
@@ -56,14 +57,14 @@ const router = createRouter({
     : createWebHistory(),
   routes: [
     { path: '/login', component: () => import('../views/LoginView.vue') },
-    { path: '/', component: AppLayout, redirect: '/dashboard', children: menuRoutes },
-    { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
+    { path: '/', component: AppLayout, redirect: '/leads/analytics', children: menuRoutes },
+    { path: '/:pathMatch(.*)*', redirect: '/leads/analytics' }
   ]
 })
 
 router.beforeEach(to => {
   if (to.path !== '/login' && !localStorage.getItem('scrm_token')) return '/login'
-  if (to.path === '/login' && localStorage.getItem('scrm_token')) return '/dashboard'
+  if (to.path === '/login' && localStorage.getItem('scrm_token')) return '/leads/analytics'
 })
 
 export default router

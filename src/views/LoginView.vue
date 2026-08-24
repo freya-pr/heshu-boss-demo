@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'; import { useRouter } from 'vue-router'; import { useAuthStore } from '../stores/auth'; import http from '../api/http'
 const auth=useAuthStore(),router=useRouter(),username=ref('admin'),password=ref('Scrm@2026'),loading=ref(false),error=ref(''),scanOpen=ref(false),scene=ref<any>(null)
-async function login(){loading.value=true;error.value='';try{await auth.login(username.value,password.value);router.push('/dashboard')}catch(e:any){error.value=e.message}finally{loading.value=false}}
+async function login(){loading.value=true;error.value='';try{await auth.login(username.value,password.value);router.push('/leads/analytics')}catch(e:any){error.value=e.message}finally{loading.value=false}}
 async function openScan(){const r:any=await http.post('/auth/wecom-scene');scene.value=r.data;scanOpen.value=true}
 async function simulateScan(){username.value='admin';password.value='Scrm@2026';scanOpen.value=false;await login()}
 </script>

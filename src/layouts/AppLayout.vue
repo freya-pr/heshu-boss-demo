@@ -26,7 +26,6 @@ const groupIcons: Record<string, Component> = {
   HOME: House,
   LEAD: Promotion,
   CUSTOMER: User,
-  ORDER: ShoppingBag,
   DELIVERY: School,
   QUESTIONNAIRE: DocumentChecked,
   BUSINESS_CONFIG: Tools,
@@ -34,7 +33,7 @@ const groupIcons: Record<string, Component> = {
 }
 
 const leafIcons: Record<string, Component> = {
-  '/dashboard': House,
+  '/leads/analytics': DataLine,
   '/leads/drainage': Promotion,
   '/leads/third-party': Link,
   '/leads/rules': SetUp,
@@ -43,6 +42,7 @@ const leafIcons: Record<string, Component> = {
   '/leads/stores': Shop,
   '/leads/ip': PriceTag,
   '/leads/products': ShoppingBag,
+  '/leads/sms-config': Message,
   '/customers/overview': DataLine,
   '/customers/list': User,
   '/customers/conflicts': Warning,
@@ -51,10 +51,7 @@ const leafIcons: Record<string, Component> = {
   '/customers/tags': PriceTag,
   '/customers/grades': Rank,
   '/customers/opportunities': Opportunity,
-  '/customers/inheritance': Switch,
-  '/orders/formal': ShoppingBag,
   '/delivery/periods': Calendar,
-  '/delivery/classes': School,
   '/questionnaires/list': Notebook,
   '/system/organizations': OfficeBuilding,
   '/system/employees': Avatar,
@@ -76,7 +73,7 @@ function leafIcon(item: MenuItem) { return item.path ? leafIcons[item.path] || D
 function itemActive(item:MenuItem):boolean { return item.path===route.path||Boolean(item.children?.some(itemActive)) }
 function groupActive(group: MenuItem) { return Boolean(group.children?.some(itemActive)) }
 function subKey(group:MenuItem,item:MenuItem){return `${groupKey(group)}:${item.name}`}
-function isDirectGroup(group: MenuItem) { return groupKey(group) === 'HOME' }
+function isDirectGroup(_group: MenuItem) { return false }
 function toggleGroup(group: MenuItem) { openGroups[groupKey(group)] = !openGroups[groupKey(group)] }
 function openPage(item: MenuItem) { if (item.path) router.push(item.path) }
 function handleGroupClick(group: MenuItem) {

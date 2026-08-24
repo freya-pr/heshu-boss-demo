@@ -278,7 +278,7 @@ function drillDown(name: string) { ElMessage.info(`正在打开“${name}”归�
         </div>
 
         <section class="analytics-section funnel-section">
-          <header><div><h3>{{ analyticsMode === '线索归因口径' ? '线索到成交漏斗' : '业务事件发生概览' }}</h3><p>{{ analyticsMode === '线索归因口径' ? '人数按客户身份去重；首阶段按线索编号去重' : '各指标按自身业务事件发生时间统计，不以订单时间代替全部时间' }}</p></div><el-tag effect="plain">{{ analyticsDateType }}</el-tag></header>
+          <header><div><h3>{{ analyticsMode === '线索归因口径' ? '线索到成交漏斗' : '业务事件发生概览' }}</h3><p>{{ analyticsMode === '线索归因口径' ? '人数按客户身份去重；首阶段按接入幂等结果对应的内部记录去重' : '各指标按自身业务事件发生时间统计，不以订单时间代替全部时间' }}</p></div><el-tag effect="plain">{{ analyticsDateType }}</el-tag></header>
           <div class="store-funnel">
             <button v-for="stage in funnelStages" :key="stage.key" @click="drillDown(stage.name)"><span>{{ stage.name }}</span><b>{{ stage.value.toLocaleString() }}</b><small>{{ stage.key === 'leads' ? '归因起点' : `环节转化 ${stage.rate}%` }}</small><i :style="{ width: `${Math.max(18, stage.value / funnelStages[0].value * 100)}%` }"></i></button>
           </div>

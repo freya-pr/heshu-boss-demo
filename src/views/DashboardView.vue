@@ -6,7 +6,7 @@ onMounted(load)
 const cards=[['今日线索','leads','较昨日 +12%','blue'],['待分配','pendingAssignment','需要及时处理','orange'],['客户总量','customers','客户主数据','green'],['未读消息','unreadMessages','跨系统提醒','violet'],['S/A 客户','gradeAOrS','高意向客户','navy']]
 </script>
 <template><section class="page">
-<PageHeader eyebrow="HESHU BOSS · CUSTOMER OPERATIONS" title="客户经营工作台" description="追踪从渠道获客到业务转化的关键节点，优先处理影响客户体验的事项。"><el-button @click="load">刷新数据</el-button><el-button type="primary">新增线索</el-button></PageHeader>
+<PageHeader eyebrow="HESHU BOSS · CUSTOMER OPERATIONS" title="客户经营工作台" description="追踪从渠道获客到业务转化的关键节点，优先处理影响客户体验的事项。"><el-button @click="load">刷新数据</el-button></PageHeader>
 <StatePanel :loading="loading" :error="error" @retry="load">
   <div class="process-rail"><div v-for="(step,i) in data.flow" :key="step" class="process-step" :class="{current:i===4}"><b>{{String(i+1).padStart(2,'0')}}</b><span>{{step}}</span></div></div>
   <div class="metric-grid"><article v-for="[label,key,note,tone] in cards" :key="key" class="metric-card" :class="tone"><span>{{label}}</span><strong>{{data.metrics[key]??0}}</strong><small>{{note}}</small></article></div>

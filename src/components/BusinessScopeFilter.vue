@@ -6,7 +6,6 @@ export interface BusinessScopeValue {
   viewScope: 'AUTHORIZED' | 'SELF'
   organizationId: number | null
   ownerId: number | null
-  ownerStatus: '' | 'ACTIVE' | 'INACTIVE' | 'DEPARTED'
 }
 
 const props = withDefaults(defineProps<{
@@ -56,8 +55,7 @@ const ownerOptions = computed(() => {
 
 const activeFilterCount = computed(() => [
   props.modelValue.organizationId,
-  props.modelValue.ownerId,
-  props.modelValue.ownerStatus
+  props.modelValue.ownerId
 ].filter(Boolean).length)
 
 function update(patch: Partial<BusinessScopeValue>) {
@@ -65,7 +63,7 @@ function update(patch: Partial<BusinessScopeValue>) {
 }
 
 function clearScopeFilters() {
-  update({ organizationId: null, ownerId: null, ownerStatus: '' })
+  update({ organizationId: null, ownerId: null })
 }
 
 watch(() => props.modelValue.organizationId, () => {
@@ -132,20 +130,6 @@ watch(() => props.modelValue.organizationId, () => {
           </el-option>
         </el-select>
       </label>
-      <label class="scope-field scope-status">
-        <span>负责人状态</span>
-        <el-select
-          :model-value="modelValue.ownerStatus"
-          clearable
-          placeholder="全部状态"
-          aria-label="负责人状态"
-          @update:model-value="update({ ownerStatus: $event || '' })"
-        >
-          <el-option label="在职" value="ACTIVE" />
-          <el-option label="停用" value="INACTIVE" />
-          <el-option label="离职" value="DEPARTED" />
-        </el-select>
-      </label>
       <el-button v-if="activeFilterCount" class="clear-filter" link type="primary" :icon="RefreshLeft" @click="clearScopeFilters">
         清空 {{ activeFilterCount }} 项
       </el-button>
@@ -155,5 +139,5 @@ watch(() => props.modelValue.organizationId, () => {
 </template>
 
 <style scoped>
-.business-scope-filter{display:grid;grid-template-columns:minmax(248px,.82fr) minmax(0,3.18fr);gap:14px;align-items:stretch}.permission-context{min-width:0;min-height:66px;padding:10px 13px;display:grid;grid-template-columns:34px minmax(0,1fr);grid-template-rows:1fr 1fr;column-gap:10px;border:1px solid #cfe0fa;border-radius:10px;background:linear-gradient(135deg,#f7faff 0%,#eef5ff 100%);box-shadow:inset 3px 0 0 #2f7bea;color:#667a98;overflow:hidden}.permission-icon{grid-row:1/3;align-self:center;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#fff;color:#2875e6;box-shadow:0 4px 12px rgba(41,112,218,.10)}.permission-icon .el-icon{font-size:17px}.permission-copy{min-width:0;display:flex;align-items:baseline;gap:8px}.permission-copy small{flex:none;font-size:11px;color:#71839d}.permission-copy b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1f65cf;font-size:13px;font-weight:700}.permission-context em{align-self:end;font-size:10px;font-style:normal;color:#91a1b8}.scope-controls{min-width:0;padding:8px 10px;display:grid;grid-template-columns:minmax(145px,.75fr) minmax(210px,1.15fr) minmax(220px,1.2fr) minmax(130px,.65fr) 76px;gap:10px;align-items:end;border:1px solid #e3eaf3;border-radius:10px;background:#fff}.scope-field{min-width:0;display:grid;gap:5px}.scope-field>span{padding-left:2px;color:#7a8ca6;font-size:10px;font-weight:600;line-height:1}.scope-field :deep(.el-select),.scope-field :deep(.el-tree-select){width:100%}.scope-field :deep(.el-select__wrapper){min-height:32px;border-radius:7px;box-shadow:0 0 0 1px #dce4ef inset}.scope-field :deep(.el-select__wrapper:hover){box-shadow:0 0 0 1px #9ebfee inset}.scope-field :deep(.el-select__wrapper.is-focused){box-shadow:0 0 0 1px #2f7bea inset}.clear-filter{align-self:end;height:32px;padding:0 4px;font-size:11px}.clear-filter-placeholder{align-self:center;text-align:center;color:#a0aec0;font-size:10px}.el-select-dropdown__item small{float:right;margin-left:16px;color:#94a3b8;font-size:10px}@media(max-width:1480px){.business-scope-filter{grid-template-columns:1fr}.scope-controls{grid-template-columns:minmax(145px,.75fr) minmax(210px,1.15fr) minmax(220px,1.2fr) minmax(130px,.65fr) 76px}.permission-context{min-height:54px;grid-template-columns:34px minmax(0,1fr) auto;grid-template-rows:1fr}.permission-icon{grid-row:auto}.permission-copy{align-self:center}.permission-context em{align-self:center}}@media(max-width:980px){.scope-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.clear-filter,.clear-filter-placeholder{justify-self:start}.permission-context{grid-template-columns:34px minmax(0,1fr)}.permission-context em{display:none}}@media(max-width:640px){.scope-controls{grid-template-columns:1fr}.permission-context{padding:9px 10px}.permission-copy{display:grid;gap:2px}.permission-copy b{font-size:12px}}
+.business-scope-filter{display:grid;grid-template-columns:minmax(248px,.82fr) minmax(0,3.18fr);gap:14px;align-items:stretch}.permission-context{min-width:0;min-height:66px;padding:10px 13px;display:grid;grid-template-columns:34px minmax(0,1fr);grid-template-rows:1fr 1fr;column-gap:10px;border:1px solid #cfe0fa;border-radius:10px;background:linear-gradient(135deg,#f7faff 0%,#eef5ff 100%);box-shadow:inset 3px 0 0 #2f7bea;color:#667a98;overflow:hidden}.permission-icon{grid-row:1/3;align-self:center;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#fff;color:#2875e6;box-shadow:0 4px 12px rgba(41,112,218,.10)}.permission-icon .el-icon{font-size:17px}.permission-copy{min-width:0;display:flex;align-items:baseline;gap:8px}.permission-copy small{flex:none;font-size:11px;color:#71839d}.permission-copy b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#1f65cf;font-size:13px;font-weight:700}.permission-context em{align-self:end;font-size:10px;font-style:normal;color:#91a1b8}.scope-controls{min-width:0;padding:8px 10px;display:grid;grid-template-columns:minmax(145px,.8fr) minmax(220px,1.2fr) minmax(240px,1.3fr) 76px;gap:10px;align-items:end;border:1px solid #e3eaf3;border-radius:10px;background:#fff}.scope-field{min-width:0;display:grid;gap:5px}.scope-field>span{padding-left:2px;color:#7a8ca6;font-size:10px;font-weight:600;line-height:1}.scope-field :deep(.el-select),.scope-field :deep(.el-tree-select){width:100%}.scope-field :deep(.el-select__wrapper){min-height:32px;border-radius:7px;box-shadow:0 0 0 1px #dce4ef inset}.scope-field :deep(.el-select__wrapper:hover){box-shadow:0 0 0 1px #9ebfee inset}.scope-field :deep(.el-select__wrapper.is-focused){box-shadow:0 0 0 1px #2f7bea inset}.clear-filter{align-self:end;height:32px;padding:0 4px;font-size:11px}.clear-filter-placeholder{align-self:center;text-align:center;color:#a0aec0;font-size:10px}.el-select-dropdown__item small{float:right;margin-left:16px;color:#94a3b8;font-size:10px}@media(max-width:1480px){.business-scope-filter{grid-template-columns:1fr}.scope-controls{grid-template-columns:minmax(145px,.8fr) minmax(220px,1.2fr) minmax(240px,1.3fr) 76px}.permission-context{min-height:54px;grid-template-columns:34px minmax(0,1fr) auto;grid-template-rows:1fr}.permission-icon{grid-row:auto}.permission-copy{align-self:center}.permission-context em{align-self:center}}@media(max-width:980px){.scope-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.clear-filter,.clear-filter-placeholder{justify-self:start}.permission-context{grid-template-columns:34px minmax(0,1fr)}.permission-context em{display:none}}@media(max-width:640px){.scope-controls{grid-template-columns:1fr}.permission-context{padding:9px 10px}.permission-copy{display:grid;gap:2px}.permission-copy b{font-size:12px}}
 </style>

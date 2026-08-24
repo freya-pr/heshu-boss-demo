@@ -11,7 +11,7 @@ const employees = ref<any[]>([])
 const keyword = ref('')
 const paymentStatus = ref('')
 const orderRange = ref<string[]>([])
-const scopeFilters = ref<BusinessScopeValue>({ viewScope: 'AUTHORIZED', organizationId: null, ownerId: null, ownerStatus: '' })
+const scopeFilters = ref<BusinessScopeValue>({ viewScope: 'AUTHORIZED', organizationId: null, ownerId: null })
 const permissionLabel = computed(() => auth.user?.role === 'ADMIN' ? '当前公司全部数据' : '本人数据')
 const rows = ref([
   { orderNo: 'O202608180126', customerName: '吴女士', productName: '2980成长训练营', amount: 2980, paymentStatus: 'PAID', ownerId: 2, ownerName: '王老师', ownerNo: 'B000126', organizationName: '一转一组', orderedAt: '2026-08-18 10:26:18' },
@@ -29,7 +29,6 @@ function organizationScopeIds(id: number | null) {
 const displayedRows = computed(() => rows.value.filter(row => {
   const owner = employees.value.find(item => Number(item.id) === Number(row.ownerId))
   const ownerOrganizationId = Number(owner?.organization_id || 0)
-  const normalizedStatus = !owner ? 'UNASSIGNED' : owner.employment_status === 'DEPARTED' ? 'DEPARTED' : owner.account_status === 'INACTIVE' ? 'INACTIVE' : owner.employment_status || 'ACTIVE'
   const canViewAuthorizedScope = auth.user?.role === 'ADMIN' && scopeFilters.value.viewScope === 'AUTHORIZED'
   const date = row.orderedAt.slice(0, 10)
   const text = `${row.orderNo} ${row.customerName} ${row.productName}`.toLowerCase()
@@ -39,12 +38,11 @@ const displayedRows = computed(() => rows.value.filter(row => {
     && (canViewAuthorizedScope || row.ownerName === auth.user?.displayName)
     && (!scopeFilters.value.organizationId || organizationScopeIds(scopeFilters.value.organizationId).includes(ownerOrganizationId))
     && (!scopeFilters.value.ownerId || row.ownerId === scopeFilters.value.ownerId)
-    && (!scopeFilters.value.ownerStatus || normalizedStatus === scopeFilters.value.ownerStatus)
 }))
 
 const paymentLabel: Record<string, string> = { PAID: '已支付', UNPAID: '未支付', REFUNDING: '退款中', REFUNDED: '已退款' }
 const paymentType: Record<string, string> = { PAID: 'success', UNPAID: 'info', REFUNDING: 'warning', REFUNDED: 'danger' }
-function resetFilters() { keyword.value = ''; paymentStatus.value = ''; orderRange.value = []; scopeFilters.value = { viewScope: auth.user?.role === 'ADMIN' ? 'AUTHORIZED' : 'SELF', organizationId: null, ownerId: null, ownerStatus: '' } }
+function resetFilters() { keyword.value = ''; paymentStatus.value = ''; orderRange.value = []; scopeFilters.value = { viewScope: auth.user?.role === 'ADMIN' ? 'AUTHORIZED' : 'SELF', organizationId: null, ownerId: null } }
 onMounted(async () => { const [orgResult, employeeResult]: any = await Promise.all([http.get('/system/organizations'), http.get('/system/employees')]); organizations.value = orgResult.data; employees.value = employeeResult.data })
 </script>
 

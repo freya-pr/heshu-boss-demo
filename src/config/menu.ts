@@ -15,41 +15,32 @@ export interface MenuGroup {
 export const v1Menus: MenuGroup[] = [
   {
     name: '首页', code: 'HOME', children: [
-      { name: '首页', path: '/dashboard', description: '合数BOSS 默认首页，集中展示待办、核心指标和异常提醒。', features: ['待办', '核心指标', '异常提醒', '快捷入口'] }
+      { name: '线索概览', path: '/leads/analytics', description: '作为合数BOSS默认首页，概览线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['日期/营期筛选', '店铺筛选', 'IP渠道筛选', 'IP名称筛选', '营期经营报表', '转化漏斗', 'IP渠道分析', '商品分析', 'GMV与退款', '团队效能', '指标口径', '关键指标下钻', '本期报表导出'] }
     ]
   },
   {
     name: '线索中心', code: 'LEAD', children: [
-      { name: '数据分析', path: '/leads/analytics', description: '分析线索从加微、问卷、直播到成交退款的全链路经营表现。', features: ['营期/日期/渠道/团队筛选', '转化漏斗', 'GMV与退款', '团队效能', '指标口径', '下钻与导出'] },
-      { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，使用公共主模型和引流扩展字段。', features: ['导入', '同步', '新增', '编辑', '无效', '跟进', '导出', '批量分配'] },
+      { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，统一处理订单匹配、状态流转、等级与批量任务。', features: ['详情', '旅程', '编辑', '标记', '跟进', '人工变更等级', '批量分配', '短信群发', '按平台顺序同步订单', '导入解密数据', '导出非解密数据'] },
       { name: '线索配置', path: '/leads/rules', description: '分类管理活码分配、营期名单流转和问卷等级规则，并支持试算、冲突检测和版本发布。', features: ['规则分类', '活码分配规则', '营期名单流转规则', '等级规则', '问卷指标与分数区间', '规则试算', '冲突检测', '发布停用', '版本回退'] },
       { name: '活码管理', path: '/leads/qr-codes', description: '按分组及可选的营期、班级、接量日期管理员工活码、标签与轮询容量。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属营期（选填）', '所属班级（选填）', '接量日期区间（选填）', '员工轮询上限', '启停', '下载'] },
       { name: '渠道管理', path: '/leads/channels', description: '通过渠道列表和数据分析两个页签，统一管理渠道主数据、归因规则及转化效果。', features: ['渠道列表', '数据分析', '新增', '编辑', '详情', '启停', '渠道/时间/组织筛选', '转化漏斗', '下钻', '导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '按平台类型和第三方店铺ID统一管理店铺、负责人、访问权限及经营归因。', features: ['店铺列表', '平台类型', '店铺名称', '第三方店铺ID', '店铺负责人', '创建/更新/启停日期', '新增', '编辑', '启停', '店铺权限'] },
       { name: 'IP列表', path: '/leads/ip', description: '管理老师IP主档、IP大类与稳定编码、带编号的归因渠道及其关联商品和投放平台。', features: ['IP名称（老师名称）', 'IP大类（字典）', '大类编码', 'IP渠道', '渠道编号', '自增IP编号', '关联商品', '商品列表下钻', '关联平台'] },
-      { name: '商品列表', path: '/leads/products', description: '查看第三方商品、店铺归属、活码分配状态和IP关联，支持同步、筛选、导出与修改备注。', features: ['创建时间', '更新时间', '商品名称', '商品ID', '商品状态', '是否分配活码', '店铺名称', '店铺类型', '关联IP', '修改备注'] }
+      { name: '商品列表', path: '/leads/products', description: '查看第三方商品、店铺归属、活码分配状态和IP关联，支持全部平台或指定平台顺序同步、筛选、导出与修改备注。', features: ['创建时间', '更新时间', '商品名称', '商品ID', '商品状态', '是否分配活码', '店铺名称', '店铺类型', '关联IP', '同步所有商品', '分平台同步', '同步任务记录', '修改备注'] },
+      { name: '短信配置', path: '/leads/sms-config', description: '按商品与活码配置购买后、授权后和手动提醒策略；短信签名、模板及发送回执复用业务配置中的短信管理。', features: ['短信分组', '商品绑定', '活码绑定', '购买后提醒', '授权后提醒', '手动提醒', '批量设置', '新增', '编辑', '启停'] }
     ]
   },
   {
     name: '客户中心', code: 'CUSTOMER', children: [
-      { name: '客户总览', path: '/customers/overview', description: '客户经营数据概览。', features: ['组织筛选', '来源筛选', '等级筛选', '归属筛选', '进入明细'] },
-      { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理身份和客户档案。', features: ['查看', '编辑', '身份补录', '负责人', '标签', '跟进', '商机关联'] },
-      { name: '跟进记录', path: '/customers/follow-ups', description: '客户跟进时间轴和待办。', features: ['新增跟进', '跟进结果', '下次跟进', '查看历史'] },
-      { name: '标签管理', path: '/customers/tags', description: '管理客户标签及规则。', features: ['新增', '编辑', '停用', '手动打标', '规则打标', '历史'] },
-      { name: '等级管理', path: '/customers/grades', description: '查看 S/A/B/C 当前结果、人工调整与完整评级历史；规则统一在线索配置维护。', features: ['等级结果', '人工调整', '调整原因', '评级来源', '问卷与规则版本', '结果历史'] },
-      { name: '商机管理', path: '/customers/opportunities', description: '管理基础商机、阶段、负责人和状态。', features: ['新增', '编辑', '负责人', '阶段', '状态', '跟进'] },
-      { name: '离职继承', path: '/customers/inheritance', description: '将离职员工名下客户等业务数据移交给明确继承人。', features: ['指定继承人', '范围预览', '执行', '失败补偿', '反向恢复'] }
-    ]
-  },
-  {
-    name: '订单中心', code: 'ORDER', children: [
-      { name: '正式课订单', path: '/orders/formal', description: '正式课程订单列表和客户关联。', features: ['列表', '详情', '客户关联', '产品关联', '负责人', '支付状态'] }
+      { name: '客户总览', path: '/customers/overview', description: '在当前数据权限范围内查看客户规模、生命周期、等级、来源与添加方式分布，并下钻客户明细。', features: ['组织筛选', '来源筛选', '等级筛选', '添加方式筛选', '生命周期分布', '负责人负载', '进入明细'] },
+      { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理家长客户档案；区分首次来源和添加方式，建档时继承线索等级，之后可在客户操作中独立调整并保留历史。', features: ['查看360档案', '添加方式', '首次来源', '负责人', '标签', '继承线索等级', '编辑客户等级', '等级变更历史', '商机关联'] },
+      { name: '标签管理', path: '/customers/tags', description: '统一管理系统、BOSS人工、企业微信、外部SCRM、规则和AI标签，并按来源隔离编辑权限。', features: ['标签库', '标签组', '自动规则', '外部标签映射', '标签治理', '新增BOSS标签', '编辑', '停用', '覆盖统计', '历史保留'] },
+      { name: '商机管理', path: '/customers/opportunities', description: '管理基础商机、阶段、负责人和状态。', features: ['新增', '编辑', '负责人', '阶段', '状态', '跟进'] }
     ]
   },
   {
     name: '交付中心', code: 'DELIVERY', children: [
-      { name: '营期管理', path: '/delivery/periods', description: '管理营期基础信息并供分配、活码和问卷规则引用。', features: ['列表', '新增', '编辑', '启停', '规则引用'] },
-      { name: '班级管理', path: '/delivery/classes', description: '管理班级、营期及客户关系。', features: ['列表', '新增', '编辑', '营期关联', '客户关联'] }
+      { name: '营期管理', path: '/delivery/periods', description: '管理营期基础信息并供分配、活码和问卷规则引用。', features: ['列表', '新增', '编辑', '启停', '规则引用'] }
     ]
   },
   {
@@ -60,8 +51,7 @@ export const v1Menus: MenuGroup[] = [
   {
     name: '业务配置', code: 'BUSINESS_CONFIG', children: [
       { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
-      { name: '短信管理', description: '复用历史短信服务配置和发送结果。', features: ['下单短信', '签名', '短信模板', '发送结果'], children: [
-        { name: '下单短信', path: '/system/sms/orders', description: '查询短信发送任务。', features: ['查询','详情'] },
+      { name: '短信管理', description: '复用历史短信服务，统一管理短信签名、模板和发送结果。', features: ['签名管理', '短信模板', '发送结果'], children: [
         { name: '签名管理', path: '/system/sms/signatures', description: '管理短信签名。', features: ['新增','审核状态','启停'] },
         { name: '短信模板', path: '/system/sms/templates', description: '管理短信模板。', features: ['新增','变量校验','启停'] },
         { name: '发送结果', path: '/system/sms/results', description: '查询供应商回执和送达结果。', features: ['查询','详情'] }
@@ -79,7 +69,7 @@ export const v1Menus: MenuGroup[] = [
   {
     name: '系统管理', code: 'SYSTEM', children: [
       { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
-      { name: '员工管理', path: '/system/employees', description: '以企业微信为唯一初始基线，飞书不参与；账号与企微身份一对一，由合数BOSS维护正式员工主数据。', features: ['企微基线导入', '账号企微唯一绑定', '换绑历史', '同步至企微', '企微差异对账', '业务角色绑定', '数据岗位绑定', '启停', '离职触发'] },
+      { name: '员工管理', path: '/system/employees', description: '统一维护员工身份、组织、权限和企业微信绑定，账号与企微身份一对一，同步过程全程可追踪。', features: ['新增员工并开通企微', '账号企微唯一绑定', '换绑历史', '同步记录', '同步至企微', '每日差异扫描', '业务角色绑定', '数据岗位绑定', '启停'] },
       { name: '岗位管理', path: '/system/positions', description: '配置本人、小组、部门、跨部门及公司级数据可见范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
       { name: '角色管理', path: '/system/roles', description: '按运营、客服、规划师等业务角色配置菜单、操作和字段权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '关联员工', '影响预览'] },
       { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },

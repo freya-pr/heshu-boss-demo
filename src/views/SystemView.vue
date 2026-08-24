@@ -17,7 +17,7 @@ const employeeForm = reactive<any>({ name:'', legal_name:'', mobile:'', email:''
 const dialogVisible = ref(false), dialogMode = ref<'create'|'edit'|'detail'>('create'), formRef = ref(), form = reactive<any>({})
 const isEmployee = computed(() => route.path === '/system/employees')
 const title = computed(() => isEmployee.value ? '员工管理' : '组织管理')
-const description = computed(() => isEmployee.value ? '初始组织员工仅从整改后的企业微信导入；合数BOSS生成员工编号，飞书不参与同步。' : '按公司、部门、小组三级管理人员归属和数据权限。')
+const description = computed(() => isEmployee.value ? '统一维护员工身份、组织、权限与企微绑定，同步过程全程可追踪。' : '按公司、部门、小组三级管理人员归属和数据权限。')
 const typeLabel:Record<string,string> = { COMPANY:'公司', DEPARTMENT:'部门', GROUP_TEAM:'小组' }
 const typeOptions = Object.entries(typeLabel).map(([value,label]) => ({ value,label }))
 const nextType:Record<string,string> = { COMPANY:'DEPARTMENT', DEPARTMENT:'GROUP_TEAM' }
@@ -57,7 +57,6 @@ watch(()=>route.path,()=>{keyword.value='';selectedId.value=null;load()});onMoun
 <template>
   <section class="page">
     <PageHeader eyebrow="HESHU BOSS · SYSTEM ADMIN" :title="title" :description="description"><template v-if="isEmployee"><el-tag type="success">企微唯一基线</el-tag><el-button>企微基线导入</el-button><el-button>企微差异对账</el-button><el-button type="primary">同步至企微</el-button></template><el-button v-else type="primary" :disabled="selectedOrg?.type==='GROUP_TEAM'" @click="openDialog('create')">新增下级组织</el-button></PageHeader>
-    <el-alert v-if="isEmployee" class="employee-source-alert" title="初始化只读取企业微信组织通讯录，飞书不参与；一个企微身份只能绑定一个合数BOSS登录账号，一个账号也只能保留一个生效企微绑定。" type="info" :closable="false" show-icon/>
     <div v-if="!isEmployee" class="org-layout">
       <aside class="surface org-tree-panel"><div class="org-panel-title"><div><b>组织架构</b><span>{{ organizations.length }} 个组织节点</span></div><el-button link type="primary" @click="openDialog('create')">新增</el-button></div><el-input v-model="keyword" clearable placeholder="搜索组织名称或编码" prefix-icon="Search"/><el-tree :data="organizationTree" node-key="id" default-expand-all highlight-current :current-node-key="selectedId" :expand-on-click-node="false" @node-click="row=>selectedId=row.id"><template #default="{data}"><span class="org-tree-node"><i :class="data.type.toLowerCase()">{{ data.type==='COMPANY'?'司':data.type==='DEPARTMENT'?'部':'组' }}</i><span>{{ data.name }}</span><small>{{ (data.children||[]).length }}</small></span></template></el-tree></aside>
       <main class="surface org-content"><StatePanel :loading="loading" :error="error" @retry="load"><div class="org-content-head"><div><div class="org-breadcrumb"><span v-for="(item,index) in breadcrumb" :key="item.id">{{ item.name }}<em v-if="index<breadcrumb.length-1">/</em></span></div><h2>{{ keyword?'搜索结果':`${selectedOrg?.name||'组织'}的下级组织` }}</h2><p>{{ keyword?`共匹配 ${visibleOrganizations.length} 个组织`:`当前节点编码 ${selectedOrg?.code||'—'}，下方展示直接下级` }}</p></div><div><el-button @click="selectedOrg&&openDialog('detail',selectedOrg)">查看当前组织</el-button><el-button type="primary" :disabled="selectedOrg?.type==='GROUP_TEAM'" @click="openDialog('create')">新增下级</el-button></div></div>
