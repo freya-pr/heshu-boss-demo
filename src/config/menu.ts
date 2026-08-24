@@ -26,7 +26,8 @@ export const v1Menus: MenuGroup[] = [
       { name: '活码管理', path: '/leads/qr-codes', description: '按分组及可选的营期、班级、接量日期管理员工活码、标签与轮询容量。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属营期（选填）', '所属班级（选填）', '接量日期区间（选填）', '员工轮询上限', '启停', '下载'] },
       { name: '渠道管理', path: '/leads/channels', description: '通过渠道列表和数据分析两个页签，统一管理渠道主数据、归因规则及转化效果。', features: ['渠道列表', '数据分析', '新增', '编辑', '详情', '启停', '渠道/时间/组织筛选', '转化漏斗', '下钻', '导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '按平台类型和第三方店铺ID统一管理店铺、负责人、访问权限及经营归因。', features: ['店铺列表', '平台类型', '店铺名称', '第三方店铺ID', '店铺负责人', '创建/更新/启停日期', '新增', '编辑', '启停', '店铺权限'] },
-      { name: 'IP列表', path: '/leads/ip', description: '管理IP主档及其关联商品和投放平台，IP编号由系统自动生成。', features: ['IP名称', '自增IP编号', '关联商品', '商品列表下钻', '关联平台', '平台折叠展示', '平台完整列表'] }
+      { name: 'IP列表', path: '/leads/ip', description: '管理老师IP主档、IP大类与稳定编码、带编号的归因渠道及其关联商品和投放平台。', features: ['IP名称（老师名称）', 'IP大类（字典）', '大类编码', 'IP渠道', '渠道编号', '自增IP编号', '关联商品', '商品列表下钻', '关联平台'] },
+      { name: '商品列表', path: '/leads/products', description: '查看第三方商品、店铺归属、活码分配状态和IP关联，支持同步、筛选、导出与修改备注。', features: ['创建时间', '更新时间', '商品名称', '商品ID', '商品状态', '是否分配活码', '店铺名称', '店铺类型', '关联IP', '修改备注'] }
     ]
   },
   {
@@ -66,21 +67,19 @@ export const v1Menus: MenuGroup[] = [
         { name: '发送结果', path: '/system/sms/results', description: '查询供应商回执和送达结果。', features: ['查询','详情'] }
       ] },
       { name: '应用管理', path: '/system/applications', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] },
-      { name: '群机器人', path: '/system/group-bots', description: '复用历史群机器人服务。', features: ['配置', '测试', '启停', '调用日志'] },
       { name: '配置管理', description: '管理企微、小程序、店铺和落地页配置。', features: ['新增', '编辑', '校验', '发布', '启停', '版本回退'], children: [
         { name: '企微配置', path: '/system/configurations/wecom', description: '维护企业微信接入配置。', features: ['校验','发布','轮换'] },
         { name: '小程序配置', path: '/system/configurations/mini', description: '维护小程序接入配置。', features: ['校验','发布','轮换'] },
         { name: '店铺配置', path: '/system/configurations/stores', description: '维护店铺和组织关联。', features: ['新增','编辑','启停'] },
         { name: '落地页配置', path: '/system/configurations/landing', description: '维护落地页及回传配置。', features: ['新增','校验','启停'] }
       ] },
-      { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] },
-      { name: '支付管理', path: '/system/payments', description: '管理历史支付服务配置和退款凭据。', features: ['支付配置', 'SM2 密钥', '连接测试', '默认切换', '退款凭据'] }
+      { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] }
     ]
   },
   {
     name: '系统管理', code: 'SYSTEM', children: [
       { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
-      { name: '员工管理', path: '/system/employees', description: '以企业微信为唯一初始基线，由合数BOSS维护正式员工主数据并同步企微。', features: ['企微基线导入', '同步至企微', '企微差异对账', '业务角色绑定', '数据岗位绑定', '启停', '离职触发'] },
+      { name: '员工管理', path: '/system/employees', description: '以企业微信为唯一初始基线，飞书不参与；账号与企微身份一对一，由合数BOSS维护正式员工主数据。', features: ['企微基线导入', '账号企微唯一绑定', '换绑历史', '同步至企微', '企微差异对账', '业务角色绑定', '数据岗位绑定', '启停', '离职触发'] },
       { name: '岗位管理', path: '/system/positions', description: '配置本人、小组、部门、跨部门及公司级数据可见范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
       { name: '角色管理', path: '/system/roles', description: '按运营、客服、规划师等业务角色配置菜单、操作和字段权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '关联员工', '影响预览'] },
       { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },

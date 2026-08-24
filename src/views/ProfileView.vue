@@ -57,7 +57,7 @@ onMounted(load)
 
 <template>
   <div class="page profile-page" v-loading="loading">
-    <div class="profile-page-title"><span>账户与安全</span><h1>个人中心</h1><p>管理个人资料、登录密码和外部账号绑定。</p></div>
+    <div class="profile-page-title"><span>账户与安全</span><h1>个人中心</h1><p>管理个人资料、登录密码和唯一企业微信绑定。</p></div>
     <div class="profile-layout">
       <section class="surface profile-info-card">
         <h3>个人信息</h3>
@@ -82,7 +82,7 @@ onMounted(load)
         <div class="profile-tabs">
           <button :class="{ active: activeTab === 'basic' }" @click="activeTab = 'basic'">基本设置</button>
           <button :class="{ active: activeTab === 'password' }" @click="activeTab = 'password'">密码设置</button>
-          <button :class="{ active: activeTab === 'social' }" @click="activeTab = 'social'">社交绑定</button>
+          <button :class="{ active: activeTab === 'social' }" @click="activeTab = 'social'">企微绑定</button>
         </div>
 
         <el-form v-if="activeTab === 'basic'" class="profile-form" label-width="96px">
@@ -101,6 +101,7 @@ onMounted(load)
         </el-form>
 
         <div v-else class="social-bindings">
+          <el-alert title="一个合数BOSS账号只能绑定一个企业微信身份；同一企业微信身份也不能绑定其他账号。换绑需先解除原绑定并保留审计记录。" type="info" :closable="false" show-icon/>
           <el-table :data="bindings" border>
             <el-table-column prop="platform" label="绑定平台" min-width="180"/>
             <el-table-column prop="identifier" label="标识" min-width="220"/>

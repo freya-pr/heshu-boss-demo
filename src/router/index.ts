@@ -11,6 +11,7 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/leads/channels': () => import('../views/ChannelManagementView.vue'),
   '/leads/stores': () => import('../views/StoreManagementView.vue'),
   '/leads/ip': () => import('../views/IpListView.vue'),
+  '/leads/products': () => import('../views/ProductListView.vue'),
   '/customers/list': () => import('../views/CustomersView.vue'),
   '/orders/formal': () => import('../views/FormalOrdersView.vue'),
   '/system/organizations': () => import('../views/SystemView.vue'),
@@ -31,7 +32,6 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/configurations/mini': () => import('../views/SystemToolsView.vue'),
   '/system/configurations/stores': () => import('../views/SystemToolsView.vue'),
   '/system/configurations/landing': () => import('../views/SystemToolsView.vue'),
-  '/system/payments': () => import('../views/SystemToolsView.vue'),
   '/system/regions': () => import('../views/SystemToolsView.vue')
 }
 

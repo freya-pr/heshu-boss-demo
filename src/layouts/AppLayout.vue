@@ -2,8 +2,8 @@
 import { onMounted, reactive, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  ArrowDown, ArrowRight, Avatar, Bell, Calendar, ChatDotRound, Clock, Close,
-  Connection, CreditCard, DataLine, Document, DocumentChecked, House, Key, Link,
+  ArrowDown, ArrowRight, Avatar, Bell, Calendar, Clock, Close,
+  Connection, DataLine, Document, DocumentChecked, House, Key, Link,
   Location, Menu as MenuIcon, Message, Notebook, OfficeBuilding, Opportunity,
   Platform, Postcard, PriceTag, Promotion, Rank, Refresh, School, Search, Service,
   SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools,
@@ -42,6 +42,7 @@ const leafIcons: Record<string, Component> = {
   '/leads/channels': Connection,
   '/leads/stores': Shop,
   '/leads/ip': PriceTag,
+  '/leads/products': ShoppingBag,
   '/customers/overview': DataLine,
   '/customers/list': User,
   '/customers/conflicts': Warning,
@@ -63,10 +64,8 @@ const leafIcons: Record<string, Component> = {
   '/system/exceptions': Warning,
   '/system/sms': Message,
   '/system/applications': Platform,
-  '/system/group-bots': ChatDotRound,
   '/system/configurations': Tools,
   '/system/wecom-customer-service': Service,
-  '/system/payments': CreditCard,
   '/system/logs': Document,
   '/system/regions': Location
 }
