@@ -25,6 +25,7 @@ const questionnaireFilter = ref('')
 const assessmentFilter = ref('')
 const leadMark = ref('')
 const leadGradeFilter = ref('')
+const demandMinedFilter = ref('')
 const conversionStatus = ref('')
 const keyword = ref('')
 const sourceFilter = ref('')
@@ -41,10 +42,8 @@ const journeyVisible = ref(false)
 const journeyLoading = ref(false)
 const journeyRows = ref<any[]>([])
 const activeLead = ref<any>(null)
-const gradeForm = ref({ grade: 'UNRATED', reason: '' })
 const columnSettingVisible = ref(false)
 const batchDialogVisible = ref(false)
-const gradeDialogVisible = ref(false)
 const batchAction = ref('')
 const batchSubtype = ref('')
 const syncPlatformOptions = ['抖店', '百家号', '有赞', '小鹅通', '小红书', '快手', '视频号']
@@ -69,12 +68,12 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','lead_grade','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','lead_grade','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
   { value: 'original_mobile', label: '原始手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
-  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' },
+  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' }, { value: 'demand_mined', label: '是否挖需' },
   { value: 'first_product_name', label: '首单商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
   { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' }, { value: 'current_action_status', label: '当前待办状态' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
@@ -87,7 +86,7 @@ const columnOptions = [
   { value: 'camp_name', label: '所属营期' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v5'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v6'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -129,7 +128,7 @@ async function assign(row: any) {
 
 async function convert(row: any) {
   try {
-    await ElMessageBox.confirm('系统将使用手机号或 UnionID 匹配唯一客户。身份冲突时将阻断转化并记录异常，V1.5 再由撞单管理承接。', '转为正式客户', { confirmButtonText: '确认转客户', cancelButtonText: '取消', type: 'warning' })
+    await ElMessageBox.confirm('系统将使用手机号或 UnionID 匹配唯一客户。两项身份分别命中不同客户时将阻断自动建档，并生成撞单案件进入客户中心处理。', '转为正式客户', { confirmButtonText: '确认转客户', cancelButtonText: '取消', type: 'warning' })
     const result: any = await http.post(`/leads/${row.id}/convert`)
     ElMessage.success(`转客户成功：${result.data.customerNo || '已关联存量客户'}`)
     await load()
@@ -148,6 +147,7 @@ function resetFilters() {
   assessmentFilter.value = ''
   leadMark.value = ''
   leadGradeFilter.value = ''
+  demandMinedFilter.value = ''
   conversionStatus.value = ''
   keyword.value = ''
   sourceFilter.value = ''
@@ -180,29 +180,31 @@ function openDetail(row: any) {
   detailVisible.value = true
 }
 
-function openGradeChange(row: any) {
-  activeLead.value = row
-  gradeForm.value = { grade: ['S', 'A', 'B', 'C'].includes(row.lead_grade) ? row.lead_grade : '', reason: '' }
-  gradeDialogVisible.value = true
-}
-
-async function confirmGradeChange() {
-  if (!gradeForm.value.grade) return ElMessage.warning('请选择 S、A、B、C 中的目标等级')
-  if (!gradeForm.value.reason.trim()) return ElMessage.warning('请填写人工变更原因')
-  const result: any = await http.post(`/leads/${activeLead.value.id}/grade`, gradeForm.value)
-  gradeDialogVisible.value = false
-  ElMessage.success(result.data.customerGradeProtected ? '线索等级已变更；已建档客户等级保持独立，不自动覆盖' : '线索等级已变更')
-  await load()
-}
-
 function handleOperation(command: string, row: any) {
   const operationLabels: Record<string, string> = {
-    CREATE_CUSTOMER: '建立客户档案', EDIT: '编辑线索', FOLLOW_UP: '添加跟进', CHANGE_GRADE: '变更线索等级', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
+    CREATE_CUSTOMER: '建立客户档案', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
     SMS_REMINDER: '短信提醒', REMARK: '备注'
   }
   if (command === 'CREATE_CUSTOMER') return convert(row)
-  if (command === 'CHANGE_GRADE') return openGradeChange(row)
   ElMessage.success(`${operationLabels[command] || command}：已为订单 ${row.order_no || '未关联订单'} 创建处理任务`)
+}
+
+async function markDemandMined(row: any, checked: string | number | boolean) {
+  if (checked !== true || row.demand_mined) return
+  try {
+    await ElMessageBox.confirm(
+      `确认将订单 ${row.order_no || '未关联订单'} 标记为“已挖需”？确认后不能在列表取消。`,
+      '确认标记已挖需',
+      { confirmButtonText: '确认标记', cancelButtonText: '取消', type: 'warning' }
+    )
+    const result: any = await http.post(`/leads/${row.id}/demand-mined`)
+    row.demand_mined = true
+    row.demand_mined_at = result.data?.demandMinedAt
+    row.demand_mined_by = result.data?.demandMinedBy
+    ElMessage.success('已标记为已挖需，列表中不可取消')
+  } catch (e: any) {
+    if (e !== 'cancel' && e !== 'close') ElMessage.error(e.message || '标记失败')
+  }
 }
 
 function operationFor(row: any) {
@@ -390,6 +392,7 @@ onMounted(() => load())
 
 function normalizeLeadState(source: any) {
   const row = { ...source }
+  row.demand_mined = Boolean(row.demand_mined || row.demand_mined_at)
   row.lead_grade ||= row.questionnaire_at ? (row.customer_no === 'C202608160003' ? 'S' : 'B') : 'UNRATED'
   row.grade_source ||= row.questionnaire_at ? 'QUESTIONNAIRE_AUTO' : ''
   row.assignment_status ||= row.owner_id ? 'ASSIGNED' : 'PENDING'
@@ -419,6 +422,7 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesAssessment = !assessmentFilter.value || row.assessment_status === assessmentFilter.value
   const matchesMark = !leadMark.value || row.lead_mark === leadMark.value
   const matchesGrade = !leadGradeFilter.value || row.lead_grade === leadGradeFilter.value
+  const matchesDemandMined = !demandMinedFilter.value || (demandMinedFilter.value === 'YES' ? row.demand_mined : !row.demand_mined)
   const matchesConversion = !conversionStatus.value || row.conversion_status === conversionStatus.value
   const matchesSource = !sourceFilter.value || row.lead_source === sourceFilter.value
   const matchesOrderStatus = !orderStatusFilter.value || row.order_status === orderStatusFilter.value
@@ -436,7 +440,7 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesDate = createdRange.value.length !== 2 || (!!selectedDate && selectedDate >= createdRange.value[0] && selectedDate <= createdRange.value[1])
   const text = [row.order_no, row.third_party_product_id, row.name, row.mobile, row.original_mobile, row.decrypted_mobile, row.wechat_nickname, row.customer_no, row.customer_name].join(' ').toLowerCase()
   const matchesKeyword = !keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())
-  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesShop && matchesDate && matchesKeyword
+  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesShop && matchesDate && matchesKeyword
 }))
 const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
@@ -452,7 +456,7 @@ const assessmentLabels: any = { NOT_BOOKED: '未预约', BOOKED_NOT_COMPLETED: '
 const journeyStatusLabels: any = {
   ...currentActionLabels, ASSIGNED: '已分配', DECRYPTED: '已解密', SMS_NOT_CLICKED: '已发送未点击', SMS_CLICKED: '已点击',
   WECHAT_NOT_ADDED: '未加微', WECHAT_ADDED: '已加微', QUESTIONNAIRE_NOT_FILLED: '未填问卷', QUESTIONNAIRE_FILLED: '已填问卷',
-  ASSESSMENT_NOT_COMPLETED: '未测评', ASSESSMENT_COMPLETED: '已测评'
+  ASSESSMENT_NOT_COMPLETED: '未测评', ASSESSMENT_COMPLETED: '已测评', NOT_MINED: '未挖需', MINED: '已挖需'
 }
 const leadMarkLabels: any = { VALID: '有效线索', INVALID: '无效线索', DUPLICATE: '重复线索' }
 const leadMarkTagTypes: any = { VALID: 'success', INVALID: 'danger', DUPLICATE: 'warning' }
@@ -511,6 +515,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="questionnaireFilter" placeholder="问卷状态" clearable><el-option v-for="(label, value) in questionnaireLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="assessmentFilter" placeholder="测评状态" clearable><el-option v-for="(label, value) in assessmentLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="leadGradeFilter" placeholder="线索等级" clearable><el-option v-for="(label, value) in gradeLabels" :key="value" :label="label" :value="value"/></el-select>
+            <el-select v-if="sourceType === 'DRAINAGE'" v-model="demandMinedFilter" placeholder="是否挖需" clearable><el-option label="是" value="YES"/><el-option label="否" value="NO"/></el-select>
             <el-select v-model="sourceFilter" placeholder="线索来源" clearable filterable><el-option v-for="item in leadSourceOptions" :key="item" :label="item" :value="item"/></el-select>
             <el-select v-model="orderStatusFilter" placeholder="订单状态" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
@@ -556,6 +561,12 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column prop="order_no" label="订单编号" width="180" fixed="left"><template #default="{ row }"><strong>{{ textOrDash(row.order_no) }}</strong></template></el-table-column>
           <el-table-column v-if="showColumn('lead_source')" prop="lead_source" label="线索来源" width="110" fixed="left"><template #default="{ row }">{{ textOrDash(row.lead_source || row.channel_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('lead_grade')" label="线索等级" width="116"><template #default="{ row }"><el-tag :type="gradeTagTypes[row.lead_grade] || 'info'">{{ gradeLabels[row.lead_grade] || row.lead_grade }}</el-tag><small class="cell-sub">{{ gradeSourceLabels[row.grade_source] || '尚未评级' }}</small></template></el-table-column>
+          <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('demand_mined')" label="是否挖需" width="118" align="center"><template #default="{ row }">
+            <div class="demand-mined-cell">
+              <el-checkbox :model-value="Boolean(row.demand_mined)" :disabled="Boolean(row.demand_mined)" aria-label="标记已挖需" @change="markDemandMined(row, $event)"/>
+              <span :class="{ done: row.demand_mined }">{{ row.demand_mined ? '已挖需' : '未挖需' }}</span>
+            </div>
+          </template></el-table-column>
           <el-table-column v-if="showColumn('third_party_product_id')" prop="third_party_product_id" label="第三方商品ID" width="170"><template #default="{ row }">{{ textOrDash(row.third_party_product_id) }}</template></el-table-column>
           <el-table-column v-if="showColumn('source_type')" prop="source_type" label="线索类型" width="110"><template #default="{ row }">{{ sourceLabels[row.source_type] || row.source_type }}</template></el-table-column>
           <el-table-column v-if="showColumn('order_status')" label="订单状态" width="100"><template #default="{ row }">{{ orderLabels[row.order_status] || textOrDash(row.order_status) }}</template></el-table-column>
@@ -600,8 +611,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
               <el-button link type="primary">更多⌄</el-button>
               <template #dropdown><el-dropdown-menu>
                 <el-dropdown-item v-if="row.wechat_status === 'ADDED' && !row.customer_no" command="CREATE_CUSTOMER">建立客户档案</el-dropdown-item>
-                <el-dropdown-item command="EDIT">编辑线索</el-dropdown-item><el-dropdown-item command="FOLLOW_UP">添加跟进</el-dropdown-item>
-                <el-dropdown-item command="CHANGE_GRADE">变更线索等级</el-dropdown-item>
                 <el-dropdown-item command="CHANGE_MARK">变更线索标记</el-dropdown-item><el-dropdown-item command="REASSIGN">改派负责人</el-dropdown-item>
                 <el-dropdown-item divided command="SMS_REMINDER">短信提醒</el-dropdown-item>
                 <el-dropdown-item divided command="REMARK">备注</el-dropdown-item>
@@ -687,6 +696,8 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="加微状态">{{ wechatStatusLabels[activeLead.wechat_status] || activeLead.wechat_status }}</el-descriptions-item>
         <el-descriptions-item label="问卷/测评">{{ questionnaireLabels[activeLead.questionnaire_status] }} / {{ assessmentLabels[activeLead.assessment_status] }}</el-descriptions-item>
         <el-descriptions-item label="线索等级"><el-tag :type="gradeTagTypes[activeLead.lead_grade] || 'info'">{{ gradeLabels[activeLead.lead_grade] }}</el-tag> · {{ gradeSourceLabels[activeLead.grade_source] || '尚未评级' }}</el-descriptions-item>
+        <el-descriptions-item label="是否挖需">{{ activeLead.demand_mined ? '是' : '否' }}</el-descriptions-item>
+        <el-descriptions-item label="挖需标记记录">{{ activeLead.demand_mined ? `${textOrDash(activeLead.demand_mined_by)} · ${textOrDash(activeLead.demand_mined_at)}` : '—' }}</el-descriptions-item>
         <el-descriptions-item label="转化状态">{{ conversionLabels[activeLead.conversion_status] || activeLead.conversion_status }}</el-descriptions-item>
         <el-descriptions-item label="线索来源">{{ textOrDash(activeLead.lead_source) }}</el-descriptions-item>
         <el-descriptions-item label="第三方商品ID">{{ textOrDash(activeLead.third_party_product_id) }}</el-descriptions-item>
@@ -699,7 +710,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="加微时间">{{ textOrDash(activeLead.wechat_added_at) }}</el-descriptions-item>
         <el-descriptions-item label="线索备注" :span="2">{{ textOrDash(activeLead.remark) }}</el-descriptions-item>
       </el-descriptions>
-      <div v-if="activeLead" class="detail-actions"><el-button type="primary" plain @click="openGradeChange(activeLead)">人工变更等级</el-button><span>变更必须填写原因并保留历史；客户建档后等级独立维护，不自动覆盖客户当前等级。</span></div>
     </el-drawer>
 
     <el-drawer v-model="journeyVisible" size="560px" :title="`${activeLead?.order_no || '未关联订单'} · 线索生命旅程`">
@@ -724,15 +734,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       </StatePanel>
     </el-drawer>
 
-    <el-dialog v-model="gradeDialogVisible" title="人工变更线索等级" width="520px">
-      <el-alert :closable="false" type="info" show-icon title="问卷会按已发布规则自动评级；人工调整拥有更高优先级，必须保留原因和操作历史。"/>
-      <el-form label-position="top" class="grade-form">
-        <el-form-item label="订单"><el-input :model-value="`${activeLead?.order_no || '未关联订单'} · ${activeLead?.name || ''}`" disabled/></el-form-item>
-        <el-form-item label="目标等级" required><el-select v-model="gradeForm.grade"><el-option v-for="value in ['S','A','B','C']" :key="value" :label="gradeLabels[value]" :value="value"/></el-select></el-form-item>
-        <el-form-item label="变更原因" required><el-input v-model="gradeForm.reason" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="请说明人工判断依据或业务原因"/></el-form-item>
-      </el-form>
-      <template #footer><el-button @click="gradeDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmGradeChange">确认变更</el-button></template>
-    </el-dialog>
   </section>
 </template>
 
@@ -750,8 +751,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   gap: 12px;
 }
 .business-scope-filter + .search-grid { margin-top: 12px; }
-.detail-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 14px; border-radius: 10px; background: #f7faff; color: #64748b; font-size: 13px; }
-.grade-form { margin-top: 18px; }
 .advanced-search {
   grid-template-columns: repeat(5, minmax(170px, 1fr));
 }
@@ -870,6 +869,10 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   font-size: 12px;
   font-weight: 400;
 }
+.demand-mined-cell { display: inline-flex; align-items: center; gap: 7px; color: #64748b; white-space: nowrap; }
+.demand-mined-cell span.done { color: #0f9f6e; font-weight: 600; }
+.demand-mined-cell :deep(.el-checkbox.is-disabled .el-checkbox__inner) { border-color: #27b58a; background: #27b58a; }
+.demand-mined-cell :deep(.el-checkbox.is-disabled.is-checked .el-checkbox__inner::after) { border-color: #fff; }
 .journey-summary {
   display: flex;
   gap: 8px;

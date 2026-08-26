@@ -33,14 +33,9 @@ export const v1Menus: MenuGroup[] = [
   {
     name: '客户中心', code: 'CUSTOMER', children: [
       { name: '客户总览', path: '/customers/overview', description: '在当前数据权限范围内查看客户规模、生命周期、等级、来源与添加方式分布，并下钻客户明细。', features: ['组织筛选', '来源筛选', '等级筛选', '添加方式筛选', '生命周期分布', '负责人负载', '进入明细'] },
-      { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理家长客户档案；区分首次来源和添加方式，建档时继承线索等级，之后可在客户操作中独立调整并保留历史。', features: ['查看360档案', '添加方式', '首次来源', '负责人', '标签', '继承线索等级', '编辑客户等级', '等级变更历史', '商机关联'] },
-      { name: '标签管理', path: '/customers/tags', description: '统一管理系统、BOSS人工、企业微信、外部SCRM、规则和AI标签，并按来源隔离编辑权限。', features: ['标签库', '标签组', '自动规则', '外部标签映射', '标签治理', '新增BOSS标签', '编辑', '停用', '覆盖统计', '历史保留'] },
-      { name: '商机管理', path: '/customers/opportunities', description: '管理基础商机、阶段、负责人和状态。', features: ['新增', '编辑', '负责人', '阶段', '状态', '跟进'] }
-    ]
-  },
-  {
-    name: '交付中心', code: 'DELIVERY', children: [
-      { name: '营期管理', path: '/delivery/periods', description: '管理营期基础信息并供分配、活码和问卷规则引用。', features: ['列表', '新增', '编辑', '启停', '规则引用'] }
+      { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理家长客户档案；区分首次来源和添加方式，建档时继承线索等级，之后可在客户操作中独立调整并保留历史。', features: ['查看360档案', '添加方式', '首次来源', '负责人', '标签', '继承线索等级', '编辑客户等级', '等级变更历史'] },
+      { name: '撞单管理', path: '/customers/collisions', description: '手机号与 UnionID 分别命中不同客户时阻断自动建档，通过证据核验完成身份划归并保留完整审计链路。', features: ['冲突自动建案', '待处理队列', '强身份证据对比', '领取处理', '合并至指定主档', '确认不同人', '审计记录', '历史保留'] },
+      { name: '标签管理', path: '/customers/tags', description: '统一管理系统、BOSS人工、企业微信、外部SCRM、规则和AI标签，并按来源隔离编辑权限。', features: ['标签库', '标签组', '自动规则', '外部标签映射', '标签治理', '新增BOSS标签', '编辑', '停用', '覆盖统计', '历史保留'] }
     ]
   },
   {

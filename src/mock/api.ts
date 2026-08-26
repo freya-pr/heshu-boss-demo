@@ -8,6 +8,7 @@ const PASSWORD_KEY = 'heshu_scrm_demo_password'
 interface DemoDb {
   leads: Row[]
   customers: Row[]
+  collisionCases: Row[]
   messages: Row[]
   organizations: Row[]
   employees: Row[]
@@ -17,7 +18,7 @@ const seed: DemoDb = {
   leads: [
     { id: 1, lead_no: 'L202608160001', order_no: '', order_status: 'NO_ORDER', name: '周女士', mobile: '13800001111', original_mobile: '13800001111', decrypted_mobile: '13800001111', union_id: '', wechat_nickname: '', source_type: 'DRAINAGE', lead_source: '抖音', channel_name: '暑期直播', third_party_product_id: 'DY-COURSE-10086', first_product_name: '家庭教育直播课', product_remark: '直播预约线索', shop_name: '合数家庭教育旗舰店', paid_amount: 0, status: 'ASSIGNED', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', history_owner_name: '', history_owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'CHANNEL', wechat_method: '', camp_name: '2026暑期第3营', sms_send_count: 1, assigned_at: '2026-08-16 09:15:20', decrypted_at: '2026-08-16 09:12:12', created_at: '2026-08-16 09:12:10', remark: '等待客户扫码加微' },
     { id: 2, lead_no: 'L202608160002', order_no: 'TP202608160021', order_status: 'PAID', name: '赵先生', mobile: '', original_mobile: '139****6721', decrypted_mobile: '', union_id: '', wechat_nickname: '', source_type: 'THIRD_PRODUCT', lead_source: '小鹅通', channel_name: '合作渠道A', third_party_product_id: 'XET-PROD-20260821', first_product_name: '家庭学习力体验营', product_remark: '', shop_name: '合作方店铺A', paid_amount: 9.9, status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', history_owner_name: '', history_owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'PARTNER_PUSH', wechat_method: '', camp_name: '2026暑期体验营', sms_send_count: 0, created_at: '2026-08-16 09:28:40', remark: '' },
-    { id: 3, lead_no: 'L202608160003', order_no: '', order_status: 'NO_ORDER', name: '钱女士', mobile: '13800002222', original_mobile: '13800002222', decrypted_mobile: '13800002222', union_id: 'union_qian_002', wechat_nickname: '钱多多妈妈', source_type: 'DRAINAGE', lead_source: '有赞', channel_name: '信息流广告', first_product_name: '家庭教育问卷', product_remark: '已填写需求问卷', shop_name: '合数成长中心', paid_amount: 0, status: 'QUESTIONNAIRE_FILLED', lead_mark: 'VALID', follow_status: 'FOLLOWING', conversion_status: 'UNCONVERTED', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', history_owner_name: '王老师', history_owner_employee_no: 'B00126', customer_no: 'C202608160002', customer_name: '钱女士', entry_method: 'CHANNEL', wechat_method: 'WECOM', camp_name: '2026暑期第3营', sms_send_count: 2, first_follow_at: '2026-08-16 10:08:00', assigned_at: '2026-08-16 10:03:20', wechat_added_at: '2026-08-16 10:07:35', questionnaire_at: '2026-08-16 10:20:11', customer_linked_at: '2026-08-16 10:15:00', converted_at: '', decrypted_at: '2026-08-16 10:02:21', created_at: '2026-08-16 10:02:18', remark: '已完成挖需，待预约直播' },
+    { id: 3, lead_no: 'L202608160003', order_no: '', order_status: 'NO_ORDER', name: '钱女士', mobile: '13800002222', original_mobile: '13800002222', decrypted_mobile: '13800002222', union_id: 'union_qian_002', wechat_nickname: '钱多多妈妈', source_type: 'DRAINAGE', lead_source: '有赞', channel_name: '信息流广告', first_product_name: '家庭教育问卷', product_remark: '已填写需求问卷', shop_name: '合数成长中心', paid_amount: 0, status: 'QUESTIONNAIRE_FILLED', lead_mark: 'VALID', follow_status: 'FOLLOWING', conversion_status: 'UNCONVERTED', demand_mined: true, demand_mined_at: '2026-08-16 10:25:00', demand_mined_by: '陈老师', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', history_owner_name: '王老师', history_owner_employee_no: 'B00126', customer_no: 'C202608160002', customer_name: '钱女士', entry_method: 'CHANNEL', wechat_method: 'WECOM', camp_name: '2026暑期第3营', sms_send_count: 2, first_follow_at: '2026-08-16 10:08:00', assigned_at: '2026-08-16 10:03:20', wechat_added_at: '2026-08-16 10:07:35', questionnaire_at: '2026-08-16 10:20:11', customer_linked_at: '2026-08-16 10:15:00', converted_at: '', decrypted_at: '2026-08-16 10:02:21', created_at: '2026-08-16 10:02:18', remark: '已完成挖需，待预约直播' },
     { id: 4, lead_no: 'L202608160004', order_no: '', order_status: 'NO_ORDER', name: '孙女士', mobile: '13700006666', original_mobile: '13700006666', decrypted_mobile: '13700006666', union_id: '', wechat_nickname: '', source_type: 'REFERRAL', lead_source: '转介绍', channel_name: '老客转介绍', status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'REFERRAL', camp_name: '2026暑期第3营', sms_send_count: 0, created_at: '2026-08-16 10:30:09', remark: '' },
     { id: 5, lead_no: 'L202608150008', order_no: 'O202608150088', order_status: 'PAID', name: '吴女士', mobile: '13800003333', original_mobile: '13800003333', decrypted_mobile: '13800003333', union_id: 'union_wu_003', wechat_nickname: '睿睿妈妈', source_type: 'DRAINAGE', lead_source: '抖音', channel_name: '直播间', first_product_name: '2980成长训练营', product_remark: '正式课首单', shop_name: '合数家庭教育旗舰店', paid_amount: 2980, status: 'ASSESSMENT_COMPLETED', lead_mark: 'VALID', follow_status: 'FOLLOWED', conversion_status: 'CONVERTED', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', history_owner_name: '陈老师', history_owner_employee_no: 'B00135', customer_no: 'C202608160003', customer_name: '吴女士', entry_method: 'CHANNEL', wechat_method: 'WECOM', camp_name: '2026暑期高年级1班', sms_send_count: 3, first_follow_at: '2026-08-15 15:25:00', assigned_at: '2026-08-15 15:21:00', wechat_added_at: '2026-08-15 15:23:00', questionnaire_at: '2026-08-15 16:10:00', assessment_at: '2026-08-15 17:20:00', customer_linked_at: '2026-08-15 15:30:00', converted_at: '2026-08-16 08:30:00', decrypted_at: '2026-08-15 15:20:05', created_at: '2026-08-15 15:20:00', remark: '已成交2980课程' },
     { id: 6, lead_no: 'L202608140015', order_no: '', order_status: 'NO_ORDER', name: '郑女士', mobile: '13600004444', original_mobile: '13600004444', decrypted_mobile: '13600004444', union_id: 'union_zheng_004', wechat_nickname: '果果妈妈', source_type: 'DRAINAGE', lead_source: '百家号', channel_name: '搜索推广', first_product_name: '家庭教育公开课', product_remark: '', shop_name: '', paid_amount: 0, status: 'WECHAT_ADDED', lead_mark: 'VALID', follow_status: 'FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', customer_no: 'C202608140015', customer_name: '郑女士', entry_method: 'CHANNEL', wechat_method: 'PERSONAL_WECHAT', camp_name: '2026暑期第2营', sms_send_count: 1, first_follow_at: '2026-08-14 11:20:00', assigned_at: '2026-08-14 11:12:00', wechat_added_at: '2026-08-14 11:18:00', customer_linked_at: '2026-08-14 11:30:00', converted_at: '', decrypted_at: '2026-08-14 11:10:03', created_at: '2026-08-14 11:10:00', remark: '已加微，尚未完成转化' },
@@ -27,6 +28,11 @@ const seed: DemoDb = {
     { id: 1, customer_no: 'C202608160001', name: '周女士', mobile: '13800001111', union_id: 'union_zhou_001', grade: 'A', grade_source: 'LEAD_INHERITED', lifecycle: 'INTENT', add_method: 'QR_CODE', source_name: '抖店 · 合数教育官方旗舰店', source_lead_no: 'L202608160001', camp_name: '2026暑期第3营', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-16 09:40:00' },
     { id: 2, customer_no: 'C202608160002', name: '钱女士', mobile: '13800002222', union_id: 'union_qian_002', grade: 'B', grade_source: 'LEAD_INHERITED', lifecycle: 'INTENT', add_method: 'LINK', source_name: '有赞 · 合数成长中心', source_lead_no: 'L202608160003', camp_name: '2026暑期第3营', owner_id: 3, owner_name: '陈老师', owner_employee_no: 'B00135', owner_organization_id: 9, owner_organization_name: '一转二组', status: 'ACTIVE', created_at: '2026-08-16 10:15:00' },
     { id: 3, customer_no: 'C202608160003', name: '吴女士', mobile: '13800003333', union_id: 'union_wu_003', grade: 'S', grade_source: 'LEAD_INHERITED', lifecycle: 'DEAL', add_method: 'BUSINESS_CARD', source_name: '抖音 · 直播间', source_lead_no: 'L202608150008', camp_name: '2026暑期高年级1班', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-15 15:20:00' }
+  ],
+  collisionCases: [
+    { id: 1, collision_no: 'DC202608250001', source_type: 'LEAD_CONVERT', source_business_no: 'TP202608250019', source_lead_no: 'L202608250019', incoming_name: '周女士', mobile: '13800001111', union_id: 'union_qian_002', mobile_customer_id: 1, union_customer_id: 2, risk_level: 'HIGH', status: 'PENDING', requested_by: '系统', requested_at: '2026-08-25 09:18:36', handler_name: '', handled_at: '', resolution_type: '', resolution_reason: '', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: '2026-08-25 09:18:36', detail: '线索转客户时，手机号与 UnionID 分别命中不同客户，已阻断自动建档。' }] },
+    { id: 2, collision_no: 'DC202608250002', source_type: 'WECOM_SYNC', source_business_no: 'WECOM-EVT-88261', source_lead_no: '', incoming_name: '吴女士', mobile: '13800003333', union_id: 'union_zhou_001', mobile_customer_id: 3, union_customer_id: 1, risk_level: 'HIGH', status: 'PROCESSING', requested_by: '企微回调', requested_at: '2026-08-25 10:06:12', handler_name: '林校长', started_at: '2026-08-25 10:12:08', handled_at: '', resolution_type: '', resolution_reason: '', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: '2026-08-25 10:06:12', detail: '企微外部联系人同步触发身份冲突。' }, { action: 'START', operator: '林校长', occurred_at: '2026-08-25 10:12:08', detail: '开始人工核验。' }] },
+    { id: 3, collision_no: 'DC202608240006', source_type: 'IMPORT', source_business_no: 'IMPORT-20260824-08', source_lead_no: '', incoming_name: '钱女士', mobile: '13800002222', union_id: 'union_wu_003', mobile_customer_id: 2, union_customer_id: 3, risk_level: 'MEDIUM', status: 'RESOLVED', requested_by: '张铭钰', requested_at: '2026-08-24 16:40:21', handler_name: '林校长', handled_at: '2026-08-24 17:08:43', resolution_type: 'KEEP_SEPARATE', resolution_reason: '经手机号回访及企微头像核验，确认是两个不同自然人，保留两个独立客户档案。', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '张铭钰', occurred_at: '2026-08-24 16:40:21', detail: '导入解密数据时触发身份冲突。' }, { action: 'RESOLVE', operator: '林校长', occurred_at: '2026-08-24 17:08:43', detail: '确认不同人，保留独立档案。' }] }
   ],
   messages: [
     { id: 1, receiver_username: 'admin', message_type: 'NEW_LEAD', title: '新线索已进入待分配队列', summary: '合作渠道 A 新增 1 条线索，请及时处理。', level: 'IMPORTANT', read_status: 'UNREAD', process_status: 'PENDING', created_at: '2026-08-16 10:30:09' },
@@ -58,8 +64,9 @@ const seed: DemoDb = {
 function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) }
 function normalizeEmployeeNo(value: unknown) { const text=String(value||'');return /^B\d{5}$/.test(text)?`B0${text.slice(1)}`:text }
 function normalizeDb(source: DemoDb): DemoDb {
+  source.collisionCases ||= clone(seed.collisionCases)
   source.employees.forEach(item=>{item.employee_no=normalizeEmployeeNo(item.employee_no)})
-  source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no)})
+  source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no);item.demand_mined=Boolean(item.demand_mined||item.demand_mined_at)})
   source.customers.forEach((item,index)=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.grade_source=item.grade_source||'LEAD_INHERITED';item.lifecycle=item.lifecycle||(item.grade==='S'?'DEAL':'INTENT');item.add_method=item.add_method||(['QR_CODE','LINK','BUSINESS_CARD'][index%3]);item.source_name=item.source_name||'历史数据';item.source_lead_no=item.source_lead_no||'';item.camp_name=item.camp_name||''})
   return source
 }
@@ -110,27 +117,75 @@ function buildLeadJourney(lead: Row) {
   add(lead.customer_linked_at, 'CUSTOMER_LINKED', '建立唯一客户档案', lead.status, lead.status, 'MANUAL', `关联客户：${lead.customer_no || '—'}`, lead.owner_name || '系统')
   add(lead.questionnaire_at, 'QUESTIONNAIRE_FILLED', '客户提交问卷', 'QUESTIONNAIRE_NOT_FILLED', 'QUESTIONNAIRE_FILLED', 'QUESTIONNAIRE', '有效问卷结果已回写', lead.owner_name || '系统')
   if (lead.questionnaire_at && currentGrade !== 'UNRATED') add(lead.grade_changed_at || lead.questionnaire_at, 'LEAD_GRADED', '问卷自动评定线索等级', 'UNRATED', currentGrade, 'GRADE_RULE', `规则版本：${lead.grade_rule_version || 'V1.0'}；来源：有效问卷`, '系统')
+  add(lead.demand_mined_at, 'DEMAND_MINED', '标记已挖需', 'NOT_MINED', 'MINED', 'MANUAL', '业务人员确认已完成挖需；该事实标记不可在列表取消', lead.demand_mined_by || lead.owner_name || '当前用户')
   if (lead.grade_source === 'MANUAL') add(lead.grade_changed_at, 'LEAD_GRADE_CHANGED', '人工变更线索等级', lead.previous_grade || 'UNRATED', lead.lead_grade, 'MANUAL', `变更原因：${lead.grade_change_reason || '未填写'}`, lead.grade_changed_by || '系统管理员')
   add(lead.assessment_at, 'ASSESSMENT_COMPLETED', '客户完成测评', 'ASSESSMENT_NOT_COMPLETED', 'ASSESSMENT_COMPLETED', 'ASSESSMENT', '有效测评结果已回写', lead.owner_name || '系统')
   add(lead.converted_at, 'LEAD_CONVERTED', '线索完成转化', null, null, 'ORDER', `关联订单：${lead.order_no || '—'}`)
   return events.sort((a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at)))
 }
 
-function createCustomer(body: Row) {
-  const mobile = String(body.mobile || '').replace(/\s/g, '') || null
+function nowText() { return new Date().toLocaleString('zh-CN', { hour12: false }) }
+function customerSnapshot(customer?: Row) {
+  if (!customer) return null
+  return {
+    id: customer.id, customer_no: customer.customer_no, name: customer.name,
+    mobile: customer.mobile, union_id: customer.union_id, grade: customer.grade,
+    lifecycle: customer.lifecycle, source_name: customer.source_name,
+    source_lead_no: customer.source_lead_no, camp_name: customer.camp_name,
+    owner_name: customer.owner_name, owner_employee_no: customer.owner_employee_no,
+    owner_organization_name: customer.owner_organization_name, status: customer.status,
+    created_at: customer.created_at, order_count: customer.lifecycle === 'DEAL' ? 2 : 0,
+    questionnaire_count: customer.grade_source === 'LEAD_INHERITED' ? 1 : 0
+  }
+}
+function enrichCollision(item: Row): Row {
+  return {
+    ...item,
+    mobile_customer: customerSnapshot(db.customers.find(customer => customer.id === item.mobile_customer_id)),
+    union_customer: customerSnapshot(db.customers.find(customer => customer.id === item.union_customer_id)),
+    target_customer: customerSnapshot(db.customers.find(customer => customer.id === item.target_customer_id))
+  }
+}
+function recordCollision(input: Row, byMobile: Row, byUnion: Row) {
+  const existing = db.collisionCases.find(item => item.status !== 'RESOLVED' && item.mobile === input.mobile && item.union_id === input.unionId && item.mobile_customer_id === byMobile.id && item.union_customer_id === byUnion.id)
+  if (existing) return existing
+  const requestedAt = nowText()
+  const nextId = Math.max(0, ...db.collisionCases.map(item => Number(item.id) || 0)) + 1
+  const collision = {
+    id: nextId, collision_no: `DC${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}${String(nextId).padStart(3, '0')}`,
+    source_type: input.sourceType || input.source_type || (input.lead_no ? 'LEAD_CONVERT' : 'CUSTOMER_CREATE'),
+    source_business_no: input.order_no || input.sourceBusinessNo || '', source_lead_no: input.lead_no || '',
+    incoming_name: input.name || '', mobile: input.mobile, union_id: input.unionId,
+    mobile_customer_id: byMobile.id, union_customer_id: byUnion.id,
+    risk_level: 'HIGH', status: 'PENDING', requested_by: currentUser().displayName,
+    requested_at: requestedAt, handler_name: '', handled_at: '', resolution_type: '',
+    resolution_reason: '', target_customer_id: null,
+    audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: requestedAt, detail: '手机号与 UnionID 分别命中不同客户，自动流程已阻断并创建撞单案件。' }]
+  }
+  db.collisionCases.unshift(collision)
+  save()
+  return collision
+}
+
+function createCustomer(body: Row): Row & { _reused: boolean; _match_by: string } {
+  const mobile = String(body.mobile || '').replace(/[\s-]/g, '').replace(/^\+86/, '') || null
   const unionId = String(body.unionId || body.union_id || '').trim() || null
   if (!mobile && !unionId) throw new Error('手机号或 UnionID 至少填写一项')
+  if (mobile && !/^1[3-9]\d{9}$/.test(mobile)) throw new Error('一个客户只能保存一个有效的 11 位主手机号')
   const byMobile = mobile ? db.customers.find(item => item.mobile === mobile) : undefined
   const byUnion = unionId ? db.customers.find(item => item.union_id === unionId) : undefined
-  if (byMobile && byUnion && byMobile.id !== byUnion.id) throw new Error('手机号和 UnionID 分别命中不同客户，已阻断转化并记录身份冲突异常；V1.5 由撞单管理承接')
+  if (byMobile && byUnion && byMobile.id !== byUnion.id) {
+    const collision = recordCollision({ ...body, mobile, unionId }, byMobile, byUnion)
+    throw new Error(`手机号和 UnionID 分别命中不同客户，已阻断自动建档并生成撞单案件 ${collision.collision_no}`)
+  }
   const existing = byMobile || byUnion
-  if (existing) return existing
+  if (existing) return { ...existing, _reused: true, _match_by: byMobile && byUnion ? 'BOTH' : byMobile ? 'MOBILE' : 'UNION_ID' }
   const ownerName = body.ownerName || body.owner_name || ''
   const owner = db.employees.find(item => item.name === ownerName || item.legal_name === ownerName)
   const ownerOrganization = db.organizations.find(item => Number(item.id) === Number(owner?.organization_id))
   const inheritedGrade = effectiveLeadGrade(body)
   const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: inheritedGrade, grade_source: 'LEAD_INHERITED', lifecycle: body.lifecycle || 'LEAD', add_method: body.addMethod || body.add_method || 'LINK', source_name: body.source_name || body.lead_source || '人工建档', source_lead_no: body.lead_no || '', camp_name: body.camp_name || '', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
-  db.customers.unshift(customer); save(); return customer
+  db.customers.unshift(customer); save(); return { ...customer, _reused: false, _match_by: 'NONE' }
 }
 
 const analyticsChannels = [
@@ -283,6 +338,18 @@ export const demoHttp = {
       return ok(buildLeadJourney(lead))
     }
     if (path === '/leads/assignees') return ok(db.employees.filter(item => item.account_status === 'ACTIVE'))
+    if (path === '/customers/collisions') {
+      const keyword = String(config.params?.keyword || '').trim().toLowerCase()
+      const status = String(config.params?.status || '')
+      const sourceType = String(config.params?.sourceType || '')
+      const riskLevel = String(config.params?.riskLevel || '')
+      return ok(db.collisionCases
+        .filter(item => !status || item.status === status)
+        .filter(item => !sourceType || item.source_type === sourceType)
+        .filter(item => !riskLevel || item.risk_level === riskLevel)
+        .map(enrichCollision)
+        .filter(item => !keyword || [item.collision_no, item.mobile, item.union_id, item.incoming_name, item.source_business_no, item.mobile_customer?.customer_no, item.mobile_customer?.name, item.union_customer?.customer_no, item.union_customer?.name].some(value => String(value || '').toLowerCase().includes(keyword))))
+    }
     if (path === '/customers') { const grade = config.params?.grade; return ok(grade ? db.customers.filter(item => item.grade === grade) : db.customers) }
     if (path === '/messages') { const read = config.params?.readStatus; return ok(read ? db.messages.filter(item => item.read_status === read) : db.messages) }
     if (path === '/system/organizations') return ok(db.organizations)
@@ -326,6 +393,17 @@ export const demoHttp = {
       })
       save()
       return ok({ totalCount: records.length, successCount, failureCount: failures.length, failures })
+    }
+    const demandMined = path.match(/^\/leads\/(\d+)\/demand-mined$/)
+    if (demandMined) {
+      const lead = db.leads.find(item => item.id === Number(demandMined[1]))
+      if (!lead) return fail('线索不存在')
+      if (lead.demand_mined) return ok({ demandMinedAt: lead.demand_mined_at, demandMinedBy: lead.demand_mined_by, idempotent: true })
+      const demandMinedAt = nowText()
+      const demandMinedBy = currentUser().displayName
+      Object.assign(lead, { demand_mined: true, demand_mined_at: demandMinedAt, demand_mined_by: demandMinedBy, updated_at: demandMinedAt })
+      save()
+      return ok({ demandMinedAt, demandMinedBy })
     }
     if (path === '/leads') {
       const now = new Date().toLocaleString('zh-CN', { hour12: false })
@@ -380,7 +458,47 @@ export const demoHttp = {
       Object.assign(customer, { previous_grade: customer.grade || 'UNRATED', grade: body.grade, grade_source: 'CUSTOMER_MANUAL', grade_change_reason: String(body.reason).trim(), grade_changed_by: currentUser().displayName, grade_changed_at: changedAt, grade_history: history })
       save(); return ok({ grade: customer.grade, source: customer.grade_source })
     }
-    if (path === '/customers') { const customer = createCustomer(body); return ok({ id: customer.id }) }
+    const startCollision = path.match(/^\/customers\/collisions\/(\d+)\/start$/)
+    if (startCollision) {
+      const collision = db.collisionCases.find(item => item.id === Number(startCollision[1]))
+      if (!collision) return fail('撞单案件不存在')
+      if (collision.status !== 'PENDING') return fail(collision.status === 'RESOLVED' ? '案件已处理完成，不能重复领取' : '案件已被领取，请刷新后查看处理人')
+      const operator = currentUser().displayName
+      collision.status = 'PROCESSING'; collision.handler_name = operator; collision.started_at ||= nowText()
+      collision.audit_logs ||= []; collision.audit_logs.unshift({ action: 'START', operator, occurred_at: nowText(), detail: '领取案件并开始人工核验。' })
+      save(); return ok(enrichCollision(collision))
+    }
+    const resolveCollision = path.match(/^\/customers\/collisions\/(\d+)\/resolve$/)
+    if (resolveCollision) {
+      const collision = db.collisionCases.find(item => item.id === Number(resolveCollision[1]))
+      if (!collision) return fail('撞单案件不存在')
+      if (collision.status !== 'PROCESSING') return fail(collision.status === 'RESOLVED' ? '案件已处理完成，不能重复裁决' : '请先领取案件，再提交裁决')
+      const resolutionType = String(body.resolutionType || '')
+      const reason = String(body.reason || '').trim()
+      if (!['MERGE_TO_MOBILE', 'MERGE_TO_UNION', 'KEEP_SEPARATE'].includes(resolutionType)) return fail('请选择有效的处理结论')
+      if (reason.length < 8) return fail('处理依据至少填写 8 个字')
+      if (!body.confirmed) return fail('请确认身份、订单和服务记录均已核验')
+      const mobileCustomer = db.customers.find(item => item.id === collision.mobile_customer_id)
+      const unionCustomer = db.customers.find(item => item.id === collision.union_customer_id)
+      if (!mobileCustomer || !unionCustomer) return fail('候选客户档案缺失，请转异常中心')
+      const beforeSnapshot = { mobile_customer: customerSnapshot(mobileCustomer), union_customer: customerSnapshot(unionCustomer) }
+      let target: Row | null = null
+      if (resolutionType === 'MERGE_TO_MOBILE') {
+        target = mobileCustomer
+        mobileCustomer.union_id = collision.union_id
+        unionCustomer.union_id = null; unionCustomer.status = 'MERGED'; unionCustomer.merged_into_customer_no = mobileCustomer.customer_no
+      } else if (resolutionType === 'MERGE_TO_UNION') {
+        target = unionCustomer
+        unionCustomer.mobile = collision.mobile
+        mobileCustomer.mobile = null; mobileCustomer.status = 'MERGED'; mobileCustomer.merged_into_customer_no = unionCustomer.customer_no
+      }
+      const operator = currentUser().displayName
+      Object.assign(collision, { status: 'RESOLVED', handler_name: collision.handler_name || operator, handled_at: nowText(), resolution_type: resolutionType, resolution_reason: reason, target_customer_id: target?.id || null, resolution_snapshot: beforeSnapshot })
+      collision.audit_logs ||= []
+      collision.audit_logs.unshift({ action: 'RESOLVE', operator, occurred_at: collision.handled_at, detail: resolutionType === 'KEEP_SEPARATE' ? '确认不同自然人，保留两个独立客户档案。' : `确认同一自然人，主档保留为 ${target?.customer_no}；被合并档案保留历史映射。` })
+      save(); return ok(enrichCollision(collision))
+    }
+    if (path === '/customers') { const customer = createCustomer(body); return ok({ id: customer.id, customerNo: customer.customer_no, created: !customer._reused, matchBy: customer._match_by }) }
     if (path === '/system/organizations') {
       const parent = db.organizations.find(item => item.id === Number(body.parent_id))
       const allowedChild: Record<string, string> = { COMPANY: 'DEPARTMENT', DEPARTMENT: 'GROUP_TEAM' }

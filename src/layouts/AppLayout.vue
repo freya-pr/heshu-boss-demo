@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowDown, ArrowRight, Avatar, Bell, Calendar, Clock, Close,
   Connection, DataLine, Document, DocumentChecked, House, Key, Link,
-  Location, Menu as MenuIcon, Message, Notebook, OfficeBuilding, Opportunity,
+  Location, Menu as MenuIcon, Message, Notebook, OfficeBuilding,
   Platform, Postcard, PriceTag, Promotion, Rank, Refresh, School, Search, Service,
   SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools,
   User, Warning
@@ -50,7 +50,6 @@ const leafIcons: Record<string, Component> = {
   '/customers/follow-ups': Clock,
   '/customers/tags': PriceTag,
   '/customers/grades': Rank,
-  '/customers/opportunities': Opportunity,
   '/delivery/periods': Calendar,
   '/questionnaires/list': Notebook,
   '/system/organizations': OfficeBuilding,

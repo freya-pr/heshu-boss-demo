@@ -32,7 +32,19 @@ const displayedRows = computed(() => rows.value.filter(row => {
   return (!grade.value || row.grade === grade.value) && (!status.value || row.status === status.value) && (!addMethod.value || row.add_method === addMethod.value) && (!keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())) && (authorized || row.owner_name === auth.user?.displayName) && (!scopeFilters.value.organizationId || organizationScopeIds(scopeFilters.value.organizationId).includes(organizationId)) && (!scopeFilters.value.ownerId || Number(row.owner_id) === Number(scopeFilters.value.ownerId))
 }))
 async function load() { loading.value = true; error.value = ''; try { const [a,b,c]: any = await Promise.all([http.get('/customers'),http.get('/system/organizations'),http.get('/system/employees')]); rows.value=a.data;organizations.value=b.data;employees.value=c.data } catch(e:any){error.value=e.message} finally{loading.value=false} }
-async function create() { if(!form.value.name.trim())return ElMessage.warning('请填写客户称呼');if(!form.value.mobile.trim()&&!form.value.unionId.trim())return ElMessage.warning('手机号或 UnionID 至少填写一项');await http.post('/customers',form.value);dialog.value=false;form.value={name:'',mobile:'',unionId:'',ownerName:'王老师',addMethod:'QR_CODE'};ElMessage.success('客户已创建');await load() }
+async function create() {
+  if(!form.value.name.trim())return ElMessage.warning('请填写客户称呼')
+  const mobile=form.value.mobile.replace(/[\s-]/g,'').replace(/^\+86/,'')
+  if(!mobile&&!form.value.unionId.trim())return ElMessage.warning('手机号或 UnionID 至少填写一项')
+  if(mobile&&!/^1[3-9]\d{9}$/.test(mobile))return ElMessage.warning('一个客户只能保存一个有效的 11 位主手机号')
+  try{
+    const result:any=await http.post('/customers',{...form.value,mobile})
+    dialog.value=false
+    form.value={name:'',mobile:'',unionId:'',ownerName:'王老师',addMethod:'QR_CODE'}
+    ElMessage.success(result.data?.created===false?'该手机号或 UnionID 已有客户档案，已关联原客户':'客户已创建')
+    await load()
+  }catch(e:any){ElMessage.error(e.message||'客户创建失败')}
+}
 function openDetail(row:any){activeCustomer.value=row;detailTab.value='profile';detailDrawer.value=true}
 function openGradeEditor(row:any){activeCustomer.value=row;customerGradeForm.value={grade:['S','A','B','C'].includes(row.grade)?row.grade:'',reason:''};gradeDialog.value=true}
 async function saveCustomerGrade(){if(!customerGradeForm.value.grade)return ElMessage.warning('请选择 S、A、B、C 中的目标等级');if(!customerGradeForm.value.reason.trim())return ElMessage.warning('请填写客户等级调整原因');await http.post(`/customers/${activeCustomer.value.id}/grade`,customerGradeForm.value);gradeDialog.value=false;ElMessage.success('客户等级已更新，变更记录已保留');await load()}
@@ -45,7 +57,7 @@ onMounted(load)
   <section class="page customer-list-page">
     <PageHeader eyebrow="CUSTOMER MASTER · UNIQUE PROFILE" title="客户列表" description="以家长客户为唯一经营主体，统一查看身份、添加方式、等级、归属和完整业务档案。"><el-button type="primary" @click="dialog=true">新建客户</el-button></PageHeader>
     <div class="customer-definition surface">
-      <div><span>唯一身份</span><b>手机号或 UnionID</b><small>任一有效即可建档</small></div><i></i>
+      <div><span>唯一身份</span><b>一个主手机号 / 一个 UnionID</b><small>任一有效即可建档，均为单值身份</small></div><i></i>
       <div><span>客户来源</span><b>客户从哪里来</b><small>渠道、店铺、商品与IP归因</small></div><i></i>
       <div class="accent"><span>添加方式</span><b>客户如何进入</b><small>链接 / 名片 / 二维码</small></div>
     </div>
@@ -84,7 +96,6 @@ onMounted(load)
       <el-tabs v-model="detailTab" class="profile-tabs">
         <el-tab-pane label="基本档案" name="profile"><div class="profile-grid"><div><span>客户编号</span><b>{{ activeCustomer?.customer_no }}</b></div><div><span>客户称呼</span><b>{{ activeCustomer?.name }}</b></div><div><span>UnionID</span><b>{{ activeCustomer?.union_id||'—' }}</b></div><div><span>客户状态</span><b>{{ customerStatusLabels[activeCustomer?.status] }}</b></div><div><span>添加方式</span><b>{{ addMethodLabels[activeCustomer?.add_method as AddMethod]||'—' }}</b></div><div><span>建档时间</span><b>{{ activeCustomer?.created_at }}</b></div></div></el-tab-pane>
         <el-tab-pane label="线索记录" name="leads"><div class="timeline-card"><b>{{ activeCustomer?.source_lead_no||'来源线索待补充' }}</b><span>{{ activeCustomer?.source_name||'—' }} · {{ activeCustomer?.camp_name||'未关联营期' }}</span></div></el-tab-pane>
-        <el-tab-pane label="商机订单" name="opportunities"><el-empty description="暂无关联商机或订单" :image-size="72"/></el-tab-pane>
         <el-tab-pane label="学习交付" name="delivery"><el-empty description="暂无课程交付记录" :image-size="72"/></el-tab-pane>
         <el-tab-pane label="服务人员" name="service"><div class="timeline-card"><b>{{ activeCustomer?.owner_name||'待分配' }}</b><span>{{ activeCustomer?.owner_organization_name||'—' }} · 当前主负责人</span></div></el-tab-pane>
         <el-tab-pane label="问卷测评" name="questionnaire"><el-empty description="暂无问卷或测评记录" :image-size="72"/></el-tab-pane>
@@ -92,7 +103,7 @@ onMounted(load)
       </el-tabs>
     </el-drawer>
 
-    <el-dialog v-model="dialog" title="新建唯一客户" width="560px"><el-alert title="手机号或 UnionID 任一有效即可创建；分别命中不同客户时将阻断创建并进入异常记录。" type="info" :closable="false"/><el-form label-position="top" style="margin-top:16px"><el-form-item label="客户称呼" required><el-input v-model="form.name"/></el-form-item><div class="dialog-grid"><el-form-item label="手机号"><el-input v-model="form.mobile"/></el-form-item><el-form-item label="UnionID"><el-input v-model="form.unionId"/></el-form-item></div><el-form-item label="添加方式" required><el-radio-group v-model="form.addMethod"><el-radio-button v-for="(label,value) in addMethodLabels" :key="value" :value="value">{{ label }}</el-radio-button></el-radio-group><small class="form-help">只记录客户如何添加，不替代渠道、店铺或商品来源。</small></el-form-item><el-form-item label="负责人"><el-input v-model="form.ownerName"/></el-form-item></el-form><template #footer><el-button @click="dialog=false">取消</el-button><el-button type="primary" @click="create">创建客户</el-button></template></el-dialog>
+    <el-dialog v-model="dialog" title="新建唯一客户" width="560px"><el-alert title="一个客户只允许保存一个主手机号；手机号在全部有效客户中唯一。手机号或 UnionID 任一有效即可创建，分别命中不同客户时将阻断创建并生成撞单案件。" type="info" :closable="false" show-icon/><el-form label-position="top" style="margin-top:16px"><el-form-item label="客户称呼" required><el-input v-model="form.name"/></el-form-item><div class="dialog-grid"><el-form-item label="主手机号"><el-input v-model="form.mobile" maxlength="11" placeholder="仅填写一个 11 位手机号" inputmode="numeric"/><small class="form-help">不支持在同一客户下保存备用手机号或多个手机号。</small></el-form-item><el-form-item label="UnionID"><el-input v-model="form.unionId" placeholder="与手机号至少填写一项"/></el-form-item></div><el-form-item label="添加方式" required><el-radio-group v-model="form.addMethod"><el-radio-button v-for="(label,value) in addMethodLabels" :key="value" :value="value">{{ label }}</el-radio-button></el-radio-group><small class="form-help">只记录客户如何添加，不替代渠道、店铺或商品来源。</small></el-form-item><el-form-item label="负责人"><el-input v-model="form.ownerName"/></el-form-item></el-form><template #footer><el-button @click="dialog=false">取消</el-button><el-button type="primary" @click="create">创建客户</el-button></template></el-dialog>
     <el-dialog v-model="gradeDialog" title="编辑客户等级" width="520px"><el-alert title="客户首次建档继承线索等级；此处人工调整后作为客户当前等级，不回写原线索。S/A/B/C 选项来自统一等级字典。" type="info" :closable="false" show-icon/><el-form label-position="top" class="grade-editor-form"><el-form-item label="客户"><el-input :model-value="`${activeCustomer?.customer_no||''} · ${activeCustomer?.name||''}`" disabled/></el-form-item><el-form-item label="目标等级" required><el-select v-model="customerGradeForm.grade" style="width:100%"><el-option v-for="g in ['S','A','B','C']" :key="g" :label="`${g} 级`" :value="g"/></el-select></el-form-item><el-form-item label="调整原因" required><el-input v-model="customerGradeForm.reason" type="textarea" :rows="3" maxlength="200" show-word-limit/></el-form-item></el-form><template #footer><el-button @click="gradeDialog=false">取消</el-button><el-button type="primary" @click="saveCustomerGrade">确认调整</el-button></template></el-dialog>
   </section>
 </template>
