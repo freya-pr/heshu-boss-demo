@@ -66,7 +66,7 @@ function normalizeEmployeeNo(value: unknown) { const text=String(value||'');retu
 function normalizeDb(source: DemoDb): DemoDb {
   source.collisionCases ||= clone(seed.collisionCases)
   source.employees.forEach(item=>{item.employee_no=normalizeEmployeeNo(item.employee_no)})
-  source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no);item.demand_mined=Boolean(item.demand_mined||item.demand_mined_at)})
+  source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no);item.demand_mined=Boolean(item.demand_mined||item.demand_mined_at);item.mobile_change_history ||= []})
   source.customers.forEach((item,index)=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.grade_source=item.grade_source||'LEAD_INHERITED';item.lifecycle=item.lifecycle||(item.grade==='S'?'DEAL':'INTENT');item.add_method=item.add_method||(['QR_CODE','LINK','BUSINESS_CARD'][index%3]);item.source_name=item.source_name||'历史数据';item.source_lead_no=item.source_lead_no||'';item.camp_name=item.camp_name||''})
   return source
 }
@@ -119,12 +119,18 @@ function buildLeadJourney(lead: Row) {
   if (lead.questionnaire_at && currentGrade !== 'UNRATED') add(lead.grade_changed_at || lead.questionnaire_at, 'LEAD_GRADED', '问卷自动评定线索等级', 'UNRATED', currentGrade, 'GRADE_RULE', `规则版本：${lead.grade_rule_version || 'V1.0'}；来源：有效问卷`, '系统')
   add(lead.demand_mined_at, 'DEMAND_MINED', '标记已挖需', 'NOT_MINED', 'MINED', 'MANUAL', '业务人员确认已完成挖需；该事实标记不可在列表取消', lead.demand_mined_by || lead.owner_name || '当前用户')
   if (lead.grade_source === 'MANUAL') add(lead.grade_changed_at, 'LEAD_GRADE_CHANGED', '人工变更线索等级', lead.previous_grade || 'UNRATED', lead.lead_grade, 'MANUAL', `变更原因：${lead.grade_change_reason || '未填写'}`, lead.grade_changed_by || '系统管理员')
+  ;(lead.mobile_change_history || []).forEach((item: Row) => add(item.occurred_at, item.action === 'MERGE' ? 'MOBILE_MERGED' : 'MOBILE_CHANGED', item.action === 'MERGE' ? '手机号档案完成合并' : '线索手机号完成变更', null, null, 'MANUAL', item.detail || `手机号 ${maskMobile(item.old_mobile)} → ${maskMobile(item.new_mobile)}`, item.operator_name || '系统管理员'))
+  ;(lead.wechat_status_history || []).forEach((item: Row) => add(item.occurred_at, 'WECHAT_STATUS_CHANGED', '人工修改加微状态', item.from_status, item.to_status, 'MANUAL', item.detail || '人工修正加微状态', item.operator_name || '系统管理员'))
   add(lead.assessment_at, 'ASSESSMENT_COMPLETED', '客户完成测评', 'ASSESSMENT_NOT_COMPLETED', 'ASSESSMENT_COMPLETED', 'ASSESSMENT', '有效测评结果已回写', lead.owner_name || '系统')
   add(lead.converted_at, 'LEAD_CONVERTED', '线索完成转化', null, null, 'ORDER', `关联订单：${lead.order_no || '—'}`)
   return events.sort((a, b) => String(b.occurred_at).localeCompare(String(a.occurred_at)))
 }
 
 function nowText() { return new Date().toLocaleString('zh-CN', { hour12: false }) }
+function maskMobile(value: unknown) {
+  const mobile = String(value || '')
+  return /^1\d{10}$/.test(mobile) ? `${mobile.slice(0, 3)}****${mobile.slice(-4)}` : '—'
+}
 function customerSnapshot(customer?: Row) {
   if (!customer) return null
   return {
@@ -137,6 +143,38 @@ function customerSnapshot(customer?: Row) {
     created_at: customer.created_at, order_count: customer.lifecycle === 'DEAL' ? 2 : 0,
     questionnaire_count: customer.grade_source === 'LEAD_INHERITED' ? 1 : 0
   }
+}
+
+function mobileProfile(lead: Row, customer?: Row) {
+  return {
+    customer_id: customer?.id || null,
+    customer_no: customer?.customer_no || '',
+    customer_name: customer?.name || '',
+    lead_id: lead.id,
+    lead_name: lead.name || '',
+    order_no: lead.order_no || '',
+    mobile: maskMobile(customer?.mobile || lead.decrypted_mobile || lead.mobile),
+    owner_id: customer?.owner_id ?? lead.owner_id ?? null,
+    owner_name: customer?.owner_name || lead.owner_name || '',
+    owner_employee_no: customer?.owner_employee_no || lead.owner_employee_no || ''
+  }
+}
+
+function validateLeadMobileChange(lead: Row, rawMobile: unknown) {
+  const newMobile = String(rawMobile || '').replace(/[\s-]/g, '').replace(/^\+86/, '')
+  if (!/^1[3-9]\d{9}$/.test(newMobile)) throw new Error('请输入有效的 11 位手机号')
+  const currentMobile = String(lead.decrypted_mobile || lead.mobile || '').replace(/[\s-]/g, '')
+  const currentCustomer = db.customers.find(item => item.status !== 'MERGED' && (item.customer_no === lead.customer_no || item.mobile === currentMobile))
+  const currentProfile = mobileProfile(lead, currentCustomer)
+  if (newMobile === currentMobile) return { status: 'BLOCKED_SAME_MOBILE', title: '新手机号与当前手机号一致', message: '无需变更，请重新输入其他手机号。', current_profile: currentProfile, target_profile: null, validation_token: '' }
+  const targetCustomer = db.customers.find(item => item.status !== 'MERGED' && item.mobile === newMobile)
+  const targetLead = db.leads.find(item => item.id !== lead.id && [item.decrypted_mobile, item.mobile].includes(newMobile))
+  if (!targetCustomer && !targetLead) return { status: 'AVAILABLE', title: '手机号未被占用', message: '校验通过，可直接变更当前线索及关联客户的主手机号。', current_profile: currentProfile, target_profile: null, validation_token: `${lead.id}:${newMobile}:AVAILABLE` }
+  const resolvedTargetLead = targetLead || db.leads.find(item => item.customer_no && item.customer_no === targetCustomer?.customer_no) || { id: null, name: targetCustomer?.name, owner_id: targetCustomer?.owner_id, owner_name: targetCustomer?.owner_name, owner_employee_no: targetCustomer?.owner_employee_no }
+  const targetProfile = mobileProfile(resolvedTargetLead as Row, targetCustomer)
+  const sameOwner = Boolean(currentProfile.owner_id && targetProfile.owner_id && Number(currentProfile.owner_id) === Number(targetProfile.owner_id)) || Boolean(currentProfile.owner_employee_no && targetProfile.owner_employee_no && currentProfile.owner_employee_no === targetProfile.owner_employee_no)
+  if (sameOwner) return { status: 'MERGE_ALLOWED', title: '手机号已存在，可合并档案', message: `两个手机号均归属于一转负责人 ${currentProfile.owner_name || targetProfile.owner_name}，禁止直接覆盖，但允许确认后合并相关档案。`, current_profile: currentProfile, target_profile: targetProfile, validation_token: `${lead.id}:${newMobile}:MERGE_ALLOWED` }
+  return { status: 'BLOCKED_OWNER_CONFLICT', title: '手机号已存在且客户归属不同', message: `当前手机号客户归属于 ${currentProfile.owner_name || '未分配'}，新手机号客户归属于 ${targetProfile.owner_name || '未分配'}，不允许变更或自动合并。`, current_profile: currentProfile, target_profile: targetProfile, validation_token: '' }
 }
 function enrichCollision(item: Row): Row {
   return {
@@ -285,6 +323,7 @@ function buildLeadAnalytics(params: Row = {}) {
     })
   const detailSources = ['抖店', '百家号', '小鹅通', '有赞']
   const detailOwners = ['李士文', '王老师', '陈老师', '刘老师']
+  const detailOrganizations = ['一转事业部 / 阿留组', '一转事业部 / 店播组', '一转事业部 / 课程顾问组', '客户运营部 / 私域组']
   const details = Array.from({ length: 24 }, (_, index) => ({
     orderNo: `TP202608${String(180001 + index)}`,
     customerName: ['周女士', '赵先生', '钱女士', '孙女士'][index % 4],
@@ -295,6 +334,7 @@ function buildLeadAnalytics(params: Row = {}) {
     ipChannel: index % 3 === 0 ? '阿留专属' : '店播',
     ipName: index % 3 === 0 ? '阿留皮皮' : index % 2 ? '皮皮老师' : '周老师',
     ownerName: detailOwners[index % detailOwners.length],
+    ownerOrganization: detailOrganizations[index % detailOrganizations.length],
     period: periodName,
     eventTime: `2026-08-${String(12 + index % 7).padStart(2, '0')} ${String(9 + index % 10).padStart(2, '0')}:${String(10 + index).slice(-2)}:00`,
     stage: ['已加微', '已填问卷', '已预约', '已到课', '已完课', '已成交', '已退款'][index % 7]
@@ -405,6 +445,70 @@ export const demoHttp = {
       save()
       return ok({ demandMinedAt, demandMinedBy })
     }
+    const wechatStatusChange = path.match(/^\/leads\/(\d+)\/wechat-status$/)
+    if (wechatStatusChange) {
+      const lead = db.leads.find(item => item.id === Number(wechatStatusChange[1]))
+      if (!lead) return fail('线索不存在')
+      const nextStatus = String(body.wechatStatus || '')
+      const allowedStatuses = ['NOT_ADDED', 'WECOM_ADDED', 'PERSONAL_WECHAT_ADDED']
+      if (!allowedStatuses.includes(nextStatus)) return fail('加微状态无效')
+      const currentStatus = lead.wechat_status === 'ADDED' ? 'WECOM_ADDED' : lead.wechat_status === 'DELETED' ? 'NOT_ADDED' : (lead.wechat_status || (lead.wechat_added_at ? (lead.wechat_method === 'PERSONAL_WECHAT' ? 'PERSONAL_WECHAT_ADDED' : 'WECOM_ADDED') : 'NOT_ADDED'))
+      if (currentStatus === nextStatus) return ok({ wechatStatus: currentStatus, idempotent: true })
+      const statusLabels: Record<string, string> = { NOT_ADDED: '否', WECOM_ADDED: '已加企微', PERSONAL_WECHAT_ADDED: '已加个微' }
+      const occurredAt = nowText()
+      const operatorName = currentUser().displayName
+      lead.wechat_status_history ||= []
+      lead.wechat_status_history.unshift({ from_status: currentStatus, to_status: nextStatus, operator_name: operatorName, occurred_at: occurredAt, detail: `加微状态由“${statusLabels[currentStatus] || currentStatus}”修改为“${statusLabels[nextStatus]}”` })
+      Object.assign(lead, { wechat_status: nextStatus, wechat_method: nextStatus === 'WECOM_ADDED' ? 'WECOM' : nextStatus === 'PERSONAL_WECHAT_ADDED' ? 'PERSONAL_WECHAT' : '', updated_at: occurredAt })
+      save()
+      return ok({ wechatStatus: nextStatus, occurredAt, operatorName })
+    }
+    const validateMobileChange = path.match(/^\/leads\/(\d+)\/mobile-change\/validate$/)
+    if (validateMobileChange) {
+      const lead = db.leads.find(item => item.id === Number(validateMobileChange[1]))
+      if (!lead) return fail('线索不存在')
+      return ok(validateLeadMobileChange(lead, body.newMobile))
+    }
+    const mobileChange = path.match(/^\/leads\/(\d+)\/mobile-change$/)
+    if (mobileChange) {
+      const lead = db.leads.find(item => item.id === Number(mobileChange[1]))
+      if (!lead) return fail('线索不存在')
+      const result = validateLeadMobileChange(lead, body.newMobile)
+      const requestedAction = String(body.action || '')
+      if (!['AVAILABLE', 'MERGE_ALLOWED'].includes(result.status)) return fail(result.message)
+      if ((result.status === 'AVAILABLE' && requestedAction !== 'CHANGE') || (result.status === 'MERGE_ALLOWED' && requestedAction !== 'MERGE')) return fail('手机号校验结果已变化，请重新校验后提交')
+      const newMobile = String(body.newMobile || '').replace(/[\s-]/g, '').replace(/^\+86/, '')
+      const oldMobile = String(lead.decrypted_mobile || lead.mobile || '')
+      const occurredAt = nowText()
+      const operatorName = currentUser().displayName
+      lead.mobile_change_history ||= []
+      if (result.status === 'AVAILABLE') {
+        const currentCustomer = db.customers.find(item => item.status !== 'MERGED' && (item.customer_no === lead.customer_no || item.mobile === oldMobile))
+        Object.assign(lead, { mobile: newMobile, decrypted_mobile: newMobile, updated_at: occurredAt })
+        if (currentCustomer) Object.assign(currentCustomer, { mobile: newMobile, updated_at: occurredAt })
+        lead.mobile_change_history.unshift({ action: 'CHANGE', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `手机号由 ${maskMobile(oldMobile)} 变更为 ${maskMobile(newMobile)}；原手机号与操作记录已保留审计。` })
+        save()
+        return ok({ action: 'CHANGE', customerNo: currentCustomer?.customer_no || lead.customer_no || '' })
+      }
+      const currentCustomer = db.customers.find(item => item.status !== 'MERGED' && (item.customer_no === lead.customer_no || item.mobile === oldMobile))
+      const targetCustomer = db.customers.find(item => item.status !== 'MERGED' && item.mobile === newMobile)
+      const targetLead = db.leads.find(item => item.id !== lead.id && [item.decrypted_mobile, item.mobile].includes(newMobile))
+      if (!targetCustomer && !targetLead) return fail('目标档案已变化，请重新校验')
+      const targetCustomerNo = targetCustomer?.customer_no || targetLead?.customer_no || ''
+      if (currentCustomer && targetCustomer && currentCustomer.id !== targetCustomer.id) {
+        const gradePriority: Record<string, number> = { S: 4, A: 3, B: 2, C: 1, UNRATED: 0 }
+        if ((gradePriority[currentCustomer.grade] || 0) > (gradePriority[targetCustomer.grade] || 0)) targetCustomer.grade = currentCustomer.grade
+        if (!targetCustomer.union_id && currentCustomer.union_id) targetCustomer.union_id = currentCustomer.union_id
+        db.leads.filter(item => item.customer_no === currentCustomer.customer_no).forEach(item => Object.assign(item, { customer_id: targetCustomer.id, customer_no: targetCustomer.customer_no, customer_name: targetCustomer.name, updated_at: occurredAt }))
+        Object.assign(currentCustomer, { mobile: null, union_id: null, status: 'MERGED', merged_into_customer_no: targetCustomer.customer_no, merged_at: occurredAt, merged_by: operatorName })
+        targetCustomer.merge_history ||= []
+        targetCustomer.merge_history.unshift({ source_customer_no: currentCustomer.customer_no, source_mobile: maskMobile(oldMobile), merged_at: occurredAt, merged_by: operatorName, scope: ['线索', '问卷', '订单', '服务记录', '旅程日志'] })
+      }
+      Object.assign(lead, { mobile: newMobile, decrypted_mobile: newMobile, customer_id: targetCustomer?.id || targetLead?.customer_id || lead.customer_id, customer_no: targetCustomerNo || lead.customer_no, customer_name: targetCustomer?.name || targetLead?.customer_name || lead.customer_name, merged_into_lead_id: targetLead?.id || null, updated_at: occurredAt })
+      lead.mobile_change_history.unshift({ action: 'MERGE', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `同属一转负责人 ${lead.owner_name || result.current_profile.owner_name}，以 ${targetCustomerNo || '新手机号档案'} 为主档完成合并；原手机号 ${maskMobile(oldMobile)} 保留审计映射。` })
+      save()
+      return ok({ action: 'MERGE', customerNo: targetCustomerNo, mergedCustomerNo: currentCustomer?.customer_no || '' })
+    }
     if (path === '/leads') {
       const now = new Date().toLocaleString('zh-CN', { hour12: false })
       const lead = { id: Math.max(0, ...db.leads.map(item => item.id)) + 1, lead_no: id('L'), order_no: '', order_status: 'NO_ORDER', name: body.name, mobile: body.mobile || '', original_mobile: body.mobile || '', decrypted_mobile: body.mobile || '', decrypted_at: body.mobile ? now : '', union_id: body.unionId || '', wechat_nickname: '', source_type: body.sourceType, lead_source: body.channelName, channel_name: body.channelName, third_party_product_id: body.thirdPartyProductId || '', first_product_name: '', product_remark: '', shop_name: '', paid_amount: 0, status: 'PENDING_ASSIGNMENT', lead_mark: 'VALID', follow_status: 'NOT_FOLLOWED', conversion_status: 'UNCONVERTED', owner_id: null, owner_name: '', owner_employee_no: '', customer_no: '', customer_name: '', entry_method: 'IMPORT', wechat_method: '', camp_name: '', sms_send_count: 0, created_at: now, remark: '' }
@@ -419,7 +523,7 @@ export const demoHttp = {
     const wechat = path.match(/^\/leads\/(\d+)\/wechat-added$/)
     if (wechat) {
       const lead = db.leads.find(item => item.id === Number(wechat[1])); if (!lead) return fail('线索不存在')
-      lead.status = 'WECHAT_ADDED'; lead.follow_status = 'FOLLOWING'; lead.wechat_method = 'WECOM'; lead.wechat_added_at = new Date().toLocaleString('zh-CN', { hour12: false }); lead.first_follow_at ||= lead.wechat_added_at; lead.union_id = body.unionId || lead.union_id || `union_demo_${lead.id}`; save(); return ok(null)
+      lead.status = 'WECHAT_ADDED'; lead.wechat_status = 'WECOM_ADDED'; lead.follow_status = 'FOLLOWING'; lead.wechat_method = 'WECOM'; lead.wechat_added_at = new Date().toLocaleString('zh-CN', { hour12: false }); lead.first_follow_at ||= lead.wechat_added_at; lead.union_id = body.unionId || lead.union_id || `union_demo_${lead.id}`; save(); return ok(null)
     }
     const convert = path.match(/^\/leads\/(\d+)\/convert$/)
     if (convert) {

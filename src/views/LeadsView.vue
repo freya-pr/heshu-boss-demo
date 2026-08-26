@@ -42,6 +42,19 @@ const journeyVisible = ref(false)
 const journeyLoading = ref(false)
 const journeyRows = ref<any[]>([])
 const activeLead = ref<any>(null)
+const mobileChangeVisible = ref(false)
+const mobileChangeLoading = ref(false)
+const mobileChangeSubmitting = ref(false)
+const newMobile = ref('')
+const mobileValidation = ref<any>(null)
+const wechatStatusVisible = ref(false)
+const wechatStatusSubmitting = ref(false)
+const wechatStatusDraft = ref('NOT_ADDED')
+const wechatStatusOptions = [
+  { label: '否', value: 'NOT_ADDED' },
+  { label: '已加企微', value: 'WECOM_ADDED' },
+  { label: '已加个微', value: 'PERSONAL_WECHAT_ADDED' }
+]
 const columnSettingVisible = ref(false)
 const batchDialogVisible = ref(false)
 const batchAction = ref('')
@@ -83,7 +96,7 @@ const columnOptions = [
   { value: 'wechat_added_at', label: '加微时间' }, { value: 'decrypted_at', label: '解密时间' }, { value: 'questionnaire_at', label: '问卷填写时间' },
   { value: 'assessment_at', label: '测评时间' }, { value: 'customer_linked_at', label: '客户建档时间' }, { value: 'converted_at', label: '转化时间' },
   { value: 'after_sale_at', label: '售后时间' }, { value: 'entry_method', label: '添加方式' }, { value: 'wechat_method', label: '加微方式' },
-  { value: 'camp_name', label: '所属营期' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
+  { value: 'camp_name', label: '所属直播组' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
 const columnStorageKey = 'heshu_boss_lead_table_columns_v6'
@@ -180,12 +193,95 @@ function openDetail(row: any) {
   detailVisible.value = true
 }
 
+function openMobileChange(row: any) {
+  activeLead.value = row
+  newMobile.value = ''
+  mobileValidation.value = null
+  mobileChangeVisible.value = true
+}
+
+async function validateNewMobile() {
+  const mobile = newMobile.value.replace(/[\s-]/g, '')
+  if (!/^1[3-9]\d{9}$/.test(mobile)) return ElMessage.warning('请输入有效的 11 位手机号')
+  mobileChangeLoading.value = true
+  mobileValidation.value = null
+  try {
+    const result: any = await http.post(`/leads/${activeLead.value.id}/mobile-change/validate`, { newMobile: mobile })
+    mobileValidation.value = result.data
+  } catch (e: any) {
+    ElMessage.error(e.message || '手机号校验失败')
+  } finally {
+    mobileChangeLoading.value = false
+  }
+}
+
+async function submitMobileChange() {
+  if (!mobileValidation.value || !['AVAILABLE', 'MERGE_ALLOWED'].includes(mobileValidation.value.status)) return
+  const isMerge = mobileValidation.value.status === 'MERGE_ALLOWED'
+  try {
+    await ElMessageBox.confirm(
+      isMerge
+        ? '新手机号已存在且双方归属于同一位一转负责人。确认后将以新手机号对应客户为主档，迁移当前客户的线索、问卷、订单、服务与旅程关联，原客户档案标记为“已合并”。此操作不可直接撤销。'
+        : '确认将当前线索及其关联客户的主手机号变更为新手机号？原手机号与变更记录将保留在审计日志中。',
+      isMerge ? '确认合并客户档案' : '确认变更手机号',
+      { confirmButtonText: isMerge ? '确认合并' : '确认变更', cancelButtonText: '取消', type: 'warning' }
+    )
+    mobileChangeSubmitting.value = true
+    const result: any = await http.post(`/leads/${activeLead.value.id}/mobile-change`, {
+      newMobile: newMobile.value.replace(/[\s-]/g, ''),
+      action: isMerge ? 'MERGE' : 'CHANGE',
+      validationToken: mobileValidation.value.validation_token
+    })
+    ElMessage.success(isMerge ? `档案合并完成，主客户：${result.data.customerNo || '已存在客户'}` : '手机号变更成功')
+    mobileChangeVisible.value = false
+    await load()
+  } catch (e: any) {
+    if (e !== 'cancel' && e !== 'close') ElMessage.error(e.message || '操作失败')
+  } finally {
+    mobileChangeSubmitting.value = false
+  }
+}
+
+function normalizeWechatStatus(value: any) {
+  if (value === 'ADDED') return 'WECOM_ADDED'
+  if (value === 'DELETED') return 'NOT_ADDED'
+  return ['NOT_ADDED', 'WECOM_ADDED', 'PERSONAL_WECHAT_ADDED'].includes(String(value)) ? String(value) : 'NOT_ADDED'
+}
+
+function isWechatAdded(value: any) {
+  return ['ADDED', 'WECOM_ADDED', 'PERSONAL_WECHAT_ADDED'].includes(String(value))
+}
+
+function openWechatStatus(row: any) {
+  activeLead.value = row
+  wechatStatusDraft.value = normalizeWechatStatus(row.wechat_status)
+  wechatStatusVisible.value = true
+}
+
+async function submitWechatStatus() {
+  if (!activeLead.value) return
+  if (normalizeWechatStatus(activeLead.value.wechat_status) === wechatStatusDraft.value) return ElMessage.info('加微状态未发生变化')
+  wechatStatusSubmitting.value = true
+  try {
+    await http.post(`/leads/${activeLead.value.id}/wechat-status`, { wechatStatus: wechatStatusDraft.value })
+    ElMessage.success('加微状态已更新，并记录到线索旅程')
+    wechatStatusVisible.value = false
+    await load()
+  } catch (e: any) {
+    ElMessage.error(e.message || '加微状态修改失败')
+  } finally {
+    wechatStatusSubmitting.value = false
+  }
+}
+
 function handleOperation(command: string, row: any) {
   const operationLabels: Record<string, string> = {
     CREATE_CUSTOMER: '建立客户档案', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
-    SMS_REMINDER: '短信提醒', REMARK: '备注'
+    CHANGE_MOBILE: '变更手机号', CHANGE_WECHAT_STATUS: '修改加微状态', SMS_REMINDER: '短信提醒', REMARK: '备注'
   }
   if (command === 'CREATE_CUSTOMER') return convert(row)
+  if (command === 'CHANGE_MOBILE') return openMobileChange(row)
+  if (command === 'CHANGE_WECHAT_STATUS') return openWechatStatus(row)
   ElMessage.success(`${operationLabels[command] || command}：已为订单 ${row.order_no || '未关联订单'} 创建处理任务`)
 }
 
@@ -207,14 +303,10 @@ async function markDemandMined(row: any, checked: string | number | boolean) {
   }
 }
 
-function operationFor(row: any) {
-  return (command: string) => handleOperation(command, row)
-}
-
 function handleSelectionChange(selection: any[]) { selectedRows.value = selection }
 
 const batchActionLabels: Record<string, string> = {
-  ASSIGN: '批量分配', SYNC_ORDER: '批量同步订单',
+  ASSIGN: '批量分配', SYNC_ORDER: '同步订单',
   SMS_BROADCAST: '短信群发', IMPORT_DECRYPTED: '导入解密数据', EXPORT_UNDECRYPTED: '导出非解密数据'
 }
 const batchSubtypeOptions = computed(() => ({
@@ -248,7 +340,7 @@ function chooseAssignee(item: any) {
   selectedAssigneeId.value = item.id
 }
 function openBatchAction(command: string) {
-  if (['ASSIGN','SYNC_ORDER','SMS_BROADCAST'].includes(command) && !selectedRows.value.length) {
+  if (['ASSIGN','SMS_BROADCAST'].includes(command) && !selectedRows.value.length) {
     return ElMessage.warning('请先勾选需要处理的线索')
   }
   batchAction.value = command
@@ -398,13 +490,13 @@ function normalizeLeadState(source: any) {
   row.assignment_status ||= row.owner_id ? 'ASSIGNED' : 'PENDING'
   row.decrypt_status ||= row.decrypted_at || row.decrypted_mobile ? 'DECRYPTED' : 'PENDING'
   row.sms_status ||= row.sms_clicked_at ? 'CLICKED' : Number(row.sms_send_count || 0) > 0 ? 'SENT_NOT_CLICKED' : 'NOT_SENT'
-  row.wechat_status ||= row.wechat_added_at ? 'ADDED' : 'NOT_ADDED'
+  row.wechat_status = normalizeWechatStatus(row.wechat_status || (row.wechat_added_at ? (row.wechat_method === 'PERSONAL_WECHAT' ? 'PERSONAL_WECHAT_ADDED' : 'WECOM_ADDED') : 'NOT_ADDED'))
   row.questionnaire_status ||= row.questionnaire_at ? 'FILLED' : row.questionnaire_sent_at ? 'SENT_NOT_FILLED' : 'NOT_SENT'
   row.assessment_status ||= row.assessment_at ? 'COMPLETED' : row.assessment_booked_at ? 'BOOKED_NOT_COMPLETED' : 'NOT_BOOKED'
   if (['INVALID', 'DUPLICATE'].includes(row.lead_mark) || row.conversion_status === 'CONVERTED') row.current_action_status = 'NO_ACTION'
   else if (['PENDING', 'FAILED'].includes(row.assignment_status)) row.current_action_status = 'PENDING_ASSIGNMENT'
   else if (row.questionnaire_status === 'FILLED') row.current_action_status = row.assessment_status === 'COMPLETED' ? 'NURTURE_COMPLETED' : 'PENDING_ASSESSMENT'
-  else if (row.wechat_status === 'ADDED') row.current_action_status = 'PENDING_QUESTIONNAIRE'
+  else if (isWechatAdded(row.wechat_status)) row.current_action_status = 'PENDING_QUESTIONNAIRE'
   else if (['PENDING', 'PROCESSING', 'FAILED'].includes(row.decrypt_status)) row.current_action_status = 'PENDING_DECRYPTION'
   else if (['NOT_SENT', 'FAILED'].includes(row.sms_status)) row.current_action_status = 'PENDING_OUTREACH'
   else if (row.sms_status === 'SENT_NOT_CLICKED') row.current_action_status = 'PENDING_SMS_CLICK'
@@ -450,12 +542,12 @@ const currentActionLabels: any = {
 const assignmentLabels: any = { PENDING: '待分配', ASSIGNED: '已分配', FAILED: '分配失败', REASSIGNED: '已改派' }
 const decryptLabels: any = { NOT_REQUIRED: '无需解密', PENDING: '未解密', PROCESSING: '解密中', DECRYPTED: '已解密', FAILED: '解密失败' }
 const smsLabels: any = { NOT_SENT: '未发送', SENDING: '发送中', SENT_NOT_CLICKED: '已发送未点击', CLICKED: '已点击', FAILED: '发送失败' }
-const wechatStatusLabels: any = { NOT_ADDED: '未加微', ADDED: '已加微', DELETED: '已删除' }
+const wechatStatusLabels: any = { NOT_ADDED: '否', WECOM_ADDED: '已加企微', PERSONAL_WECHAT_ADDED: '已加个微', ADDED: '已加企微' }
 const questionnaireLabels: any = { NOT_SENT: '未发送', SENT_NOT_FILLED: '已发送未填写', FILLED: '已填写' }
 const assessmentLabels: any = { NOT_BOOKED: '未预约', BOOKED_NOT_COMPLETED: '已预约未测评', COMPLETED: '已测评' }
 const journeyStatusLabels: any = {
   ...currentActionLabels, ASSIGNED: '已分配', DECRYPTED: '已解密', SMS_NOT_CLICKED: '已发送未点击', SMS_CLICKED: '已点击',
-  WECHAT_NOT_ADDED: '未加微', WECHAT_ADDED: '已加微', QUESTIONNAIRE_NOT_FILLED: '未填问卷', QUESTIONNAIRE_FILLED: '已填问卷',
+  WECHAT_NOT_ADDED: '否', WECHAT_ADDED: '已加微', WECOM_ADDED: '已加企微', PERSONAL_WECHAT_ADDED: '已加个微', QUESTIONNAIRE_NOT_FILLED: '未填问卷', QUESTIONNAIRE_FILLED: '已填问卷',
   ASSESSMENT_NOT_COMPLETED: '未测评', ASSESSMENT_COMPLETED: '已测评', NOT_MINED: '未挖需', MINED: '已挖需'
 }
 const leadMarkLabels: any = { VALID: '有效线索', INVALID: '无效线索', DUPLICATE: '重复线索' }
@@ -511,7 +603,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="assignmentFilter" placeholder="分配状态" clearable><el-option v-for="(label, value) in assignmentLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="decryptFilter" placeholder="解密状态" clearable><el-option v-for="(label, value) in decryptLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="smsFilter" placeholder="短信状态" clearable><el-option v-for="(label, value) in smsLabels" :key="value" :label="label" :value="value"/></el-select>
-            <el-select v-model="wechatStatusFilter" placeholder="加微状态" clearable><el-option v-for="(label, value) in wechatStatusLabels" :key="value" :label="label" :value="value"/></el-select>
+            <el-select v-model="wechatStatusFilter" placeholder="加微状态" clearable><el-option v-for="item in wechatStatusOptions" :key="item.value" :label="item.label" :value="item.value"/></el-select>
             <el-select v-model="questionnaireFilter" placeholder="问卷状态" clearable><el-option v-for="(label, value) in questionnaireLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="assessmentFilter" placeholder="测评状态" clearable><el-option v-for="(label, value) in assessmentLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="leadGradeFilter" placeholder="线索等级" clearable><el-option v-for="(label, value) in gradeLabels" :key="value" :label="label" :value="value"/></el-select>
@@ -520,7 +612,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="orderStatusFilter" placeholder="订单状态" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="wechatFilter" placeholder="加微方式" clearable><el-option label="企业微信" value="WECOM"/><el-option label="个人微信" value="PERSONAL_WECHAT"/></el-select>
-            <el-select v-model="campFilter" placeholder="所属营期" clearable filterable><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select>
+            <el-select v-model="campFilter" placeholder="所属直播组" clearable filterable><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select>
             <el-input v-model="shopFilter" clearable placeholder="店铺名称"/>
             <div class="date-filter"><el-select v-model="dateField" aria-label="日期类型"><el-option v-for="item in dateFieldOptions" :key="item.value" :label="item.label" :value="item.value"/></el-select><el-date-picker v-model="createdRange" type="daterange" value-format="YYYY-MM-DD" start-placeholder="开始日期" end-placeholder="结束日期"/></div>
           </div>
@@ -592,7 +684,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('after_sale_at')" prop="after_sale_at" label="售后时间" width="168"><template #default="{ row }">{{ textOrDash(row.after_sale_at) }}</template></el-table-column>
           <el-table-column v-if="showColumn('entry_method')" label="添加方式" width="120"><template #default="{ row }">{{ entryLabels[row.entry_method] || textOrDash(row.entry_method) }}</template></el-table-column>
           <el-table-column v-if="showColumn('wechat_method')" label="加微方式" width="100"><template #default="{ row }">{{ wechatLabels[row.wechat_method] || textOrDash(row.wechat_method) }}</template></el-table-column>
-          <el-table-column v-if="showColumn('camp_name')" prop="camp_name" label="所属营期" width="150"><template #default="{ row }">{{ textOrDash(row.camp_name) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('camp_name')" prop="camp_name" label="所属直播组" width="150"><template #default="{ row }">{{ textOrDash(row.camp_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('sms_send_count')" prop="sms_send_count" label="短信发送次数" width="120"/>
           <el-table-column v-if="showColumn('remark')" prop="remark" label="线索备注" width="220" show-overflow-tooltip/>
           <el-table-column v-if="showColumn('current_action_status')" label="当前待办" width="120"><template #default="{ row }"><el-tag>{{ currentActionLabels[row.current_action_status] || row.current_action_status }}</el-tag></template></el-table-column>
@@ -607,11 +699,13 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column label="操作" width="240" fixed="right"><template #default="{ row }">
             <el-button link type="primary" @click="openDetail(row)">详情</el-button>
             <el-button link type="primary" @click="openJourney(row)">旅程</el-button>
-            <el-dropdown trigger="click" @command="operationFor(row)">
+            <el-dropdown trigger="click" @command="handleOperation($event, row)">
               <el-button link type="primary">更多⌄</el-button>
               <template #dropdown><el-dropdown-menu>
-                <el-dropdown-item v-if="row.wechat_status === 'ADDED' && !row.customer_no" command="CREATE_CUSTOMER">建立客户档案</el-dropdown-item>
+                <el-dropdown-item v-if="isWechatAdded(row.wechat_status) && !row.customer_no" command="CREATE_CUSTOMER">建立客户档案</el-dropdown-item>
                 <el-dropdown-item command="CHANGE_MARK">变更线索标记</el-dropdown-item><el-dropdown-item command="REASSIGN">改派负责人</el-dropdown-item>
+                <el-dropdown-item v-if="sourceType === 'DRAINAGE'" divided command="CHANGE_WECHAT_STATUS">修改加微状态</el-dropdown-item>
+                <el-dropdown-item divided command="CHANGE_MOBILE">变更手机号</el-dropdown-item>
                 <el-dropdown-item divided command="SMS_REMINDER">短信提醒</el-dropdown-item>
                 <el-dropdown-item divided command="REMARK">备注</el-dropdown-item>
               </el-dropdown-menu></template>
@@ -623,7 +717,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 
     <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : batchAction === 'SYNC_ORDER' ? '720px' : batchAction === 'SMS_BROADCAST' ? '640px' : '560px'" class="batch-dialog">
       <div class="batch-dialog-content">
-        <el-alert v-if="!['IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
+        <el-alert v-if="!['SYNC_ORDER','IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
         <el-form v-if="batchSubtypeOptions.length" label-position="top">
           <el-form-item label="操作类型" required>
             <el-radio-group v-model="batchSubtype" class="batch-subtype-list">
@@ -650,6 +744,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新营期配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
         <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受营期活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新营期活码名单的员工，不参与轮询。' }}</span></div>
         <section v-if="batchAction === 'SYNC_ORDER'" class="sync-platform-panel">
+          <el-alert class="sync-global-alert" type="info" :closable="false" show-icon title="同步订单无需勾选线索" description="该操作按所选平台发起全局订单同步任务，不读取、也不限制于当前列表勾选结果。" />
           <div class="panel-heading"><div><b>选择同步平台</b><span>按点击勾选的先后顺序执行，每个平台创建一个独立后台任务。</span></div><em>已选 {{ selectedSyncPlatforms.length }} 个</em></div>
           <div class="platform-order-grid">
             <button v-for="platform in syncPlatformOptions" :key="platform" type="button" :class="{ selected: selectedSyncPlatforms.includes(platform) }" @click="toggleSyncPlatform(platform, !selectedSyncPlatforms.includes(platform))">
@@ -685,6 +780,39 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <template #footer><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">{{ batchAction === 'IMPORT_DECRYPTED' ? '确认导入并覆盖' : batchAction === 'EXPORT_UNDECRYPTED' ? '确认导出' : '确认创建任务' }}</el-button></template>
     </el-dialog>
 
+    <el-dialog v-model="mobileChangeVisible" title="变更手机号" width="680px" class="mobile-change-dialog" @closed="mobileValidation = null">
+      <div v-if="activeLead" class="mobile-change-content">
+        <el-alert type="info" :closable="false" show-icon title="先校验、后变更" description="系统会同时检查线索与客户主档。新手机号未占用时可直接变更；已占用时禁止直接覆盖，仅在双方归属于同一位一转负责人时允许合并档案。"/>
+        <div class="mobile-change-form">
+          <label><span>当前手机号</span><strong>{{ maskedMobile(activeLead.decrypted_mobile || activeLead.mobile) }}</strong><small>{{ activeLead.customer_name || activeLead.name || '未建档线索' }} · 一转负责人 {{ activeLead.owner_name || '未分配' }}</small></label>
+          <label><span>新手机号</span><el-input v-model="newMobile" maxlength="11" clearable placeholder="请输入新的 11 位手机号" @input="mobileValidation = null" @keyup.enter="validateNewMobile"><template #append><el-button :loading="mobileChangeLoading" @click="validateNewMobile">校验手机号</el-button></template></el-input></label>
+        </div>
+
+        <section v-if="mobileValidation" class="mobile-validation-card" :class="mobileValidation.status.toLowerCase()">
+          <header><div><b>{{ mobileValidation.title }}</b><span>{{ mobileValidation.message }}</span></div><el-tag :type="mobileValidation.status === 'AVAILABLE' ? 'success' : mobileValidation.status === 'MERGE_ALLOWED' ? 'warning' : 'danger'">{{ mobileValidation.status === 'AVAILABLE' ? '可直接变更' : mobileValidation.status === 'MERGE_ALLOWED' ? '可合并' : '禁止变更' }}</el-tag></header>
+          <div v-if="mobileValidation.target_profile" class="mobile-profile-compare">
+            <article><small>当前手机号档案</small><b>{{ mobileValidation.current_profile?.customer_name || mobileValidation.current_profile?.lead_name || '当前线索' }}</b><span>{{ mobileValidation.current_profile?.customer_no || mobileValidation.current_profile?.order_no || '未建档' }}</span><em>一转负责人：{{ mobileValidation.current_profile?.owner_name || '未分配' }}</em></article>
+            <i>→</i>
+            <article class="target"><small>新手机号命中档案</small><b>{{ mobileValidation.target_profile.customer_name || mobileValidation.target_profile.lead_name }}</b><span>{{ mobileValidation.target_profile.customer_no || mobileValidation.target_profile.order_no || '未建档' }}</span><em>一转负责人：{{ mobileValidation.target_profile.owner_name || '未分配' }}</em></article>
+          </div>
+          <p v-if="mobileValidation.status === 'MERGE_ALLOWED'">合并后以新手机号命中的客户档案为主档，迁移关联线索、问卷、订单、服务记录与旅程日志；原档案保留审计关系并标记“已合并”。</p>
+          <p v-if="mobileValidation.status === 'BLOCKED_OWNER_CONFLICT'">双方一转负责人不同，系统不会改号或自动合并。如确认为同一自然人，应先完成客户归属协调，再重新发起。</p>
+        </section>
+      </div>
+      <template #footer><el-button @click="mobileChangeVisible = false">取消</el-button><el-button v-if="mobileValidation && ['AVAILABLE','MERGE_ALLOWED'].includes(mobileValidation.status)" type="primary" :loading="mobileChangeSubmitting" @click="submitMobileChange">{{ mobileValidation.status === 'MERGE_ALLOWED' ? '确认合并档案' : '确认变更手机号' }}</el-button></template>
+    </el-dialog>
+
+    <el-dialog v-model="wechatStatusVisible" title="修改加微状态" width="640px" destroy-on-close>
+      <div class="wechat-status-dialog-body">
+        <span>加微状态：</span>
+        <el-radio-group v-model="wechatStatusDraft">
+          <el-radio v-for="item in wechatStatusOptions" :key="item.value" :value="item.value">{{ item.label }}</el-radio>
+        </el-radio-group>
+      </div>
+      <el-alert class="wechat-status-dialog-tip" type="info" :closable="false" show-icon title="人工修改用于纠正线索加微状态；提交后将记录修改前后状态、操作人和操作时间。"/>
+      <template #footer><el-button @click="wechatStatusVisible = false">关闭</el-button><el-button type="primary" :loading="wechatStatusSubmitting" @click="submitWechatStatus">提交</el-button></template>
+    </el-dialog>
+
     <el-drawer v-model="detailVisible" size="620px" :title="`${activeLead?.order_no || '未关联订单'} · 线索详情`">
       <el-descriptions v-if="activeLead" :column="2" border>
         <el-descriptions-item label="客户称呼">{{ textOrDash(activeLead.name) }}</el-descriptions-item>
@@ -703,7 +831,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="第三方商品ID">{{ textOrDash(activeLead.third_party_product_id) }}</el-descriptions-item>
         <el-descriptions-item label="添加方式">{{ entryLabels[activeLead.entry_method] || textOrDash(activeLead.entry_method) }}</el-descriptions-item>
         <el-descriptions-item label="当前负责人">{{ textOrDash(activeLead.owner_name) }} / {{ textOrDash(activeLead.owner_employee_no) }}</el-descriptions-item>
-        <el-descriptions-item label="所属营期">{{ textOrDash(activeLead.camp_name) }}</el-descriptions-item>
+        <el-descriptions-item label="所属直播组">{{ textOrDash(activeLead.camp_name) }}</el-descriptions-item>
         <el-descriptions-item label="订单编号">{{ textOrDash(activeLead.order_no) }}</el-descriptions-item>
         <el-descriptions-item label="关联客户">{{ textOrDash(activeLead.customer_name) }} / {{ textOrDash(activeLead.customer_no) }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ textOrDash(activeLead.created_at) }}</el-descriptions-item>
@@ -898,6 +1026,32 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   margin: 8px 0;
   color: #2563eb;
 }
+.mobile-change-content { display: grid; gap: 16px; }
+.mobile-change-form { display: grid; grid-template-columns: 1fr 1.35fr; gap: 12px; }
+.mobile-change-form label { display: grid; align-content: start; gap: 7px; padding: 14px; border: 1px solid #e3ebf5; border-radius: 10px; background: #f8fafc; }
+.mobile-change-form label > span { color: #718198; font-size: 12px; }
+.mobile-change-form label > strong { color: #24324a; font-size: 20px; letter-spacing: 1px; }
+.mobile-change-form label > small { color: #8b9ab0; line-height: 1.55; }
+.mobile-change-form :deep(.el-input__wrapper) { box-shadow: 0 0 0 1px #dce6f2 inset; }
+.mobile-validation-card { display: grid; gap: 14px; padding: 16px; border: 1px solid #f0b9b9; border-left-width: 4px; border-radius: 10px; background: #fff8f8; }
+.mobile-validation-card.available { border-color: #a7e4d0; background: #f3fcf8; }
+.mobile-validation-card.merge_allowed { border-color: #f2cd83; background: #fffbf2; }
+.mobile-validation-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.mobile-validation-card header > div { display: grid; gap: 5px; }
+.mobile-validation-card header b { color: #26354d; }
+.mobile-validation-card header span,.mobile-validation-card p { margin: 0; color: #687b95; font-size: 12px; line-height: 1.65; }
+.mobile-profile-compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: stretch; }
+.mobile-profile-compare article { display: grid; gap: 5px; padding: 12px; border: 1px solid #e4ebf4; border-radius: 9px; background: #fff; }
+.mobile-profile-compare article.target { border-color: #bad4f7; background: #f4f8ff; }
+.mobile-profile-compare article small { color: #91a0b4; }
+.mobile-profile-compare article b { color: #26354d; }
+.mobile-profile-compare article span,.mobile-profile-compare article em { color: #6f8098; font-size: 11px; font-style: normal; }
+.mobile-profile-compare > i { align-self: center; color: #7ca8e8; font-style: normal; }
+.wechat-status-dialog-body { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; padding: 8px 2px 22px; }
+.wechat-status-dialog-body > span { color: #334155; font-weight: 600; white-space: nowrap; }
+.wechat-status-dialog-body :deep(.el-radio-group) { display: flex; flex-wrap: wrap; gap: 22px; }
+.wechat-status-dialog-body :deep(.el-radio) { margin-right: 0; }
+.wechat-status-dialog-tip { margin-bottom: 6px; }
 @media (max-width: 1200px) {
   .search-grid,
   .advanced-search { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
@@ -905,5 +1059,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   .assignee-picker { grid-template-columns: 1fr; }
   .organization-pane { border-right: 0; border-bottom: 1px solid #e5edf7; }
   .platform-order-grid,.sms-meta { grid-template-columns: 1fr 1fr; }
+  .mobile-change-form { grid-template-columns: 1fr; }
 }
 </style>

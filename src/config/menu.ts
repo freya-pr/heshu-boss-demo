@@ -40,7 +40,7 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '问卷管理', code: 'QUESTIONNAIRE', children: [
-      { name: '问卷列表', path: '/questionnaires/list', description: '统一管理问卷、答卷及线索/客户关联。', features: ['详情', '发送', '回收', '同步', '答卷', '对象关联', '异常处理'] }
+      { name: '问卷列表', path: '/questionnaires/list', description: '统一管理问卷结构、企微标签、二维码、答卷与线索评级输入。', features: ['列表', '新建编辑', '题目分组', '二维码', '答卷统计', '数据导出', 'SABC评级输入'] }
     ]
   },
   {

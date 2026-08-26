@@ -17,6 +17,7 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/customers/collisions': () => import('../views/CustomerCollisionManagementView.vue'),
   '/customers/tags': () => import('../views/TagManagementView.vue'),
   '/delivery/periods': () => import('../views/PeriodManagementView.vue'),
+  '/questionnaires/list': () => import('../views/QuestionnaireManagementView.vue'),
   '/system/organizations': () => import('../views/SystemView.vue'),
   '/system/employees': () => import('../views/EmployeeManagementView.vue'),
   '/system/positions': () => import('../views/PositionManagementView.vue'),
