@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1050" viewBox="0 0 1800 1050">
+  <defs>
+    <style>
+      .title{font:700 34px -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;fill:#17233d}
+      .section{font:700 24px -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;fill:#2563eb}
+      .nodeTitle{font:700 18px -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;fill:#17233d}
+      .nodeText{font:15px -apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;fill:#64748b}
+      .edge{stroke:#8fb5f5;stroke-width:3;fill:none;marker-end:url(#arrow)}
+      .box{fill:#fff;stroke:#bfd5f8;stroke-width:2}
+      .accent{fill:#eff6ff;stroke:#6ea2f5;stroke-width:2}
+      .warn{fill:#fff8e8;stroke:#f2bd58;stroke-width:2}
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#8fb5f5"/></marker>
+  </defs>
+  <rect width="1800" height="1050" fill="#f6f9ff"/>
+  <text x="70" y="65" class="title">合数BOSS系统管理全景图</text>
+
+  <rect x="55" y="100" width="1690" height="385" rx="22" fill="#fff" stroke="#dbe7f8" stroke-width="2"/>
+  <text x="85" y="145" class="section">第一部分｜合数BOSS与企业微信同步交互</text>
+  <rect x="90" y="190" width="230" height="120" rx="16" class="accent"/>
+  <text x="205" y="228" text-anchor="middle" class="nodeTitle">企业微信</text><text x="205" y="258" text-anchor="middle" class="nodeText">初始化组织通讯录</text><text x="205" y="284" text-anchor="middle" class="nodeText">CorpID + UserID</text>
+  <rect x="390" y="190" width="250" height="120" rx="16" class="box"/>
+  <text x="515" y="228" text-anchor="middle" class="nodeTitle">暂存与差异处理</text><text x="515" y="258" text-anchor="middle" class="nodeText">校验、匹配、冲突</text><text x="515" y="284" text-anchor="middle" class="nodeText">人工确认后入库</text>
+  <rect x="710" y="175" width="270" height="150" rx="16" class="accent"/>
+  <text x="845" y="218" text-anchor="middle" class="nodeTitle">合数BOSS主数据</text><text x="845" y="250" text-anchor="middle" class="nodeText">组织、员工、岗位、角色</text><text x="845" y="276" text-anchor="middle" class="nodeText">生成永久员工编号</text><text x="845" y="302" text-anchor="middle" class="nodeText">正式运行后唯一主写</text>
+  <rect x="1050" y="190" width="250" height="120" rx="16" class="box"/>
+  <text x="1175" y="228" text-anchor="middle" class="nodeTitle">Outbox 同步适配器</text><text x="1175" y="258" text-anchor="middle" class="nodeText">幂等、顺序、重试</text><text x="1175" y="284" text-anchor="middle" class="nodeText">异常补偿与审计</text>
+  <rect x="1370" y="190" width="285" height="120" rx="16" class="box"/>
+  <text x="1512" y="228" text-anchor="middle" class="nodeTitle">企微成员开通与状态回写</text><text x="1512" y="258" text-anchor="middle" class="nodeText">查重、创建、唯一绑定</text><text x="1512" y="284" text-anchor="middle" class="nodeText">邀请、激活、接待状态</text>
+  <path d="M320 250 H390" class="edge"/><path d="M640 250 H710" class="edge"/><path d="M980 250 H1050" class="edge"/><path d="M1300 250 H1370" class="edge"/>
+  <rect x="690" y="365" width="310" height="70" rx="14" class="warn"/><text x="845" y="395" text-anchor="middle" class="nodeTitle">自有系统主控开关</text><text x="845" y="420" text-anchor="middle" class="nodeText">关闭：企微基线入库｜开启：BOSS向外同步</text>
+
+  <rect x="55" y="520" width="1690" height="475" rx="22" fill="#fff" stroke="#dbe7f8" stroke-width="2"/>
+  <text x="85" y="565" class="section">第二部分｜系统管理人员属性关联</text>
+  <rect x="90" y="625" width="200" height="100" rx="16" class="box"/><text x="190" y="665" text-anchor="middle" class="nodeTitle">组织架构</text><text x="190" y="695" text-anchor="middle" class="nodeText">公司 / 部门 / 小组</text>
+  <rect x="360" y="610" width="230" height="130" rx="16" class="accent"/><text x="475" y="648" text-anchor="middle" class="nodeTitle">员工主档</text><text x="475" y="678" text-anchor="middle" class="nodeText">employee_id / employee_no</text><text x="475" y="704" text-anchor="middle" class="nodeText">任职记录与当前状态</text>
+  <rect x="660" y="625" width="210" height="100" rx="16" class="box"/><text x="765" y="665" text-anchor="middle" class="nodeTitle">登录账号</text><text x="765" y="695" text-anchor="middle" class="nodeText">启用 / 停用 / 锁定</text>
+  <rect x="940" y="625" width="230" height="100" rx="16" class="box"/><text x="1055" y="665" text-anchor="middle" class="nodeTitle">企微身份</text><text x="1055" y="695" text-anchor="middle" class="nodeText">账号与企微双向一对一</text>
+  <rect x="1240" y="610" width="220" height="130" rx="16" class="box"/><text x="1350" y="648" text-anchor="middle" class="nodeTitle">角色 × 岗位</text><text x="1350" y="678" text-anchor="middle" class="nodeText">功能权限 × 数据范围</text><text x="1350" y="704" text-anchor="middle" class="nodeText">与账号状态共同生效</text>
+  <rect x="1530" y="625" width="170" height="100" rx="16" class="accent"/><text x="1615" y="665" text-anchor="middle" class="nodeTitle">业务数据</text><text x="1615" y="695" text-anchor="middle" class="nodeText">按有效权限访问</text>
+  <path d="M290 675 H360" class="edge"/><path d="M590 675 H660" class="edge"/><path d="M870 675 H940" class="edge"/><path d="M1170 675 H1240" class="edge"/><path d="M1460 675 H1530" class="edge"/>
+  <rect x="360" y="810" width="350" height="115" rx="16" class="warn"/><text x="535" y="848" text-anchor="middle" class="nodeTitle">员工停用 / 离职</text><text x="535" y="878" text-anchor="middle" class="nodeText">阻断登录与新增接待，保留全部历史</text><text x="535" y="904" text-anchor="middle" class="nodeText">存量业务按需在对应业务页面改派</text>
+  <rect x="780" y="810" width="300" height="115" rx="16" class="box"/><text x="930" y="848" text-anchor="middle" class="nodeTitle">重新入职核验</text><text x="930" y="878" text-anchor="middle" class="nodeText">确认同一自然人后沿用原编号</text><text x="930" y="904" text-anchor="middle" class="nodeText">权限与业务归属不自动恢复</text>
+  <rect x="1150" y="810" width="380" height="115" rx="16" class="box"/><text x="1340" y="848" text-anchor="middle" class="nodeTitle">全局治理</text><text x="1340" y="878" text-anchor="middle" class="nodeText">系统参数 / 字典 / 配置版本 / 审计</text><text x="1340" y="904" text-anchor="middle" class="nodeText">统一缓存失效、发布与回滚</text>
+  <path d="M475 740 V810" class="edge"/><path d="M710 867 H780" class="edge"/>
+  <text x="85" y="970" class="nodeText">关键边界：当前版本不提供“离职继承”独立菜单或任务；订单中心与班级管理亦不属于当前产品菜单及 V1.0 验收范围。</text>
+</svg>

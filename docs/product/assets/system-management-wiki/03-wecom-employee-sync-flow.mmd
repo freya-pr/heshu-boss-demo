@@ -1,0 +1,16 @@
+flowchart LR
+    SWITCH{"自有系统主控开关"}
+    OWN["合数BOSS员工与组织主数据"]
+    OUT["事务事件表 Outbox"]
+    WX["企业微信同步适配器"]
+    WECOM["企业微信通讯录"]
+    STAGE["外部数据暂存、校验与冲突处理"]
+    RESULT["外部ID、激活及接待状态"]
+    ERR["异常中心与重试队列"]
+
+    SWITCH -->|"开启：只允许BOSS向外同步"| OWN
+    OWN --> OUT --> WX --> WECOM
+    WECOM --> RESULT --> OWN
+    SWITCH -->|"关闭：允许外部同步至BOSS"| WECOM
+    WECOM --> STAGE --> OWN
+    WX --> ERR

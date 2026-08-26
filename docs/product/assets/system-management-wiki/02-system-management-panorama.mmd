@@ -1,0 +1,76 @@
+flowchart TB
+    subgraph SYNC_AREA["第一部分｜合数BOSS与企业微信同步交互"]
+        direction LR
+        WECOM["企业微信<br/>初始化组织通讯录<br/>CorpID + UserID、激活及接待状态"]
+        SWITCH{"自有系统主控开关"}
+        STAGE["基线暂存与差异处理<br/>校验、匹配、冲突、人工确认"]
+        BOSS["合数BOSS<br/>组织员工正式主数据<br/>生成 B + 6位员工编号"]
+        OUTBOX["Outbox与同步适配器<br/>幂等、顺序、重试"]
+        PROVISION["开通企微成员<br/>查重、创建、绑定、发送邀请"]
+        ACTIVE{"成员是否已激活"}
+        CONFLICT["身份冲突队列<br/>暂停覆盖并转人工"]
+        AUDIT["同步任务与审计<br/>批次、结果、错误、补偿"]
+
+        SWITCH -->|"关闭：初始化或基线重建"| WECOM
+        WECOM -->|"组织员工基线/变更"| STAGE
+        STAGE -->|"校验通过或人工确认"| BOSS
+        SWITCH -->|"开启：正式运行"| BOSS
+        BOSS -->|"新增、修改、调岗、停用、离职"| OUTBOX
+        OUTBOX --> WECOM
+        WECOM -->|"外部ID、激活、接待状态"| OUTBOX
+        OUTBOX --> BOSS
+        BOSS -->|"员工未绑定企微"| PROVISION
+        PROVISION -->|"已绑定其他账号"| CONFLICT
+        PROVISION -->|"创建或绑定成员"| WECOM
+        WECOM --> ACTIVE
+        ACTIVE -->|"未激活"| AUDIT
+        ACTIVE -->|"已激活且唯一绑定"| BOSS
+        OUTBOX --> AUDIT
+        CONFLICT --> AUDIT
+        AUDIT -. "重试/人工补偿" .-> OUTBOX
+    end
+
+    subgraph PERSON_AREA["第二部分｜系统管理人员属性关联"]
+        direction LR
+        COMPANY["公司"] --> DEPT["部门"] --> GROUP["小组"]
+        GROUP -. "允许继续嵌套" .-> GROUP
+        EMP["员工主档<br/>employee_id / employee_no<br/>姓名、手机号、在职状态"]
+        EMPLOYMENT["任职记录<br/>入职/离职日期、主组织<br/>每次任职独立记录"]
+        ACCOUNT["合数BOSS登录账号<br/>启用 / 停用 / 锁定"]
+        IDENTITY["当前企微绑定<br/>账号 ↔ CorpID + UserID<br/>双向一对一"]
+        IDENTITY_HISTORY["身份绑定历史<br/>旧UserID、换绑与解绑记录<br/>只追溯、不参与登录"]
+        ROLE["业务角色｜功能权限<br/>运营、客服、规划师等<br/>菜单、操作、字段权限"]
+        POSITION["数据岗位｜数据权限<br/>本人、小组、部门、公司<br/>或指定多个组织"]
+        EFFECTIVE["最终有效权限<br/>角色功能权限 ∩ 岗位数据范围<br/>∩ 账号状态"]
+        BUSINESS["业务数据<br/>线索、客户、订单、交付、问卷"]
+        REHIRE{"重新入职身份核验"}
+        PARAM["系统参数<br/>全局阈值、默认值、功能开关"]
+        DICT["字典管理<br/>稳定项值、标签、排序、状态"]
+        CFG["配置治理<br/>权限、缓存、版本、审计、回滚"]
+
+        DEPT -->|"主组织"| EMPLOYMENT
+        GROUP -->|"主组织"| EMPLOYMENT
+        EMP --> EMPLOYMENT
+        EMP -->|"0或1个生效账号"| ACCOUNT
+        ACCOUNT -->|"一对一生效绑定"| IDENTITY
+        IDENTITY -->|"解绑/换绑后归档"| IDENTITY_HISTORY
+        EMP --> ROLE
+        EMP --> POSITION
+        ROLE --> EFFECTIVE
+        POSITION --> EFFECTIVE
+        ACCOUNT --> EFFECTIVE
+        EFFECTIVE --> BUSINESS
+        EMP -->|"离职/停用：阻断登录与新增接待"| ACCOUNT
+        EMP --> REHIRE
+        REHIRE -->|"确认同一自然人"| EMPLOYMENT
+        REHIRE -->|"沿用employee_id/employee_no"| EMP
+        REHIRE -->|"确认不是同一人"| NEWEMP["创建新员工与新编号"]
+        ROLE -->|"维护权限"| PARAM
+        ROLE -->|"维护权限"| DICT
+        PARAM --> CFG
+        DICT --> CFG
+        CFG --> BUSINESS
+    end
+
+    BOSS -->|"统一员工、组织和身份映射"| EMP
+    IDENTITY -->|"当前唯一企微身份"| WECOM

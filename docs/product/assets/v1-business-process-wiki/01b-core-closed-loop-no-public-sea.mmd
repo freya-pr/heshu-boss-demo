@@ -1,0 +1,39 @@
+flowchart LR
+    A["① 渠道获客<br/>广告 / 活动 / 直播 / 转介绍"]
+    B["② 统一接入<br/>API / Webhook / 文件导入"]
+    C["③ 数据清洗<br/>解密 / 校验 / 标准化 / 幂等"]
+    D["④ 线索识别<br/>查重 / 关联 / 来源归因"]
+    E["⑤ 线索分配<br/>人工指定 / 活码名单轮询"]
+    F["⑥ 客户加微<br/>短信 / 活码 / 企微事件确认"]
+    G{"⑦ 客户身份匹配<br/>手机号 / UnionID是否跨档案冲突"}
+    G1["撞单管理<br/>证据核验 / 人工裁决 / 审计留痕"]
+    H["⑧ 客户建档<br/>唯一身份 / 负责人 / 客户画像"]
+    I["⑨ 销售跟进<br/>SOP / 问卷 / 定级 / 试听"]
+    J{"是否达到正式课程转化条件"}
+    K["⑩ 业务转化<br/>报名 / 成交 / 学员服务"]
+    L{"规定时间内<br/>是否持续有效跟进"}
+    M["生成超时待办<br/>主管提醒 / 人工改派"]
+    EX["异常处理中心<br/>重试 / 人工处理 / 补偿"]
+
+    A --> B --> C --> D --> E --> F --> G
+    G -- "无冲突" --> H
+    G -- "有冲突" --> G1 --> H
+    H --> I --> J
+    J -- "是" --> K
+    J -- "否" --> L
+    L -- "是" --> I
+    L -- "否" --> M --> I
+
+    C -. "校验或解密失败" .-> EX
+    E -. "分配失败" .-> EX
+    F -. "扫码或加微异常" .-> EX
+    EX -. "处理完成" .-> D
+
+    classDef normal fill:#eef5ff,stroke:#3b82f6,color:#1e3a5f,stroke-width:1.5px;
+    classDef decision fill:#fff7e8,stroke:#f59e0b,color:#7c4a03,stroke-width:1.5px;
+    classDef success fill:#effbf4,stroke:#22a06b,color:#14532d,stroke-width:1.5px;
+    classDef danger fill:#fff1f2,stroke:#ef4444,color:#7f1d1d,stroke-width:1.5px;
+    class A,B,C,D,E,F,H,I,M normal;
+    class G,J,L decision;
+    class K success;
+    class G1,EX danger;

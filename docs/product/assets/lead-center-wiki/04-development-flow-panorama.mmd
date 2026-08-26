@@ -1,0 +1,54 @@
+flowchart LR
+    S1["S1 来源接入<br/>API / Webhook / 文件 / 手工"] --> K1{"K1 接入数据是否合格"}
+    K1 -- "否" --> EX["异常中心<br/>修复 / 重试 / 补录 / 对账"]
+    K1 -- "是" --> S2["S2 清洗与幂等<br/>标准化 / 技术去重 / 业务查重"]
+    S2 --> K2{"K2 是否有效或重复"}
+    K2 -- "无效" --> INVALID["无效线索<br/>记录原因并停止自动经营"]
+    K2 -- "重复" --> DUP["重复线索<br/>关联主线索并保留来源证据"]
+    K2 -- "有效" --> MASTER["创建线索主档、来源快照和唯一编号"]
+
+    MASTER --> ATTR1["基础归因<br/>来源 / 平台 / 店铺 / 商品 / IP / 营期"]
+    MASTER --> P1["分配处理"]
+    MASTER --> P2["手机号或身份处理"]
+    MASTER --> P3["来源订单同步"]
+
+    ATTR1 --> QR["匹配活码<br/>营期+IP+班级 → 通用活码"]
+    QR --> K3{"K3 人工指定还是自动轮询"}
+    K3 -- "人工指定" --> OWNER["保存负责人、组织、活码及人工原因"]
+    K3 -- "自动轮询" --> K4{"K4 名单中是否存在可接待员工"}
+    K4 -- "否" --> EX
+    K4 -- "是" --> OWNER
+
+    P2 --> K5{"K5 是否已有明文手机号或UnionID"}
+    K5 -- "是" --> IDREADY["身份可触达"]
+    K5 -- "否" --> DECRYPT["按权限主动解密或补录"]
+    DECRYPT --> K6{"K6 解密是否成功"}
+    K6 -- "否" --> EX
+    K6 -- "是" --> IDREADY
+
+    P3 --> ORDER["保存订单、商品、金额、支付和退款事实"]
+    OWNER --> READY{"K7 负责人和可触达身份是否齐备"}
+    IDREADY --> READY
+    READY -- "否" --> WAIT["按优先级计算当前待办并持续补偿"]
+    READY -- "是" --> TOUCH["短信 / 员工活码 / SOP触达"]
+    TOUCH --> WECOM["扫码或企微事件回写"]
+    WECOM --> MATCH{"K8 手机号或UnionID是否唯一命中"}
+    MATCH -- "冲突" --> EX
+    MATCH -- "新身份" --> CUSTOMER["创建唯一客户档案"]
+    MATCH -- "存量身份" --> CUSTOMER["关联存量客户，不重复建档"]
+
+    CUSTOMER --> ATTR2["补齐归因快照<br/>客户 / 负责人 / 公司 / 部门 / 小组"]
+    ATTR2 --> QUESTION["问卷提交与解析"]
+    QUESTION --> GRADE["版本化规则计算S/A/B/C<br/>人工等级优先"]
+    GRADE --> LIVE["预约 / 到课 / 完课"]
+    LIVE --> CONVERT{"正式课有效支付是否命中转化规则"}
+    ORDER --> CONVERT
+    CONVERT -- "是" --> DONE["转化状态=已转化"]
+    CONVERT -- "否" --> CULTIVATE["转化状态=未转化，继续培育"]
+    DONE --> REFUND{"是否发生满足回退规则的退款"}
+    REFUND -- "是" --> CULTIVATE
+    REFUND -- "否" --> RESULT["保留已转化"]
+
+    EX --> RETRY{"修复后是否允许幂等重放"}
+    RETRY -- "是" --> S2
+    RETRY -- "否" --> MANUAL["人工结案并保留完整证据"]

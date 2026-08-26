@@ -1,0 +1,14 @@
+flowchart LR
+    SRC["线索来源"] --> PLATFORM["来源平台"] --> STORE["店铺"] --> PRODUCT["商品"]
+    PRODUCT --> MAP["商品—IP映射<br/>显式配置优先，名称解析兜底"]
+    MAP --> IP["IP主播"] --> CHANNEL["IP渠道"] --> CATEGORY["IP大类"]
+    CAMP["营期 / 班级"] --> SNAP["线索归因快照"]
+    OWNER["负责人 / 组织"] --> SNAP
+    CUSTOMER["关联客户"] --> SNAP
+    SRC --> SNAP
+    PLATFORM --> SNAP
+    STORE --> SNAP
+    PRODUCT --> SNAP
+    IP --> SNAP
+    CHANNEL --> SNAP
+    CATEGORY --> SNAP

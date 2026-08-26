@@ -2,6 +2,8 @@
 
 合数 Boss 管理后台的可交互演示项目。
 
+产品需求与交付文档已随项目一并维护，统一入口见 [docs/README.md](docs/README.md)。
+
 ## 本地运行
 
 ```bash

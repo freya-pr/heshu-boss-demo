@@ -1,0 +1,16 @@
+flowchart LR
+    SOURCE["线索来源"] --> PLATFORM["平台"] --> STORE["店铺"] --> PRODUCT["商品"]
+    PRODUCT --> MAP["商品—IP显式配置<br/>名称解析仅作为兜底"]
+    MAP --> IP["IP名称 / IP编号"]
+    IP --> IPCHANNEL["IP渠道 / 渠道编号"]
+    IPCHANNEL --> IPCATEGORY["IP大类 / 大类编码"]
+    TERM["营期"] --> SNAPSHOT["线索归因快照"]
+    OWNER["负责人"] --> ORG["公司 / 部门 / 小组"] --> SNAPSHOT
+    CUSTOMER["关联客户"] --> SNAPSHOT
+    SOURCE --> SNAPSHOT
+    PLATFORM --> SNAPSHOT
+    STORE --> SNAPSHOT
+    PRODUCT --> SNAPSHOT
+    IP --> SNAPSHOT
+    IPCHANNEL --> SNAPSHOT
+    IPCATEGORY --> SNAPSHOT
