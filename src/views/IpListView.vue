@@ -136,7 +136,7 @@ function meta(name: string) { return platformMeta[name] || { code: name.slice(0,
 
 <template>
   <section class="page ip-page">
-    <PageHeader title="IP列表" description="统一维护IP名称、IP大类与IP渠道的绑定关系，以及IP与商品、投放平台之间的关联关系。">
+    <PageHeader title="IP管理" description="统一维护IP名称、IP大类与IP渠道的绑定关系，以及IP与商品、投放平台之间的关联关系。">
       <el-button @click="configVisible = true">IP配置</el-button><el-button type="primary" :icon="Plus" @click="openEditor()">新增IP</el-button>
     </PageHeader>
 
@@ -158,9 +158,9 @@ function meta(name: string) { return platformMeta[name] || { code: name.slice(0,
     <article class="ip-ledger surface">
       <header><div><h3>IP主档</h3><span>共 {{ filteredRows.length }} 条</span></div><p>IP编号创建后保持不变，名称调整不影响历史关联</p></header>
       <el-table :data="filteredRows" row-key="id">
-        <el-table-column label="IP名称" min-width="250"><template #default="{ row }"><div class="ip-name"><b>{{ row.name }}</b><code>{{ row.ipNo }}</code><small>{{ row.description }}</small></div></template></el-table-column>
         <el-table-column label="IP大类" width="205"><template #default="{ row }"><div class="category-cell"><el-tag type="primary" effect="plain">{{ categoryLabel(row.category) }}</el-tag><code>{{ row.category }}</code></div></template></el-table-column>
         <el-table-column label="IP渠道" width="145"><template #default="{ row }"><div class="channel-cell"><b>{{ channelInfo(row.channelCode).name }}</b><code>{{ channelInfo(row.channelCode).code }}</code></div></template></el-table-column>
+        <el-table-column label="IP名称" min-width="250"><template #default="{ row }"><div class="ip-name"><b>{{ row.name }}</b><code>{{ row.ipNo }}</code><small>{{ row.description }}</small></div></template></el-table-column>
         <el-table-column label="关联商品" width="130" align="center"><template #default="{ row }"><button class="count-link" @click="openProducts(row)"><b>{{ row.products.length }}</b><span>个商品</span><i>查看列表 →</i></button></template></el-table-column>
         <el-table-column label="关联平台" min-width="290"><template #default="{ row }"><button class="platform-stack" @click="openPlatforms(row)"><span v-for="name in row.platforms.slice(0, 3)" :key="name" class="platform-pill"><i :style="{ background: meta(name).color }">{{ meta(name).code }}</i>{{ name }}</span><em v-if="row.platforms.length > 3">+{{ row.platforms.length - 3 }}</em><small v-if="!row.platforms.length">暂未关联</small></button></template></el-table-column>
         <el-table-column prop="creator" label="创建人" width="100" />
