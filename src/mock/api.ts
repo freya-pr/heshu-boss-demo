@@ -275,7 +275,8 @@ function buildLeadAnalytics(params: Row = {}) {
   const trend = labels.map((label, index) => ({
     label,
     leads: scaleNumber([3920, 4180, 4460, 4320, 4610, 4380, 4130][index], leads / 30000),
-    deals: scaleNumber(trendBase[index], trendRatio)
+    deals: scaleNumber(trendBase[index], trendRatio),
+    dealAmountWan: Number((scaleNumber(trendBase[index], trendRatio) * 2987 / 10000).toFixed(2))
   }))
   const channels = selectedRows.map(item => {
     const channelLeads = scaleNumber(item.leads, scale)

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Download, Refresh, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
@@ -22,7 +21,6 @@ type ProductRow = {
   remark: string
 }
 
-const route = useRoute()
 const loading = ref(false)
 const syncPanelVisible = ref(false)
 const syncRunning = ref(false)
@@ -53,24 +51,20 @@ const rows = ref<ProductRow[]>([
   { id: 8, createdAt: '2026-08-14 13:38:12', updatedAt: '2026-08-18 11:16:21', name: '1V1升学诊断', qrAssigned: true, productId: 'XHS-PLAN-01', status: '在线', storeName: '合数教育体验课', storeType: '小红书', ipNo: 'IP000003', ipName: '王老师', remark: '' }
 ])
 
-const query = reactive({ keyword: '', storeType: '', status: '', qrAssigned: '', ipNo: '' })
+const query = reactive({ keyword: '', storeType: '', status: '', qrAssigned: '' })
 const storeTypes = computed(() => [...new Set(rows.value.map(row => row.storeType))])
-const ipOptions = computed(() => [...new Map(rows.value.map(row => [row.ipNo, { no: row.ipNo, name: row.ipName }])).values()])
-const activeIp = computed(() => ipOptions.value.find(item => item.no === query.ipNo))
 const filteredRows = computed(() => {
   const term = query.keyword.trim().toLowerCase()
   return rows.value.filter(row => (!term || `${row.name}${row.productId}${row.storeName}`.toLowerCase().includes(term))
     && (!query.storeType || row.storeType === query.storeType)
     && (!query.status || row.status === query.status)
-    && (query.qrAssigned === '' || row.qrAssigned === (query.qrAssigned === 'true'))
-    && (!query.ipNo || row.ipNo === query.ipNo))
+    && (query.qrAssigned === '' || row.qrAssigned === (query.qrAssigned === 'true')))
 })
 const pagedRows = computed(() => filteredRows.value.slice((page.value - 1) * pageSize.value, page.value * pageSize.value))
 
-watch(() => route.query.ipNo, value => { query.ipNo = typeof value === 'string' ? value : ''; page.value = 1 }, { immediate: true })
-watch(() => [query.keyword, query.storeType, query.status, query.qrAssigned, query.ipNo], () => { page.value = 1 })
+watch(() => [query.keyword, query.storeType, query.status, query.qrAssigned], () => { page.value = 1 })
 
-function resetQuery() { Object.assign(query, { keyword: '', storeType: '', status: '', qrAssigned: '', ipNo: '' }) }
+function resetQuery() { Object.assign(query, { keyword: '', storeType: '', status: '', qrAssigned: '' }) }
 async function syncProducts(platforms = syncPlatforms.map(item => item.code)) {
   if (syncRunning.value) return
   syncRunning.value = true
@@ -96,7 +90,7 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
 
 <template>
   <section class="page product-page">
-    <PageHeader title="商品列表" description="统一查看第三方商品、店铺归属、活码分配状态与IP关联，商品主数据由各渠道同步进入。">
+    <PageHeader title="商品列表" description="统一查看第三方商品、店铺归属与活码分配状态，商品主数据由各渠道同步进入。">
       <el-button :icon="Download" @click="exportRows">导出</el-button>
       <el-popover v-model:visible="syncPanelVisible" placement="bottom-end" :width="760" trigger="click" popper-class="product-sync-popover" @show="resetSyncState">
         <template #reference><el-button type="primary" :icon="Refresh" :loading="syncRunning">同步商品</el-button></template>
@@ -113,17 +107,11 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
       </el-popover>
     </PageHeader>
 
-    <div v-if="activeIp" class="ip-context">
-      <span>当前IP</span><code>{{ activeIp.no }}</code><b>{{ activeIp.name }}</b>
-      <button type="button" @click="query.ipNo = ''">查看全部商品</button>
-    </div>
-
     <div class="product-filter surface">
       <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="商品名称、商品ID或店铺名称" />
       <el-select v-model="query.storeType" clearable placeholder="店铺类型"><el-option v-for="item in storeTypes" :key="item" :label="item" :value="item" /></el-select>
       <el-select v-model="query.status" clearable placeholder="商品状态"><el-option label="在线" value="在线"/><el-option label="下线" value="下线"/></el-select>
       <el-select v-model="query.qrAssigned" clearable placeholder="活码分配"><el-option label="已分配" value="true"/><el-option label="未分配" value="false"/></el-select>
-      <el-select v-model="query.ipNo" clearable filterable placeholder="关联IP"><el-option v-for="item in ipOptions" :key="item.no" :label="`${item.name} · ${item.no}`" :value="item.no" /></el-select>
       <el-button type="primary">查询</el-button><el-button @click="resetQuery">重置</el-button>
     </div>
 
@@ -139,7 +127,6 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
         <el-table-column label="商品状态" width="100"><template #default="{ row }"><el-tag :type="row.status === '在线' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="storeName" label="店铺名称" min-width="180" />
         <el-table-column prop="storeType" label="店铺类型" width="105" />
-        <el-table-column label="关联IP" width="145"><template #default="{ row }"><div class="ip-cell"><b>{{ row.ipName }}</b><code>{{ row.ipNo }}</code></div></template></el-table-column>
         <el-table-column label="操作" width="110" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openRemark(row)">修改备注</el-button></template></el-table-column>
       </el-table>
       <footer><el-pagination v-model:current-page="page" v-model:page-size="pageSize" background layout="total, sizes, prev, pager, next, jumper" :total="filteredRows.length" :page-sizes="[10, 20, 50]" /></footer>
@@ -155,6 +142,7 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
 
 <style scoped>
 .product-page{--ink:#152640;--blue:#2875e6}.ip-context{display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:14px;border:1px solid #cfe0f7;border-left:4px solid var(--blue);border-radius:9px;background:#f4f8ff;color:#6d7e96;font-size:12px}.ip-context code,.product-ledger code,.remark-product code{padding:4px 7px;border:1px solid #dae5f2;border-radius:6px;background:#f2f6fb;color:#426790;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}.ip-context b{color:var(--ink)}.ip-context button{margin-left:auto;border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer}.product-filter{display:grid;grid-template-columns:1.5fr repeat(4,.72fr) auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.product-ledger{padding:0 18px 18px}.product-ledger>header{height:62px;display:flex;align-items:center;justify-content:space-between}.product-ledger header>div{display:flex;align-items:baseline;gap:9px}.product-ledger h3{margin:0;color:var(--ink)}.product-ledger header span,.product-ledger header p{color:#8b99ab;font-size:10px}.product-ledger footer{display:flex;justify-content:flex-end;padding-top:18px}.product-name b,.product-name small,.ip-cell b,.ip-cell code{display:block}.product-name b{color:var(--ink)}.product-name small{margin-top:5px;color:#8796aa;font-size:10px}.ip-cell b{margin-bottom:5px;color:var(--ink);font-size:12px}.ip-cell code{width:max-content;padding:2px 5px;font-size:8px}.remark-product{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;margin-bottom:14px;border-radius:8px;background:#f5f8fc}.remark-product b{color:var(--ink)}@media(max-width:1200px){.product-filter{grid-template-columns:repeat(3,1fr)}}
+.product-filter{grid-template-columns:1.5fr repeat(3,.72fr) auto auto}
 </style>
 
 <style>

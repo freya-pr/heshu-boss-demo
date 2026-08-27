@@ -95,14 +95,14 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','lead_grade','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','lead_grade','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
-  { value: 'original_mobile', label: '原始手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
+  { value: 'original_mobile', label: '解密前手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
   { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' }, { value: 'demand_mined', label: '是否挖需' },
   { value: 'first_product_name', label: '首单商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
-  { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' }, { value: 'current_action_status', label: '当前待办状态' },
+  { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
   { value: 'wechat_status', label: '加微状态' }, { value: 'questionnaire_status', label: '问卷状态' }, { value: 'assessment_status', label: '测评状态' },
   { value: 'lead_mark', label: '线索标记' }, { value: 'conversion_status', label: '转化状态' }, { value: 'follow_status', label: '跟进状态' },
@@ -113,7 +113,7 @@ const columnOptions = [
   { value: 'camp_name', label: '所属直播组' }, { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v7'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v8'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -586,7 +586,6 @@ function normalizeLeadState(source: any) {
 }
 
 const displayedRows = computed(() => rows.value.filter(row => {
-  const matchesCurrentAction = !currentActionFilter.value || row.current_action_status === currentActionFilter.value
   const matchesAssignment = !assignmentFilter.value || row.assignment_status === assignmentFilter.value
   const matchesDecrypt = !decryptFilter.value || row.decrypt_status === decryptFilter.value
   const matchesSms = !smsFilter.value || row.sms_status === smsFilter.value
@@ -614,7 +613,7 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesDate = createdRange.value.length !== 2 || (!!selectedDate && selectedDate >= createdRange.value[0] && selectedDate <= createdRange.value[1])
   const text = [row.order_no, row.third_party_product_id, row.name, row.mobile, row.original_mobile, row.decrypted_mobile, row.wechat_nickname, row.customer_no, row.customer_name].join(' ').toLowerCase()
   const matchesKeyword = !keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())
-  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesPeriod && matchesShop && matchesDate && matchesKeyword
+  return matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesPeriod && matchesShop && matchesDate && matchesKeyword
 }))
 const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
@@ -676,7 +675,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         />
         <div class="search-grid">
           <el-input v-model="keyword" clearable placeholder="订单/商品/客户/手机号/微信昵称"/>
-          <el-select v-model="currentActionFilter" placeholder="当前待办状态" clearable><el-option v-for="(label, value) in currentActionLabels" :key="value" :label="label" :value="value"/></el-select>
           <el-select v-model="leadMark" placeholder="线索标记" clearable><el-option v-for="(label, value) in leadMarkLabels" :key="value" :label="label" :value="value"/></el-select>
           <el-select v-model="conversionStatus" placeholder="转化状态" clearable><el-option v-for="(label, value) in conversionLabels" :key="value" :label="label" :value="value"/></el-select>
         </div>
@@ -748,7 +746,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('order_status')" label="订单状态" width="100"><template #default="{ row }">{{ orderLabels[row.order_status] || textOrDash(row.order_status) }}</template></el-table-column>
           <el-table-column v-if="showColumn('related_customer')" label="关联客户" width="170"><template #default="{ row }"><strong>{{ textOrDash(row.customer_name) }}</strong><small class="cell-sub">{{ textOrDash(row.customer_no) }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('wechat_nickname')" prop="wechat_nickname" label="微信昵称" width="130"><template #default="{ row }">{{ textOrDash(row.wechat_nickname) }}</template></el-table-column>
-          <el-table-column v-if="showColumn('original_mobile')" label="原始手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.original_mobile) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('original_mobile')" label="解密前手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.original_mobile) }}</template></el-table-column>
           <el-table-column v-if="showColumn('decrypted_mobile')" label="解密后手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.decrypted_mobile || row.mobile) }}</template></el-table-column>
           <el-table-column v-if="showColumn('first_product_name')" prop="first_product_name" label="首单商品名称" width="160"><template #default="{ row }">{{ textOrDash(row.first_product_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('product_remark')" prop="product_remark" label="商品名称备注" width="160"><template #default="{ row }">{{ textOrDash(row.product_remark) }}</template></el-table-column>
@@ -772,7 +770,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('period_name')" prop="period_name" label="所属期次" width="150"><template #default="{ row }">{{ textOrDash(row.period_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('sms_send_count')" prop="sms_send_count" label="短信发送次数" width="120"/>
           <el-table-column v-if="showColumn('remark')" prop="remark" label="线索备注" width="220" show-overflow-tooltip/>
-          <el-table-column v-if="showColumn('current_action_status')" label="当前待办" width="120"><template #default="{ row }"><el-tag>{{ currentActionLabels[row.current_action_status] || row.current_action_status }}</el-tag></template></el-table-column>
           <el-table-column v-if="showColumn('assignment_status')" label="分配状态" width="105"><template #default="{ row }">{{ assignmentLabels[row.assignment_status] || row.assignment_status }}</template></el-table-column>
           <el-table-column v-if="showColumn('decrypt_status')" label="解密状态" width="105"><template #default="{ row }">{{ decryptLabels[row.decrypt_status] || row.decrypt_status }}</template></el-table-column>
           <el-table-column v-if="showColumn('sms_status')" label="短信状态" width="130"><template #default="{ row }">{{ smsLabels[row.sms_status] || row.sms_status }}</template></el-table-column>
@@ -831,7 +828,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受期次活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新期次活码名单的员工，不参与轮询。' }}</span></div>
         <section v-if="batchAction === 'CHANGE_PERIOD'" class="period-change-panel">
           <div class="panel-heading"><div><b>选择需要变更的归属</b><span>期次和直播组为两个独立维度，可只变更任意一项，也可同时变更。</span></div></div>
-          <div class="assignment-change-item"><el-checkbox v-model="batchChangePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="batchPeriodId" :disabled="!batchChangePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select></div>
+          <div class="assignment-change-item"><el-checkbox v-model="batchChangePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="batchPeriodId" :disabled="!batchChangePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
           <div class="assignment-change-item"><el-checkbox v-model="batchChangeCampEnabled"><b>变更所属直播组</b></el-checkbox><el-select v-model="batchCampName" :disabled="!batchChangeCampEnabled" filterable allow-create default-first-option placeholder="搜索或输入目标直播组" style="width:100%"><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select></div>
           <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志分别记录期次和直播组的变更前后值、操作人、操作时间和影响线索数量。"/>
         </section>
@@ -875,7 +872,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
     <el-dialog v-model="periodChangeVisible" title="变更期次 / 直播组" width="620px">
       <div class="period-change-panel">
         <el-alert v-if="activeLead" type="info" :closable="false" show-icon :title="`当前期次：${activeLead.period_name || '未归属'} · 当前直播组：${activeLead.camp_name || '未归属'}`" description="期次和直播组独立保存；未勾选的维度保持原值不变。"/>
-        <div class="assignment-change-item"><el-checkbox v-model="changePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="selectedPeriodId" :disabled="!changePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select></div>
+        <div class="assignment-change-item"><el-checkbox v-model="changePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="selectedPeriodId" :disabled="!changePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
         <div class="assignment-change-item"><el-checkbox v-model="changeCampEnabled"><b>变更所属直播组</b></el-checkbox><el-select v-model="selectedCampName" :disabled="!changeCampEnabled" filterable allow-create default-first-option placeholder="搜索或输入目标直播组" style="width:100%"><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select></div>
       </div>
       <template #footer><el-button @click="periodChangeVisible = false">取消</el-button><el-button type="primary" :disabled="!changePeriodEnabled && !changeCampEnabled" @click="submitPeriodChange">确认变更</el-button></template>
@@ -918,7 +915,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <el-descriptions v-if="activeLead" :column="2" border>
         <el-descriptions-item label="客户称呼">{{ textOrDash(activeLead.name) }}</el-descriptions-item>
         <el-descriptions-item label="微信昵称">{{ textOrDash(activeLead.wechat_nickname) }}</el-descriptions-item>
-        <el-descriptions-item label="当前待办">{{ currentActionLabels[activeLead.current_action_status] || activeLead.current_action_status }}</el-descriptions-item>
         <el-descriptions-item label="分配状态">{{ assignmentLabels[activeLead.assignment_status] || activeLead.assignment_status }}</el-descriptions-item>
         <el-descriptions-item label="解密状态">{{ decryptLabels[activeLead.decrypt_status] || activeLead.decrypt_status }}</el-descriptions-item>
         <el-descriptions-item label="短信状态">{{ smsLabels[activeLead.sms_status] || activeLead.sms_status }}</el-descriptions-item>
