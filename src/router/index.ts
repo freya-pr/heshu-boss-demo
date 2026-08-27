@@ -4,6 +4,7 @@ import { menuLeaves } from '../config/menu'
 
 const specificComponents: Record<string, () => Promise<any>> = {
   '/leads/drainage': () => import('../views/LeadsView.vue'),
+  '/leads/periods': () => import('../views/AcquisitionPeriodManagementView.vue'),
   '/leads/analytics': () => import('../views/LeadAnalyticsView.vue'),
   '/leads/qr-codes': () => import('../views/QrCodeManagementView.vue'),
   '/leads/rules': () => import('../views/LeadRuleManagementView.vue'),

@@ -13,7 +13,7 @@ const loading = ref(true)
 const error = ref('')
 const data = ref<any>({ funnel: {}, finance: {}, efficiency: {}, trend: [], channels: [], ipChannels: [], products: [], details: [] })
 const dateRange = ref<[string, string]>(['2026-08-12', '2026-08-18'])
-const period = ref('2026 暑期第 3 营')
+const period = ref('2026年8月第1期')
 const channel = ref('全部渠道')
 const store = ref('全部店铺')
 const ipChannel = ref('全部IP渠道')
@@ -119,7 +119,7 @@ function reportRows() {
   const f = data.value.funnel || {}, finance = data.value.finance || {}, e = data.value.efficiency || {}
   const lead = f.leads || 0
   const rows: any[][] = [
-    ['合数BOSS营期线索经营报表'], ['营期', period.value, '日期', dateRange.value.join(' 至 '), '口径版本', data.value.metricVersion],
+    ['合数BOSS期次线索经营报表'], ['期次', period.value, '日期', dateRange.value.join(' 至 '), '口径版本', data.value.metricVersion],
     ['筛选', channel.value, store.value, ipChannel.value, ipName.value], [], ['指标名称', '指标值', '计算口径'],
     ['人服比', e.peopleServiceRatio, '私域用户总数 / 服务人员数'], ['有效线索数', f.leads, '有效且已解密的去重线索'],
     ['加微数', f.wechat, '已加微去重人数'], ['问卷填写数', f.questionnaire, '有效答卷去重人数'], ['预约数', f.reservation, '已订阅直播去重人数'],
@@ -131,7 +131,7 @@ function reportRows() {
     ['转化率', pct(div(f.deal, lead)), '成交数 / 有效线索数'], ['退款率', pct(div(f.refund, lead)), '退款数 / 有效线索数'],
     ['最终转化率', pct(div(f.deal - f.refund, lead)), '(成交数-退款数) / 有效线索数'], ['2980退款率', pct(div(f.refund, f.deal)), '2980退款客户数 / 2980成交客户数'],
     ['退款金额', finance.refundAmount, '退款成功金额合计'], ['毛GMV', finance.grossGmv, '支付成功金额合计'], ['净GMV', finance.netGmv, '毛GMV-退款金额'],
-    ['GMV完成率', pct(div(finance.netGmv, finance.targetGmv)), '净GMV / 营期目标'], ['单人净GMV', e.perCapitaGmv, '净GMV / 带班人数'],
+    ['GMV完成率', pct(div(finance.netGmv, finance.targetGmv)), '净GMV / 期次目标'], ['单人净GMV', e.perCapitaGmv, '净GMV / 带班人数'],
     ['团队转化离散率', `${e.conversionDispersion}%`, '转化率标准差 / 平均转化率'], [], ['渠道分析'],
     ['来源渠道', '线索数', '加微数', '加微率', '问卷数', '问卷填写率', '成交数', '转化率', '净GMV']
   ]
@@ -145,7 +145,7 @@ function reportRows() {
 
 function exportReport() {
   downloadCsv(`合数BOSS_${period.value.replace(/\s/g, '')}_线索经营报表.csv`, reportRows())
-  ElMessage.success('已按当前筛选导出营期经营报表')
+  ElMessage.success('已按当前筛选导出期次经营报表')
 }
 function exportChannels() {
   downloadCsv(`合数BOSS_${period.value.replace(/\s/g, '')}_渠道分析.csv`, [['来源渠道', '线索数', '加微数', '加微率', '问卷数', '问卷填写率', '成交数', '转化率', '净GMV'], ...data.value.channels.map((row: any) => [row.name, row.leads, row.wechat, pct(div(row.wechat, row.leads)), row.questionnaire, pct(div(row.questionnaire, row.leads)), row.deals, `${row.conversionRate.toFixed(1)}%`, row.netGmv])])
@@ -157,7 +157,7 @@ function exportProducts() {
   downloadCsv(`合数BOSS_${period.value.replace(/\s/g, '')}_商品分析.csv`, [['商品名称', '第三方商品ID', '平台', '店铺', 'IP名称', 'IP渠道', '线索数', '加微数', '成交数', '退款数', '最终转化率', '毛GMV', '净GMV'], ...data.value.products.map((row: any) => [row.name, row.productId, row.platform, row.store, row.ipName, row.ipChannel, row.leads, row.wechat, row.deals, row.refunds, `${row.finalConversionRate}%`, row.grossGmv, row.netGmv])])
 }
 function exportDrilldown() {
-  downloadCsv(`${period.value.replace(/\s/g, '')}_${drilldown.value.label}_明细.csv`, [['订单编号', '客户', '手机号', '来源', '店铺', '商品', 'IP渠道', 'IP名称', '负责人', '负责人组织', '营期', '事件时间', '当前节点'], ...drilldownRows.value.map((row: any) => [row.orderNo, row.customerName, row.mobile, row.source, row.store, row.productName, row.ipChannel, row.ipName, row.ownerName, row.ownerOrganization, row.period, row.eventTime, row.stage])])
+  downloadCsv(`${period.value.replace(/\s/g, '')}_${drilldown.value.label}_明细.csv`, [['订单编号', '客户', '手机号', '来源', '店铺', '商品', 'IP渠道', 'IP名称', '负责人', '负责人组织', '期次', '事件时间', '当前节点'], ...drilldownRows.value.map((row: any) => [row.orderNo, row.customerName, row.mobile, row.source, row.store, row.productName, row.ipChannel, row.ipName, row.ownerName, row.ownerOrganization, row.period, row.eventTime, row.stage])])
 }
 
 async function load() {
@@ -182,7 +182,7 @@ onMounted(async () => {
 
 <template>
   <section class="page lead-analytics-page">
-    <PageHeader eyebrow="LEAD PERFORMANCE · 营期经营驾驶舱" title="线索概览" description="从营期结果回看线索旅程，并继续下钻到来源渠道、IP渠道、IP名称和商品。">
+    <PageHeader eyebrow="LEAD PERFORMANCE · 期次经营驾驶舱" title="线索概览" description="从期次结果回看线索旅程，并继续下钻到来源渠道、IP渠道、IP名称和商品。">
       <el-button @click="definitionVisible = true">指标口径</el-button>
       <el-button @click="exportReport">导出本期报表</el-button>
       <el-button type="primary" @click="load">刷新数据</el-button>
@@ -191,7 +191,7 @@ onMounted(async () => {
     <div class="analytics-filter surface">
       <BusinessScopeFilter v-model="scopeFilters" :organizations="organizations" :employees="employees" owner-label="当前线索负责人" :permission-label="permissionLabel" :role="auth.user?.role" />
       <div class="analytics-business-filter">
-        <el-select v-model="period" filterable placeholder="所属营期"><el-option v-for="item in ['2026 暑期第 3 营','2026 暑期第 2 营','2026 暑期体验营']" :key="item" :label="item" :value="item" /></el-select>
+        <el-select v-model="period" filterable placeholder="所属期次"><el-option v-for="item in ['2026年8月第1期','2026年8月第2期','2026年8月第3期']" :key="item" :label="item" :value="item" /></el-select>
         <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" />
         <el-select v-model="channel" filterable placeholder="来源平台"><el-option v-for="item in ['全部渠道','抖音','有赞','小鹅通','百家号']" :key="item" :label="item" :value="item" /></el-select>
         <el-select v-model="store" filterable placeholder="店铺"><el-option v-for="item in ['全部店铺','合数教育官方旗舰店','合数精品课程店','合数成长课堂','合数教育体验课']" :key="item" :label="item" :value="item" /></el-select>
@@ -210,7 +210,7 @@ onMounted(async () => {
       </article>
 
       <article class="journey-board surface">
-        <header><div><span class="section-kicker">FULL-FUNNEL SIGNAL</span><h2>营期转化主链路</h2></div><button class="live-chip" @click="openDrilldown('online', '当前在线', data.funnel?.online)"><i></i>当前在线 <b>{{ format(data.funnel?.online) }}</b></button></header>
+        <header><div><span class="section-kicker">FULL-FUNNEL SIGNAL</span><h2>期次转化主链路</h2></div><button class="live-chip" @click="openDrilldown('online', '当前在线', data.funnel?.online)"><i></i>当前在线 <b>{{ format(data.funnel?.online) }}</b></button></header>
         <div class="journey-rail">
           <template v-for="(stage, index) in stages" :key="stage.key">
             <button class="journey-stage" :class="{ final: index === stages.length - 1 }" @click="openDrilldown(stage.key, stage.label, stage.value)">
@@ -224,13 +224,13 @@ onMounted(async () => {
 
       <article class="surface period-operating-panel">
         <div class="panel-heading period-operating-heading">
-          <div><span class="section-kicker">PERIOD OPERATING DATA</span><h3>营期经营数据</h3><p>本期关键指标与成交质量按经营链路集中展示；可点击的指标继续支持下钻明细。</p></div>
+          <div><span class="section-kicker">PERIOD OPERATING DATA</span><h3>期次经营数据</h3><p>本期关键指标与成交质量按经营链路集中展示；可点击的指标继续支持下钻明细。</p></div>
           <div class="period-heading-actions"><strong>{{ data.periodName }}</strong><el-button @click="exportReport">导出数据</el-button></div>
         </div>
         <div class="period-operating-scroll">
           <table class="period-operating-table">
             <thead>
-              <tr><th rowspan="2" class="period-column">营期</th><th v-for="group in periodOperatingGroups" :key="group.label" :colspan="group.metrics.length" :class="['group-head', group.tone]">{{ group.label }}</th></tr>
+              <tr><th rowspan="2" class="period-column">期次</th><th v-for="group in periodOperatingGroups" :key="group.label" :colspan="group.metrics.length" :class="['group-head', group.tone]">{{ group.label }}</th></tr>
               <tr><template v-for="group in periodOperatingGroups" :key="`${group.label}-labels`"><th v-for="metric in group.metrics" :key="metric.label">{{ metric.label }}</th></template></tr>
             </thead>
             <tbody>
@@ -302,15 +302,15 @@ onMounted(async () => {
     </StatePanel>
 
     <el-drawer v-model="drilldownVisible" :title="`${drilldown.label} · 线索明细`" size="78%">
-      <div class="drilldown-summary"><div><span>当前指标</span><b>{{ drilldown.label }}</b></div><div><span>汇总数量</span><b>{{ format(drilldown.value) }}</b></div><div><span>分析维度</span><b>{{ drilldown.dimension || '全部' }}</b></div><div><span>筛选营期</span><b>{{ period }}</b></div><el-button type="primary" plain @click="exportDrilldown">导出当前明细</el-button></div>
-      <p class="drawer-intro">明细继承打开下钻时的营期、日期、权限、组织、负责人、店铺、IP渠道和IP名称筛选快照。演示环境仅展示前 {{ drilldownRows.length }} 条。</p>
+      <div class="drilldown-summary"><div><span>当前指标</span><b>{{ drilldown.label }}</b></div><div><span>汇总数量</span><b>{{ format(drilldown.value) }}</b></div><div><span>分析维度</span><b>{{ drilldown.dimension || '全部' }}</b></div><div><span>筛选期次</span><b>{{ period }}</b></div><el-button type="primary" plain @click="exportDrilldown">导出当前明细</el-button></div>
+      <p class="drawer-intro">明细继承打开下钻时的期次、日期、权限、组织、负责人、店铺、IP渠道和IP名称筛选快照。演示环境仅展示前 {{ drilldownRows.length }} 条。</p>
       <el-table :data="drilldownRows" border height="calc(100vh - 250px)"><el-table-column prop="orderNo" label="订单编号" min-width="150" fixed/><el-table-column prop="customerName" label="客户" width="90"/><el-table-column prop="mobile" label="手机号" width="120"/><el-table-column prop="stage" label="当前节点" width="100"/><el-table-column prop="source" label="来源" width="90"/><el-table-column prop="store" label="店铺" min-width="160"/><el-table-column prop="productName" label="商品" min-width="190"/><el-table-column prop="ipChannel" label="IP渠道" width="110"/><el-table-column prop="ipName" label="IP名称" width="110"/><el-table-column prop="ownerName" label="负责人" width="100"/><el-table-column prop="ownerOrganization" label="负责人组织" min-width="150"/><el-table-column prop="eventTime" label="事件时间" min-width="155"/></el-table>
     </el-drawer>
 
     <el-drawer v-model="definitionVisible" title="数据指标口径" size="620px">
-      <p class="drawer-intro">所有比率沿用当前筛选条件，并以同一营期归属和去重规则计算。未接入的数据展示“待接入”，不得按0参与计算。</p>
+      <p class="drawer-intro">所有比率沿用当前筛选条件，并以同一期次归属和去重规则计算。未接入的数据展示“待接入”，不得按0参与计算。</p>
       <el-table :data="definitions" border><el-table-column label="指标" width="120"><template #default="{ row }"><b>{{ row[0] }}</b></template></el-table-column><el-table-column label="计算口径" min-width="300"><template #default="{ row }">{{ row[1] }}</template></el-table-column><el-table-column label="数据源" width="110"><template #default="{ row }">{{ row[2] }}</template></el-table-column></el-table>
-      <div class="definition-note"><b>退款归属规则</b><p>退款成功时间距下单时间不超过30日，默认回冲原销售营期；原营期无带班记录时顺延至下一营期。规则发布前由业务与财务共同确认。</p></div>
+      <div class="definition-note"><b>退款归属规则</b><p>退款成功时间距下单时间不超过30日，默认回冲原销售期次；原期次无带班记录时顺延至下一期次。规则发布前由业务与财务共同确认。</p></div>
     </el-drawer>
   </section>
 </template>

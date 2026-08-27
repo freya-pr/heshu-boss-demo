@@ -3,11 +3,12 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Setting } from '@element-plus/icons-vue'
-import http from '../api/http'
+import http, { isDemoMode } from '../api/http'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
 import BusinessScopeFilter, { type BusinessScopeValue } from '../components/BusinessScopeFilter.vue'
 import { useAuthStore } from '../stores/auth'
+import { loadAcquisitionPeriods, type AcquisitionPeriod } from '../data/acquisitionPeriods'
 
 const rows = ref<any[]>([])
 const selectedRows = ref<any[]>([])
@@ -33,6 +34,7 @@ const orderStatusFilter = ref('')
 const entryMethodFilter = ref('')
 const wechatFilter = ref('')
 const campFilter = ref('')
+const periodFilter = ref('')
 const shopFilter = ref('')
 const dateField = ref('created_at')
 const createdRange = ref<string[]>([])
@@ -59,6 +61,10 @@ const columnSettingVisible = ref(false)
 const batchDialogVisible = ref(false)
 const batchAction = ref('')
 const batchSubtype = ref('')
+const periodChangeVisible = ref(false)
+const periodChangeTargetId = ref<number | null>(null)
+const selectedPeriodId = ref<string | null>(null)
+const batchPeriodId = ref<string | null>(null)
 const syncPlatformOptions = ['抖店', '百家号', '有赞', '小鹅通', '小红书', '快手', '视频号']
 const selectedSyncPlatforms = ref<string[]>([])
 const smsBroadcastTemplate = ref('')
@@ -75,13 +81,15 @@ const selectedOrganizationId = ref<number | null>(null)
 const selectedAssigneeId = ref<number | null>(null)
 const assigneeKeyword = ref('')
 const auth = useAuthStore()
+const acquisitionPeriods = ref<AcquisitionPeriod[]>(isDemoMode ? loadAcquisitionPeriods() : [])
+const periodOptions = computed(() => acquisitionPeriods.value.filter(item => item.status === '启用'))
 const scopeFilters = ref<BusinessScopeValue>({ viewScope: 'AUTHORIZED', organizationId: null, ownerId: null })
 const permissionLabel = computed(() => auth.user?.role === 'ADMIN' ? '当前公司全部数据' : '本人数据')
 const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_PRODUCT' : 'DRAINAGE')
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','lead_grade','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','lead_grade','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','decrypted_mobile','first_product_name','paid_amount','owner','current_action_status','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
@@ -96,10 +104,10 @@ const columnOptions = [
   { value: 'wechat_added_at', label: '加微时间' }, { value: 'decrypted_at', label: '解密时间' }, { value: 'questionnaire_at', label: '问卷填写时间' },
   { value: 'assessment_at', label: '测评时间' }, { value: 'customer_linked_at', label: '客户建档时间' }, { value: 'converted_at', label: '转化时间' },
   { value: 'after_sale_at', label: '售后时间' }, { value: 'entry_method', label: '添加方式' }, { value: 'wechat_method', label: '加微方式' },
-  { value: 'camp_name', label: '所属直播组' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
+  { value: 'camp_name', label: '所属直播组' }, { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v6'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v7'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -114,11 +122,13 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [leadRes, employeeRes, organizationRes]: any = await Promise.all([
-      http.get('/leads', { params: { sourceType: sourceType.value } }),
+    const [leadRes, employeeRes, organizationRes, periodRes]: any = await Promise.all([
+      http.get('/leads', { params: { sourceType: sourceType.value, periodId: periodFilter.value || undefined } }),
       http.get('/leads/assignees'),
-      http.get('/system/organizations')
+      http.get('/system/organizations'),
+      isDemoMode ? Promise.resolve(null) : http.get('/acquisition-periods', { params: { status: 'ACTIVE' } })
     ])
+    if (!isDemoMode) acquisitionPeriods.value = periodRes.data.map((item: any) => ({ id: String(item.id), name: item.period_name, stage: ({ RECEPTION: '接量期', CONVERSION: '转化期', FOLLOW_UP: '追单期' } as Record<string, any>)[item.period_stage] || '接量期', startAt: item.start_at, endAt: item.end_at, status: item.status === 'ACTIVE' ? '启用' : '停用', creatorName: item.created_by, createdAt: item.created_at, qrRefCount: Number(item.qr_ref_count || 0), businessDataCount: Number(item.business_data_count || 0) }))
     rows.value = leadRes.data.map(normalizeLeadState)
     assignees.value = employeeRes.data
     organizations.value = organizationRes.data
@@ -169,6 +179,7 @@ function resetFilters() {
   wechatFilter.value = ''
   scopeFilters.value = { viewScope: auth.user?.role === 'ADMIN' ? 'AUTHORIZED' : 'SELF', organizationId: null, ownerId: null }
   campFilter.value = ''
+  periodFilter.value = ''
   shopFilter.value = ''
   dateField.value = 'created_at'
   createdRange.value = []
@@ -277,12 +288,42 @@ async function submitWechatStatus() {
 function handleOperation(command: string, row: any) {
   const operationLabels: Record<string, string> = {
     CREATE_CUSTOMER: '建立客户档案', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
-    CHANGE_MOBILE: '变更手机号', CHANGE_WECHAT_STATUS: '修改加微状态', SMS_REMINDER: '短信提醒', REMARK: '备注'
+    CHANGE_MOBILE: '变更手机号', CHANGE_WECHAT_STATUS: '修改加微状态', CHANGE_PERIOD: '变更期次', SMS_REMINDER: '短信提醒', REMARK: '备注'
   }
   if (command === 'CREATE_CUSTOMER') return convert(row)
   if (command === 'CHANGE_MOBILE') return openMobileChange(row)
   if (command === 'CHANGE_WECHAT_STATUS') return openWechatStatus(row)
+  if (command === 'CHANGE_PERIOD') return openPeriodChange(row)
   ElMessage.success(`${operationLabels[command] || command}：已为订单 ${row.order_no || '未关联订单'} 创建处理任务`)
+}
+
+function openPeriodChange(row: any) {
+  activeLead.value = row
+  periodChangeTargetId.value = Number(row.id)
+  selectedPeriodId.value = row.period_id ? String(row.period_id) : null
+  periodChangeVisible.value = true
+}
+
+function applyPeriodChange(targetRows: any[], periodId: string) {
+  const period = periodOptions.value.find(item => String(item.id) === String(periodId))
+  if (!period) return false
+  targetRows.forEach(row => {
+    row.period_id = period.id
+    row.period_name = period.name
+  })
+  return true
+}
+
+async function submitPeriodChange() {
+  if (!selectedPeriodId.value) return ElMessage.warning('请选择目标期次')
+  const target = rows.value.filter(row => Number(row.id) === Number(periodChangeTargetId.value))
+  if (!applyPeriodChange(target, selectedPeriodId.value)) return ElMessage.warning('所选期次不可用，请重新选择')
+  if (!isDemoMode) {
+    try { await http.post(`/leads/${periodChangeTargetId.value}/change-period`, { periodId: Number(selectedPeriodId.value) }); await load() }
+    catch (error: any) { ElMessage.error(error.message || '期次变更失败'); return }
+  }
+  periodChangeVisible.value = false
+  ElMessage.success('所属期次已变更，并记录到线索旅程')
 }
 
 async function markDemandMined(row: any, checked: string | number | boolean) {
@@ -307,7 +348,7 @@ function handleSelectionChange(selection: any[]) { selectedRows.value = selectio
 
 const batchActionLabels: Record<string, string> = {
   ASSIGN: '批量分配', SYNC_ORDER: '同步订单',
-  SMS_BROADCAST: '短信群发', IMPORT_DECRYPTED: '导入解密数据', EXPORT_UNDECRYPTED: '导出非解密数据'
+  CHANGE_PERIOD: '变更期次', SMS_BROADCAST: '短信群发', IMPORT_DECRYPTED: '导入解密数据', EXPORT_UNDECRYPTED: '导出非解密数据'
 }
 const batchSubtypeOptions = computed(() => ({
   ASSIGN: ['人工指定', '轮询分配']
@@ -333,19 +374,20 @@ const visibleAssignees = computed(() => {
     return String(item.name || '').toLowerCase().includes(query) || String(item.employee_no || '').toLowerCase().includes(query)
   })
 })
-const latestCampName = computed(() => assignees.value.find(item => item.qr_camp_name)?.qr_camp_name || '最新营期')
+const latestCampName = computed(() => assignees.value.find(item => item.qr_camp_name)?.qr_camp_name || '最新期次')
 const latestCampEligibleCount = computed(() => assignees.value.filter(item => item.qr_camp_name === latestCampName.value && Number(item.load || 0) < Number(item.assignment_limit || 0)).length)
 function selectOrganization(node: any) { selectedOrganizationId.value = node.id; selectedAssigneeId.value = null }
 function chooseAssignee(item: any) {
   selectedAssigneeId.value = item.id
 }
 function openBatchAction(command: string) {
-  if (['ASSIGN','SMS_BROADCAST'].includes(command) && !selectedRows.value.length) {
+  if (['ASSIGN','CHANGE_PERIOD','SMS_BROADCAST'].includes(command) && !selectedRows.value.length) {
     return ElMessage.warning('请先勾选需要处理的线索')
   }
   batchAction.value = command
   batchSubtype.value = command === 'ASSIGN' ? '人工指定' : ''
   selectedSyncPlatforms.value = []
+  batchPeriodId.value = null
   smsBroadcastTemplate.value = ''
   smsBroadcastContent.value = ''
   selectedOrganizationId.value = null
@@ -441,13 +483,24 @@ function exportUndecryptedData() {
 async function confirmBatchAction() {
   const scopeCount = selectedRows.value.length || displayedRows.value.length
   if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定' && !selectedAssigneeId.value) return ElMessage.warning('请从组织架构中选择接收线索的员工')
-  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '轮询分配' && !latestCampEligibleCount.value) return ElMessage.warning('最新营期暂无可接待人员，请先维护活码人员名单和分配上限')
+  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '轮询分配' && !latestCampEligibleCount.value) return ElMessage.warning('最新期次暂无可接待人员，请先维护活码人员名单和分配上限')
   if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定') {
     await Promise.all(selectedRows.value.map(row => http.post(`/leads/${row.id}/assign`, { employeeId: selectedAssigneeId.value })))
   }
   if (batchAction.value === 'SYNC_ORDER') {
     if (!selectedSyncPlatforms.value.length) return ElMessage.warning('请至少选择一个同步平台')
     ElMessage.success(`已按勾选顺序创建 ${selectedSyncPlatforms.value.length} 个后台任务：${selectedSyncPlatforms.value.map((item, index) => `${index + 1}.${item}`).join(' → ')}`)
+    batchDialogVisible.value = false
+    return
+  }
+  if (batchAction.value === 'CHANGE_PERIOD') {
+    if (!batchPeriodId.value) return ElMessage.warning('请选择目标期次')
+    if (!applyPeriodChange(selectedRows.value, batchPeriodId.value)) return ElMessage.warning('所选期次不可用，请重新选择')
+    if (!isDemoMode) {
+      try { await http.post('/leads/batch-change-period', { leadIds: selectedRows.value.map(row => Number(row.id)), periodId: Number(batchPeriodId.value) }); await load() }
+      catch (error: any) { ElMessage.error(error.message || '批量变更期次失败'); return }
+    }
+    ElMessage.success(`已变更 ${selectedRows.value.length} 条线索的所属期次，并写入批量任务记录`)
     batchDialogVisible.value = false
     return
   }
@@ -484,6 +537,9 @@ onMounted(() => load())
 
 function normalizeLeadState(source: any) {
   const row = { ...source }
+  const fallbackPeriod = periodOptions.value[0]
+  row.period_id ||= row.acquisition_period_id || fallbackPeriod?.id
+  row.period_name ||= row.acquisition_period_name || fallbackPeriod?.name || '未归属期次'
   row.demand_mined = Boolean(row.demand_mined || row.demand_mined_at)
   row.lead_grade ||= row.questionnaire_at ? (row.customer_no === 'C202608160003' ? 'S' : 'B') : 'UNRATED'
   row.grade_source ||= row.questionnaire_at ? 'QUESTIONNAIRE_AUTO' : ''
@@ -527,12 +583,13 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesOrganization = !scopeFilters.value.organizationId || organizationScopeIds(scopeFilters.value.organizationId).includes(ownerOrganizationId)
   const matchesOwner = !scopeFilters.value.ownerId || Number(row.owner_id) === Number(scopeFilters.value.ownerId)
   const matchesCamp = !campFilter.value.trim() || String(row.camp_name || '').toLowerCase().includes(campFilter.value.trim().toLowerCase())
+  const matchesPeriod = !periodFilter.value || Number(row.period_id) === Number(periodFilter.value)
   const matchesShop = !shopFilter.value.trim() || String(row.shop_name || '').toLowerCase().includes(shopFilter.value.trim().toLowerCase())
   const selectedDate = String(row[dateField.value] || '').slice(0, 10)
   const matchesDate = createdRange.value.length !== 2 || (!!selectedDate && selectedDate >= createdRange.value[0] && selectedDate <= createdRange.value[1])
   const text = [row.order_no, row.third_party_product_id, row.name, row.mobile, row.original_mobile, row.decrypted_mobile, row.wechat_nickname, row.customer_no, row.customer_name].join(' ').toLowerCase()
   const matchesKeyword = !keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())
-  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesShop && matchesDate && matchesKeyword
+  return matchesCurrentAction && matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesPeriod && matchesShop && matchesDate && matchesKeyword
 }))
 const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
@@ -613,6 +670,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="wechatFilter" placeholder="加微方式" clearable><el-option label="企业微信" value="WECOM"/><el-option label="个人微信" value="PERSONAL_WECHAT"/></el-select>
             <el-select v-model="campFilter" placeholder="所属直播组" clearable filterable><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select>
+            <el-select v-model="periodFilter" placeholder="所属期次" clearable filterable><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select>
             <el-input v-model="shopFilter" clearable placeholder="店铺名称"/>
             <div class="date-filter"><el-select v-model="dateField" aria-label="日期类型"><el-option v-for="item in dateFieldOptions" :key="item.value" :label="item.label" :value="item.value"/></el-select><el-date-picker v-model="createdRange" type="daterange" value-format="YYYY-MM-DD" start-placeholder="开始日期" end-placeholder="结束日期"/></div>
           </div>
@@ -630,6 +688,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-button type="primary">批量操作⌄</el-button>
             <template #dropdown><el-dropdown-menu>
               <el-dropdown-item command="ASSIGN">分配</el-dropdown-item>
+              <el-dropdown-item command="CHANGE_PERIOD">变更期次</el-dropdown-item>
               <el-dropdown-item command="SYNC_ORDER">同步订单</el-dropdown-item>
               <el-dropdown-item command="SMS_BROADCAST">短信群发</el-dropdown-item>
               <el-dropdown-item divided command="IMPORT_DECRYPTED">导入解密数据</el-dropdown-item>
@@ -685,6 +744,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('entry_method')" label="添加方式" width="120"><template #default="{ row }">{{ entryLabels[row.entry_method] || textOrDash(row.entry_method) }}</template></el-table-column>
           <el-table-column v-if="showColumn('wechat_method')" label="加微方式" width="100"><template #default="{ row }">{{ wechatLabels[row.wechat_method] || textOrDash(row.wechat_method) }}</template></el-table-column>
           <el-table-column v-if="showColumn('camp_name')" prop="camp_name" label="所属直播组" width="150"><template #default="{ row }">{{ textOrDash(row.camp_name) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('period_name')" prop="period_name" label="所属期次" width="150"><template #default="{ row }">{{ textOrDash(row.period_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('sms_send_count')" prop="sms_send_count" label="短信发送次数" width="120"/>
           <el-table-column v-if="showColumn('remark')" prop="remark" label="线索备注" width="220" show-overflow-tooltip/>
           <el-table-column v-if="showColumn('current_action_status')" label="当前待办" width="120"><template #default="{ row }"><el-tag>{{ currentActionLabels[row.current_action_status] || row.current_action_status }}</el-tag></template></el-table-column>
@@ -705,6 +765,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
                 <el-dropdown-item v-if="isWechatAdded(row.wechat_status) && !row.customer_no" command="CREATE_CUSTOMER">建立客户档案</el-dropdown-item>
                 <el-dropdown-item command="CHANGE_MARK">变更线索标记</el-dropdown-item><el-dropdown-item command="REASSIGN">改派负责人</el-dropdown-item>
                 <el-dropdown-item v-if="sourceType === 'DRAINAGE'" divided command="CHANGE_WECHAT_STATUS">修改加微状态</el-dropdown-item>
+                <el-dropdown-item command="CHANGE_PERIOD">变更期次</el-dropdown-item>
                 <el-dropdown-item divided command="CHANGE_MOBILE">变更手机号</el-dropdown-item>
                 <el-dropdown-item divided command="SMS_REMINDER">短信提醒</el-dropdown-item>
                 <el-dropdown-item divided command="REMARK">备注</el-dropdown-item>
@@ -741,8 +802,13 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-empty v-if="!visibleAssignees.length" :image-size="52" :description="assigneeKeyword ? '未找到匹配的员工，请更换姓名或员工编号' : '当前组织暂无可分配员工'"/>
           </section>
         </div>
-        <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新营期配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
-        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受营期活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新营期活码名单的员工，不参与轮询。' }}</span></div>
+        <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新期次配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
+        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受期次活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新期次活码名单的员工，不参与轮询。' }}</span></div>
+        <section v-if="batchAction === 'CHANGE_PERIOD'" class="period-change-panel">
+          <div class="panel-heading"><div><b>选择目标期次</b><span>将已勾选线索统一归入目标期次，原期次保留在旅程日志中。</span></div></div>
+          <el-select v-model="batchPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select>
+          <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志记录原期次、目标期次、操作人、操作时间和影响线索数量；不会变更所属直播组。"/>
+        </section>
         <section v-if="batchAction === 'SYNC_ORDER'" class="sync-platform-panel">
           <el-alert class="sync-global-alert" type="info" :closable="false" show-icon title="同步订单无需勾选线索" description="该操作按所选平台发起全局订单同步任务，不读取、也不限制于当前列表勾选结果。" />
           <div class="panel-heading"><div><b>选择同步平台</b><span>按点击勾选的先后顺序执行，每个平台创建一个独立后台任务。</span></div><em>已选 {{ selectedSyncPlatforms.length }} 个</em></div>
@@ -778,6 +844,14 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <p v-if="!['IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" class="batch-warning">系统将生成可追踪的批量任务，执行进度、成功数量和失败原因会保留在任务记录中。</p>
       </div>
       <template #footer><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">{{ batchAction === 'IMPORT_DECRYPTED' ? '确认导入并覆盖' : batchAction === 'EXPORT_UNDECRYPTED' ? '确认导出' : '确认创建任务' }}</el-button></template>
+    </el-dialog>
+
+    <el-dialog v-model="periodChangeVisible" title="变更期次" width="560px">
+      <div class="period-change-panel">
+        <el-alert v-if="activeLead" type="info" :closable="false" show-icon :title="`当前期次：${activeLead.period_name || '未归属'}`" description="变更只调整线索的业务期次，不改变所属直播组、负责人或活码归因。"/>
+        <el-select v-model="selectedPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select>
+      </div>
+      <template #footer><el-button @click="periodChangeVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedPeriodId" @click="submitPeriodChange">确认变更</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="mobileChangeVisible" title="变更手机号" width="680px" class="mobile-change-dialog" @closed="mobileValidation = null">
@@ -832,6 +906,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="添加方式">{{ entryLabels[activeLead.entry_method] || textOrDash(activeLead.entry_method) }}</el-descriptions-item>
         <el-descriptions-item label="当前负责人">{{ textOrDash(activeLead.owner_name) }} / {{ textOrDash(activeLead.owner_employee_no) }}</el-descriptions-item>
         <el-descriptions-item label="所属直播组">{{ textOrDash(activeLead.camp_name) }}</el-descriptions-item>
+        <el-descriptions-item label="所属期次">{{ textOrDash(activeLead.period_name) }}</el-descriptions-item>
         <el-descriptions-item label="订单编号">{{ textOrDash(activeLead.order_no) }}</el-descriptions-item>
         <el-descriptions-item label="关联客户">{{ textOrDash(activeLead.customer_name) }} / {{ textOrDash(activeLead.customer_no) }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ textOrDash(activeLead.created_at) }}</el-descriptions-item>
