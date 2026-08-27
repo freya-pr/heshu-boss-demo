@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { DataAnalysis, EditPen, Key, Plus, Search } from '@element-plus/icons-vue'
+import { EditPen, Key, Plus, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
 type Platform = '抖音' | '有赞' | '小鹅通' | '淘宝' | '小红书' | '其他'
@@ -32,6 +32,10 @@ type StoreRow = {
   platform: Platform
   name: string
   thirdPartyStoreId: string
+  storeKey?: string
+  storeSecret?: string
+  smsAccount?: string
+  remark?: string
   ownerId: number
   ownerName: string
   status: StoreStatus
@@ -78,7 +82,7 @@ const permissionVisible = ref(false)
 const analyticsVisible = ref(false)
 const editingId = ref<number | null>(null)
 const activeStore = ref<StoreRow | null>(null)
-const form = reactive({ platform: undefined as Platform | undefined, name: '', thirdPartyStoreId: '', ownerId: undefined as number | undefined, status: '启用' as StoreStatus })
+const form = reactive({ platform: undefined as Platform | undefined, name: '', thirdPartyStoreId: '', storeKey: '', storeSecret: '', smsAccount: '', remark: '', ownerId: undefined as number | undefined, status: '启用' as StoreStatus })
 const permissionForm = reactive<StorePermission>({ orgIds: [], employeeIds: [], actions: ['查看店铺'] })
 const analyticsMode = ref<AnalyticsMode>('线索归因口径')
 const analyticsDateType = ref<AnalyticsDateType>('线索进入时间')
@@ -147,17 +151,20 @@ function changeAnalyticsMode(mode: AnalyticsMode) {
   analyticsMode.value = mode
   analyticsDateType.value = mode === '线索归因口径' ? '线索进入时间' : '支付时间'
 }
-function resetForm() { Object.assign(form, { platform: undefined, name: '', thirdPartyStoreId: '', ownerId: undefined, status: '启用' }) }
+function resetForm() { Object.assign(form, { platform: undefined, name: '', thirdPartyStoreId: '', storeKey: '', storeSecret: '', smsAccount: '', remark: '', ownerId: undefined, status: '启用' }) }
 function openCreate() { editingId.value = null; resetForm(); editorVisible.value = true }
 function openEdit(row: StoreRow) {
   editingId.value = row.id
-  Object.assign(form, { platform: row.platform, name: row.name, thirdPartyStoreId: row.thirdPartyStoreId, ownerId: row.ownerId, status: row.status })
+  Object.assign(form, { platform: row.platform, name: row.name, thirdPartyStoreId: row.thirdPartyStoreId, storeKey: row.storeKey || '', storeSecret: row.storeSecret || '', smsAccount: row.smsAccount || '', remark: row.remark || '', ownerId: row.ownerId, status: row.status })
   editorVisible.value = true
 }
 function saveStore() {
   if (!form.platform) return ElMessage.warning('请选择平台类型')
   if (!form.name.trim()) return ElMessage.warning('请输入店铺名称')
   if (!form.thirdPartyStoreId.trim()) return ElMessage.warning('请输入第三方店铺ID')
+  if (!form.storeKey.trim()) return ElMessage.warning('请输入店铺KEY')
+  if (!form.storeSecret.trim()) return ElMessage.warning('请输入店铺秘钥')
+  if (!form.smsAccount.trim()) return ElMessage.warning('请输入短信账号')
   if (!form.ownerId) return ElMessage.warning('请选择店铺负责人')
   const duplicate = rows.value.some(item => item.id !== editingId.value && item.platform === form.platform && item.thirdPartyStoreId.trim().toLowerCase() === form.thirdPartyStoreId.trim().toLowerCase())
   if (duplicate) return ElMessage.warning('该平台下已存在相同的第三方店铺ID')
@@ -166,11 +173,11 @@ function saveStore() {
     const target = rows.value.find(item => item.id === editingId.value)!
     const now = new Date().toLocaleString('zh-CN', { hour12: false })
     const statusChangedAt = target.status === form.status ? target.statusChangedAt : now
-    Object.assign(target, { ...form, ownerName: owner.name, thirdPartyStoreId: form.thirdPartyStoreId.trim(), name: form.name.trim(), updatedAt: now, statusChangedAt })
+    Object.assign(target, { ...form, ownerName: owner.name, thirdPartyStoreId: form.thirdPartyStoreId.trim(), storeKey: form.storeKey.trim(), storeSecret: form.storeSecret.trim(), smsAccount: form.smsAccount.trim(), remark: form.remark.trim(), name: form.name.trim(), updatedAt: now, statusChangedAt })
     ElMessage.success('店铺信息已更新')
   } else {
     const now = new Date().toLocaleString('zh-CN', { hour12: false })
-    rows.value.unshift({ id: Date.now(), platform: form.platform, name: form.name.trim(), thirdPartyStoreId: form.thirdPartyStoreId.trim(), ownerId: owner.id, ownerName: owner.name, status: form.status, permission: { orgIds: [], employeeIds: [owner.id], actions: ['查看店铺', '编辑店铺', '查看线索'] }, metrics: { leads: 0, validLeads: 0, wechatAdds: 0, customers: 0, orders: 0, paidOrders: 0, gmv: 0, refundOrders: 0, refundAmount: 0, anomalies: 0, updatedAt: '等待首次归因计算' }, createdBy: '林校长', createdAt: now, updatedAt: now, statusChangedAt: now })
+    rows.value.unshift({ id: Date.now(), platform: form.platform, name: form.name.trim(), thirdPartyStoreId: form.thirdPartyStoreId.trim(), storeKey: form.storeKey.trim(), storeSecret: form.storeSecret.trim(), smsAccount: form.smsAccount.trim(), remark: form.remark.trim(), ownerId: owner.id, ownerName: owner.name, status: form.status, permission: { orgIds: [], employeeIds: [owner.id], actions: ['查看店铺', '编辑店铺', '查看线索'] }, metrics: { leads: 0, validLeads: 0, wechatAdds: 0, customers: 0, orders: 0, paidOrders: 0, gmv: 0, refundOrders: 0, refundAmount: 0, anomalies: 0, updatedAt: '等待首次归因计算' }, createdBy: '林校长', createdAt: now, updatedAt: now, statusChangedAt: now })
     ElMessage.success('店铺已新增，负责人已获得默认管理权限')
   }
   editorVisible.value = false
@@ -199,7 +206,6 @@ function platformMeta(platform: Platform) { return platforms.find(item => item.n
 function percentage(value: number, total: number) { return total ? Math.round(value / total * 1000) / 10 : 0 }
 function netGmv(row: StoreRow) { return row.metrics.gmv - row.metrics.refundAmount }
 function formatMoney(value: number) { return value >= 10000 ? `¥${(value / 10000).toFixed(1)}万` : `¥${value.toLocaleString()}` }
-function openAnalytics(row: StoreRow) { activeStore.value = row; analyticsVisible.value = true }
 function drillDown(name: string) { ElMessage.info(`正在打开“${name}”归因明细`) }
 </script>
 
@@ -255,7 +261,7 @@ function drillDown(name: string) { ElMessage.info(`正在打开“${name}”归�
         <el-table-column label="权限范围" min-width="210"><template #default="{ row }"><div class="permission-summary"><span>{{ row.permission.orgIds.length }} 个组织</span><span>{{ row.permission.employeeIds.length }} 名员工</span><small>{{ row.permission.actions.join('、') }}</small></div></template></el-table-column>
         <el-table-column label="创建信息" width="170"><template #default="{ row }"><div class="created-cell"><b>{{ row.createdBy }}</b><span>{{ row.createdAt }}</span></div></template></el-table-column>
         <el-table-column label="状态" width="88"><template #default="{ row }"><el-tag :type="row.status === '启用' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
-        <el-table-column label="操作" width="285" fixed="right"><template #default="{ row }"><el-button link type="primary" :icon="DataAnalysis" @click="openAnalytics(row)">经营详情</el-button><el-button link type="primary" :icon="EditPen" @click="openEdit(row)">编辑</el-button><el-button link type="primary" :icon="Key" @click="openPermission(row)">店铺权限</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="toggleStatus(row)">{{ row.status === '启用' ? '停用店铺' : '启用店铺' }}</el-dropdown-item><el-dropdown-item @click="ElMessage.info(`最近更新：${row.updatedAt}`)">查看变更时间</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
+        <el-table-column label="操作" width="225" fixed="right"><template #default="{ row }"><el-button link type="primary" :icon="EditPen" @click="openEdit(row)">编辑</el-button><el-button link type="primary" :icon="Key" @click="openPermission(row)">店铺权限</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="toggleStatus(row)">{{ row.status === '启用' ? '停用店铺' : '启用店铺' }}</el-dropdown-item><el-dropdown-item @click="ElMessage.info(`最近更新：${row.updatedAt}`)">查看变更时间</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
       </el-table>
       <el-empty v-if="!filteredRows.length" description="没有符合条件的店铺，可调整筛选条件或新增店铺" />
     </article>
@@ -312,6 +318,10 @@ function drillDown(name: string) { ElMessage.info(`正在打开“${name}”归�
         <el-form-item label="平台类型" required><el-select v-model="form.platform" placeholder="选择外部平台"><el-option v-for="item in platforms" :key="item.name" :label="item.name" :value="item.name"><div class="platform-option"><i :style="{ background: item.color }">{{ item.code }}</i><span>{{ item.name }}</span></div></el-option></el-select></el-form-item>
         <el-form-item label="店铺名称" required><el-input v-model="form.name" maxlength="50" show-word-limit placeholder="请输入对内统一使用的店铺名称" /></el-form-item>
         <el-form-item label="第三方店铺ID" required><el-input v-model="form.thirdPartyStoreId" placeholder="请输入外部平台返回的店铺唯一ID" /><small>按平台原值保存，禁止使用店铺名称代替。</small></el-form-item>
+        <el-form-item label="店铺KEY" required><el-input v-model="form.storeKey" placeholder="请输入店铺KEY" /></el-form-item>
+        <el-form-item label="店铺秘钥" required><el-input v-model="form.storeSecret" type="password" show-password placeholder="请输入店铺秘钥" /></el-form-item>
+        <el-form-item label="短信账号" required><el-input v-model="form.smsAccount" placeholder="请输入短信账号" /></el-form-item>
+        <el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="请输入备注" /></el-form-item>
         <el-form-item label="店铺负责人" required><el-select v-model="form.ownerId" filterable placeholder="搜索员工姓名或员工编号"><el-option v-for="item in employees" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id"><div class="employee-option"><span>{{ item.name }} · {{ item.no }}</span><small>{{ item.org }}</small></div></el-option></el-select><small>新增店铺后，负责人默认获得查看、编辑和查看线索权限。</small></el-form-item>
         <el-form-item label="店铺状态" required><el-radio-group v-model="form.status"><el-radio-button value="启用">启用</el-radio-button><el-radio-button value="停用">停用</el-radio-button></el-radio-group></el-form-item>
       </el-form>

@@ -19,7 +19,7 @@ const loading = ref(false)
 
 const form = reactive<{ name: string; stage: AcquisitionPeriodStage; startAt: string; endAt: string; status: AcquisitionPeriodStatus; remark: string }>({ name: '', stage: '接量期', startAt: '', endAt: '', status: '启用', remark: '' })
 const batch = reactive({ scope: 'MONTH', month: '2026-09', year: '2026', cycleDays: 7, prefix: '', defaultStage: '接量期' as AcquisitionPeriodStage })
-const stages: AcquisitionPeriodStage[] = ['接量期', '转化期', '追单期']
+const stages: AcquisitionPeriodStage[] = ['待开始', '接量期', '转化期', '追单期', '已停用']
 
 const filteredRows = computed(() => periods.value.filter(row => {
   const matchesKeyword = !keyword.value.trim() || `${row.name}${row.id}`.toLowerCase().includes(keyword.value.trim().toLowerCase())
@@ -62,8 +62,8 @@ function previewBatchRows() {
 }
 const batchPreview = computed(previewBatchRows)
 
-const stageToApi: Record<AcquisitionPeriodStage, string> = { '接量期': 'RECEPTION', '转化期': 'CONVERSION', '追单期': 'FOLLOW_UP' }
-const stageFromApi: Record<string, AcquisitionPeriodStage> = { RECEPTION: '接量期', CONVERSION: '转化期', FOLLOW_UP: '追单期' }
+const stageToApi: Record<AcquisitionPeriodStage, string> = { '待开始': 'PENDING', '接量期': 'RECEPTION', '转化期': 'CONVERSION', '追单期': 'FOLLOW_UP', '已停用': 'DISABLED' }
+const stageFromApi: Record<string, AcquisitionPeriodStage> = { PENDING: '待开始', RECEPTION: '接量期', CONVERSION: '转化期', FOLLOW_UP: '追单期', DISABLED: '已停用' }
 function mapApiPeriod(row: any): AcquisitionPeriod {
   return { id: String(row.id), name: row.period_name, stage: stageFromApi[row.period_stage] || '接量期', startAt: String(row.start_at).replace('T', ' '), endAt: String(row.end_at).replace('T', ' '), status: row.status === 'ACTIVE' ? '启用' : '停用', remark: row.remark || '', creatorName: row.created_by, createdAt: String(row.created_at).replace('T', ' '), qrRefCount: Number(row.qr_ref_count || 0), businessDataCount: Number(row.business_data_count || 0) }
 }

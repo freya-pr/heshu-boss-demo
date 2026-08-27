@@ -65,6 +65,12 @@ const periodChangeVisible = ref(false)
 const periodChangeTargetId = ref<number | null>(null)
 const selectedPeriodId = ref<string | null>(null)
 const batchPeriodId = ref<string | null>(null)
+const changePeriodEnabled = ref(true)
+const changeCampEnabled = ref(false)
+const selectedCampName = ref('')
+const batchChangePeriodEnabled = ref(true)
+const batchChangeCampEnabled = ref(false)
+const batchCampName = ref('')
 const syncPlatformOptions = ['抖店', '百家号', '有赞', '小鹅通', '小红书', '快手', '视频号']
 const selectedSyncPlatforms = ref<string[]>([])
 const smsBroadcastTemplate = ref('')
@@ -128,7 +134,7 @@ async function load() {
       http.get('/system/organizations'),
       isDemoMode ? Promise.resolve(null) : http.get('/acquisition-periods', { params: { status: 'ACTIVE' } })
     ])
-    if (!isDemoMode) acquisitionPeriods.value = periodRes.data.map((item: any) => ({ id: String(item.id), name: item.period_name, stage: ({ RECEPTION: '接量期', CONVERSION: '转化期', FOLLOW_UP: '追单期' } as Record<string, any>)[item.period_stage] || '接量期', startAt: item.start_at, endAt: item.end_at, status: item.status === 'ACTIVE' ? '启用' : '停用', creatorName: item.created_by, createdAt: item.created_at, qrRefCount: Number(item.qr_ref_count || 0), businessDataCount: Number(item.business_data_count || 0) }))
+    if (!isDemoMode) acquisitionPeriods.value = periodRes.data.map((item: any) => ({ id: String(item.id), name: item.period_name, stage: ({ PENDING: '待开始', RECEPTION: '接量期', CONVERSION: '转化期', FOLLOW_UP: '追单期', DISABLED: '已停用' } as Record<string, any>)[item.period_stage] || '接量期', startAt: item.start_at, endAt: item.end_at, status: item.status === 'ACTIVE' ? '启用' : '停用', creatorName: item.created_by, createdAt: item.created_at, qrRefCount: Number(item.qr_ref_count || 0), businessDataCount: Number(item.business_data_count || 0) }))
     rows.value = leadRes.data.map(normalizeLeadState)
     assignees.value = employeeRes.data
     organizations.value = organizationRes.data
@@ -301,6 +307,9 @@ function openPeriodChange(row: any) {
   activeLead.value = row
   periodChangeTargetId.value = Number(row.id)
   selectedPeriodId.value = row.period_id ? String(row.period_id) : null
+  selectedCampName.value = String(row.camp_name || '')
+  changePeriodEnabled.value = true
+  changeCampEnabled.value = false
   periodChangeVisible.value = true
 }
 
@@ -314,16 +323,26 @@ function applyPeriodChange(targetRows: any[], periodId: string) {
   return true
 }
 
+function applyCampChange(targetRows: any[], campName: string) {
+  const normalized = campName.trim()
+  if (!normalized) return false
+  targetRows.forEach(row => { row.camp_name = normalized })
+  return true
+}
+
 async function submitPeriodChange() {
-  if (!selectedPeriodId.value) return ElMessage.warning('请选择目标期次')
+  if (!changePeriodEnabled.value && !changeCampEnabled.value) return ElMessage.warning('请至少选择一项需要变更的内容')
+  if (changePeriodEnabled.value && !selectedPeriodId.value) return ElMessage.warning('请选择目标期次')
+  if (changeCampEnabled.value && !selectedCampName.value.trim()) return ElMessage.warning('请选择目标直播组')
   const target = rows.value.filter(row => Number(row.id) === Number(periodChangeTargetId.value))
-  if (!applyPeriodChange(target, selectedPeriodId.value)) return ElMessage.warning('所选期次不可用，请重新选择')
+  if (changePeriodEnabled.value && !applyPeriodChange(target, selectedPeriodId.value!)) return ElMessage.warning('所选期次不可用，请重新选择')
+  if (changeCampEnabled.value && !applyCampChange(target, selectedCampName.value)) return ElMessage.warning('所选直播组不可用，请重新选择')
   if (!isDemoMode) {
-    try { await http.post(`/leads/${periodChangeTargetId.value}/change-period`, { periodId: Number(selectedPeriodId.value) }); await load() }
-    catch (error: any) { ElMessage.error(error.message || '期次变更失败'); return }
+    try { await http.post(`/leads/${periodChangeTargetId.value}/change-period`, { changePeriod: changePeriodEnabled.value, periodId: changePeriodEnabled.value ? Number(selectedPeriodId.value) : null, changeLiveGroup: changeCampEnabled.value, liveGroupName: changeCampEnabled.value ? selectedCampName.value.trim() : null }); await load() }
+    catch (error: any) { ElMessage.error(error.message || '期次/直播组变更失败'); return }
   }
   periodChangeVisible.value = false
-  ElMessage.success('所属期次已变更，并记录到线索旅程')
+  ElMessage.success(`${changePeriodEnabled.value ? '期次' : ''}${changePeriodEnabled.value && changeCampEnabled.value ? '和' : ''}${changeCampEnabled.value ? '直播组' : ''}已变更，并记录到线索旅程`)
 }
 
 async function markDemandMined(row: any, checked: string | number | boolean) {
@@ -388,6 +407,9 @@ function openBatchAction(command: string) {
   batchSubtype.value = command === 'ASSIGN' ? '人工指定' : ''
   selectedSyncPlatforms.value = []
   batchPeriodId.value = null
+  batchChangePeriodEnabled.value = true
+  batchChangeCampEnabled.value = false
+  batchCampName.value = ''
   smsBroadcastTemplate.value = ''
   smsBroadcastContent.value = ''
   selectedOrganizationId.value = null
@@ -494,13 +516,16 @@ async function confirmBatchAction() {
     return
   }
   if (batchAction.value === 'CHANGE_PERIOD') {
-    if (!batchPeriodId.value) return ElMessage.warning('请选择目标期次')
-    if (!applyPeriodChange(selectedRows.value, batchPeriodId.value)) return ElMessage.warning('所选期次不可用，请重新选择')
+    if (!batchChangePeriodEnabled.value && !batchChangeCampEnabled.value) return ElMessage.warning('请至少选择一项需要变更的内容')
+    if (batchChangePeriodEnabled.value && !batchPeriodId.value) return ElMessage.warning('请选择目标期次')
+    if (batchChangeCampEnabled.value && !batchCampName.value.trim()) return ElMessage.warning('请选择目标直播组')
+    if (batchChangePeriodEnabled.value && !applyPeriodChange(selectedRows.value, batchPeriodId.value!)) return ElMessage.warning('所选期次不可用，请重新选择')
+    if (batchChangeCampEnabled.value && !applyCampChange(selectedRows.value, batchCampName.value)) return ElMessage.warning('所选直播组不可用，请重新选择')
     if (!isDemoMode) {
-      try { await http.post('/leads/batch-change-period', { leadIds: selectedRows.value.map(row => Number(row.id)), periodId: Number(batchPeriodId.value) }); await load() }
-      catch (error: any) { ElMessage.error(error.message || '批量变更期次失败'); return }
+      try { await http.post('/leads/batch-change-period', { leadIds: selectedRows.value.map(row => Number(row.id)), changePeriod: batchChangePeriodEnabled.value, periodId: batchChangePeriodEnabled.value ? Number(batchPeriodId.value) : null, changeLiveGroup: batchChangeCampEnabled.value, liveGroupName: batchChangeCampEnabled.value ? batchCampName.value.trim() : null }); await load() }
+      catch (error: any) { ElMessage.error(error.message || '批量变更期次/直播组失败'); return }
     }
-    ElMessage.success(`已变更 ${selectedRows.value.length} 条线索的所属期次，并写入批量任务记录`)
+    ElMessage.success(`已变更 ${selectedRows.value.length} 条线索的${batchChangePeriodEnabled.value ? '所属期次' : ''}${batchChangePeriodEnabled.value && batchChangeCampEnabled.value ? '和' : ''}${batchChangeCampEnabled.value ? '直播组' : ''}，并写入批量任务记录`)
     batchDialogVisible.value = false
     return
   }
@@ -805,9 +830,10 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新期次配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
         <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受期次活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新期次活码名单的员工，不参与轮询。' }}</span></div>
         <section v-if="batchAction === 'CHANGE_PERIOD'" class="period-change-panel">
-          <div class="panel-heading"><div><b>选择目标期次</b><span>将已勾选线索统一归入目标期次，原期次保留在旅程日志中。</span></div></div>
-          <el-select v-model="batchPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select>
-          <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志记录原期次、目标期次、操作人、操作时间和影响线索数量；不会变更所属直播组。"/>
+          <div class="panel-heading"><div><b>选择需要变更的归属</b><span>期次和直播组为两个独立维度，可只变更任意一项，也可同时变更。</span></div></div>
+          <div class="assignment-change-item"><el-checkbox v-model="batchChangePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="batchPeriodId" :disabled="!batchChangePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select></div>
+          <div class="assignment-change-item"><el-checkbox v-model="batchChangeCampEnabled"><b>变更所属直播组</b></el-checkbox><el-select v-model="batchCampName" :disabled="!batchChangeCampEnabled" filterable allow-create default-first-option placeholder="搜索或输入目标直播组" style="width:100%"><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select></div>
+          <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志分别记录期次和直播组的变更前后值、操作人、操作时间和影响线索数量。"/>
         </section>
         <section v-if="batchAction === 'SYNC_ORDER'" class="sync-platform-panel">
           <el-alert class="sync-global-alert" type="info" :closable="false" show-icon title="同步订单无需勾选线索" description="该操作按所选平台发起全局订单同步任务，不读取、也不限制于当前列表勾选结果。" />
@@ -846,12 +872,13 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <template #footer><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">{{ batchAction === 'IMPORT_DECRYPTED' ? '确认导入并覆盖' : batchAction === 'EXPORT_UNDECRYPTED' ? '确认导出' : '确认创建任务' }}</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="periodChangeVisible" title="变更期次" width="560px">
+    <el-dialog v-model="periodChangeVisible" title="变更期次 / 直播组" width="620px">
       <div class="period-change-panel">
-        <el-alert v-if="activeLead" type="info" :closable="false" show-icon :title="`当前期次：${activeLead.period_name || '未归属'}`" description="变更只调整线索的业务期次，不改变所属直播组、负责人或活码归因。"/>
-        <el-select v-model="selectedPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select>
+        <el-alert v-if="activeLead" type="info" :closable="false" show-icon :title="`当前期次：${activeLead.period_name || '未归属'} · 当前直播组：${activeLead.camp_name || '未归属'}`" description="期次和直播组独立保存；未勾选的维度保持原值不变。"/>
+        <div class="assignment-change-item"><el-checkbox v-model="changePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="selectedPeriodId" :disabled="!changePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="`${item.name} · ${item.stage}`" :value="item.id"/></el-select></div>
+        <div class="assignment-change-item"><el-checkbox v-model="changeCampEnabled"><b>变更所属直播组</b></el-checkbox><el-select v-model="selectedCampName" :disabled="!changeCampEnabled" filterable allow-create default-first-option placeholder="搜索或输入目标直播组" style="width:100%"><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select></div>
       </div>
-      <template #footer><el-button @click="periodChangeVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedPeriodId" @click="submitPeriodChange">确认变更</el-button></template>
+      <template #footer><el-button @click="periodChangeVisible = false">取消</el-button><el-button type="primary" :disabled="!changePeriodEnabled && !changeCampEnabled" @click="submitPeriodChange">确认变更</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="mobileChangeVisible" title="变更手机号" width="680px" class="mobile-change-dialog" @closed="mobileValidation = null">
@@ -1064,6 +1091,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 .export-count i { font-style: normal; }
 .export-count em { margin: 0 8px; color: #9db3d1; font-size: 20px; font-style: normal; }
 .sync-platform-panel,.sms-broadcast-panel{display:grid;gap:14px}.panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.panel-heading>div{display:grid;gap:5px}.panel-heading b{color:#24324a}.panel-heading span{color:#718198;font-size:12px}.panel-heading>em{padding:5px 9px;border-radius:999px;background:#edf5ff;color:#2875e6;font-size:11px;font-style:normal;white-space:nowrap}.platform-order-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.platform-order-grid button{display:grid;grid-template-columns:28px 1fr;gap:2px 8px;align-items:center;padding:12px;border:1px solid #dfe8f3;border-radius:9px;background:#fff;color:#24324a;text-align:left;cursor:pointer}.platform-order-grid button:hover{border-color:#9fc2f2;background:#f8fbff}.platform-order-grid button.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.platform-order-grid button i{grid-row:span 2;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#edf3fb;color:#8192a9;font-style:normal;font-weight:700}.platform-order-grid button.selected i{background:#2875e6;color:#fff}.platform-order-grid button span{font-weight:600}.platform-order-grid button small{color:#8a99ad}.task-order-preview{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:9px;background:#f7f9fc}.task-order-preview>b{color:#475569;font-size:12px;white-space:nowrap}.task-order-preview>span{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.task-order-preview em{padding:4px 7px;border-radius:6px;background:#fff;color:#2875e6;font-size:11px;font-style:normal}.task-order-preview i{color:#a7b6ca;font-style:normal}.task-order-preview .empty-order{color:#94a3b8;font-size:12px}.sms-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.sms-meta span{display:grid;gap:3px;padding:10px;border-radius:8px;background:#f7f9fc;color:#718198;font-size:11px}.sms-meta b{color:#475569;font-size:12px}
+.period-change-panel{display:grid;gap:13px}.assignment-change-item{display:grid;gap:9px;padding:14px;border:1px solid #e1e9f3;border-radius:10px;background:#f8fafc}.assignment-change-item :deep(.el-checkbox__label){color:#334155}.assignment-change-item :deep(.el-select){background:#fff}
 .assignee-picker{display:grid;grid-template-columns:250px 1fr;min-height:286px;border:1px solid #e4ebf4;border-radius:10px;overflow:hidden;background:#fff}.organization-pane{padding:16px;border-right:1px solid #e4ebf4;background:#f8fafc}.employee-pane{padding:16px}.picker-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:13px}.picker-title strong{color:#24324a}.picker-title span{color:#94a3b8;font-size:11px}.employee-search{margin-bottom:12px}.employee-search :deep(.el-input__wrapper){border-radius:8px;box-shadow:0 0 0 1px #dbe5f1 inset}.employee-search :deep(.el-input__wrapper.is-focus){box-shadow:0 0 0 1px #2875e6 inset}.organization-pane :deep(.el-tree){background:transparent;color:#53657e}.organization-pane :deep(.el-tree-node__content){height:34px;border-radius:6px}.organization-pane :deep(.el-tree-node__content:hover),.organization-pane :deep(.is-current>.el-tree-node__content){background:#eaf2ff;color:#2875e6}.employee-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;max-height:202px;overflow:auto;padding-right:3px}.employee-card{min-height:86px;padding:11px;border:1px solid #e4ebf4;border-radius:9px;background:#fff;display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:start;text-align:left;color:#24324a;cursor:pointer}.employee-card:hover{border-color:#9fc2f2;background:#f8fbff}.employee-card.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.employee-card>i{width:36px;height:36px;display:grid;place-items:center;border-radius:9px;background:#eaf2ff;color:#2875e6;font-style:normal;font-weight:700}.employee-card span b,.employee-card span small,.employee-card span em{display:block}.employee-card span small{margin-top:4px;color:#708097;font-size:10px}.employee-card span em{margin-top:8px;color:#5c7190;font-size:10px;font-style:normal}.employee-card u{color:#2875e6;font-size:10px;text-decoration:none}.capacity-note{display:flex;gap:12px;padding:12px 14px;border-radius:8px;background:#fff8ec;color:#79551f;font-size:12px;line-height:1.6}.capacity-note b{white-space:nowrap}.capacity-note span{color:#8b6a36}
 .cell-sub {
   display: block;

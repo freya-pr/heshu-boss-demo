@@ -1,4 +1,4 @@
-export type AcquisitionPeriodStage = '接量期' | '转化期' | '追单期'
+export type AcquisitionPeriodStage = '待开始' | '接量期' | '转化期' | '追单期' | '已停用'
 export type AcquisitionPeriodStatus = '启用' | '停用'
 
 export interface AcquisitionPeriod {
@@ -35,4 +35,3 @@ export function loadAcquisitionPeriods(): AcquisitionPeriod[] {
 export function saveAcquisitionPeriods(periods: AcquisitionPeriod[]) {
   localStorage.setItem(ACQUISITION_PERIOD_STORAGE_KEY, JSON.stringify(periods))
 }
-

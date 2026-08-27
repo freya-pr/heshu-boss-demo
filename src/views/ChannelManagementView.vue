@@ -93,9 +93,6 @@ function toggle(row: ChannelRow) { row.status = row.status === '启用' ? '停�
         <el-table-column prop="code" label="渠道编码" width="145"><template #default="{ row }"><code>{{ row.code }}</code></template></el-table-column>
         <el-table-column prop="name" label="渠道名称" min-width="160" />
         <el-table-column prop="type" label="渠道类型" width="120" />
-        <el-table-column prop="source" label="来源映射" min-width="180" />
-        <el-table-column prop="rule" label="归因规则" min-width="190" />
-        <el-table-column prop="owner" label="负责人" width="110" />
         <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="row.status === '启用' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column label="操作" width="210" fixed="right"><template #default="{ row }"><el-button link type="primary">详情</el-button><el-button link type="primary">编辑</el-button><el-button link type="primary" @click="toggle(row)">{{ row.status === '启用' ? '停用' : '启用' }}</el-button></template></el-table-column>
       </el-table>
