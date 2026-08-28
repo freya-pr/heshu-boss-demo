@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Connection, Plus, RefreshRight, Search, Setting, Warning } from '@element-plus/icons-vue'
+import { Plus, RefreshRight, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
 type TagObject = '客户' | '线索' | '订单'
 type TagSource = '系统' | 'BOSS人工' | '企业微信' | '外部SCRM' | '规则' | 'AI'
 type TagStatus = '启用' | '停用' | '已同步'
-type TabKey = 'library' | 'groups' | 'rules' | 'mapping' | 'governance'
+type TabKey = 'library' | 'groups'
 
 type TagRow = {
   id: number
@@ -30,10 +30,7 @@ type TagRow = {
 const STORAGE_KEY = 'heshu_boss_tag_center_v1'
 const tabs: Array<{ key: TabKey; label: string; note: string }> = [
   { key: 'library', label: '标签库', note: '统一查看全部来源标签' },
-  { key: 'groups', label: '标签组', note: '按业务主题组织标签' },
-  { key: 'rules', label: '自动规则', note: '配置动态计算与失效策略' },
-  { key: 'mapping', label: '外部标签映射', note: '统一企微与外部SCRM口径' },
-  { key: 'governance', label: '标签治理', note: '发现重复、闲置和异常标签' }
+  { key: 'groups', label: '标签组', note: '按业务主题组织标签' }
 ]
 
 const seedTags: TagRow[] = [
@@ -48,7 +45,8 @@ const seedTags: TagRow[] = [
 ]
 
 const saved = localStorage.getItem(STORAGE_KEY)
-const tags = ref<TagRow[]>(saved ? JSON.parse(saved) : seedTags)
+const tags = ref<TagRow[]>((saved ? JSON.parse(saved) : seedTags).filter((item: TagRow) => ['系统', '企业微信'].includes(item.source)))
+const allowedSources: TagSource[] = ['系统', '企业微信']
 const activeTab = ref<TabKey>('library')
 const query = reactive({ keyword: '', object: '' as '' | TagObject, source: '' as '' | TagSource, status: '' as '' | TagStatus })
 const detailVisible = ref(false)
@@ -58,7 +56,7 @@ const coverageVisible = ref(false)
 const activeTag = ref<TagRow | null>(null)
 const editingId = ref<number | null>(null)
 const form = reactive({ name: '', object: '客户' as TagObject, source: 'BOSS人工' as 'BOSS人工' | '规则' | 'AI', category: '', validity: '永久', permission: '业务人员可查看和打标', description: '' })
-const mappingForm = reactive({ source: '企业微信' as '企业微信' | '外部SCRM', externalName: '', externalCode: '', bossTagId: undefined as number | undefined })
+const mappingForm = reactive({ source: '企业微信' as const, externalName: '', externalCode: '', bossTagId: undefined as number | undefined })
 
 const groups = ref([
   { id: 1, name: '客户阶段', object: '客户', tags: ['正式课客户', '高意向'], owner: '客户运营部', status: '启用', updatedAt: '2026-08-24 18:20' },
@@ -96,22 +94,21 @@ watch(tags, value => localStorage.setItem(STORAGE_KEY, JSON.stringify(value)), {
 
 const filteredTags = computed(() => {
   const keyword = query.keyword.trim().toLowerCase()
-  return tags.value.filter(tag => (!keyword || `${tag.name}${tag.code}${tag.source}`.toLowerCase().includes(keyword))
+  return tags.value.filter(tag => allowedSources.includes(tag.source) && (!keyword || `${tag.name}${tag.code}${tag.source}`.toLowerCase().includes(keyword))
     && (!query.object || tag.object === query.object)
     && (!query.source || tag.source === query.source)
     && (!query.status || tag.status === query.status))
 })
 const summary = computed(() => ({
-  total: tags.value.length,
-  enabled: tags.value.filter(item => item.status !== '停用').length,
-  disabled: tags.value.filter(item => item.status === '停用').length,
-  system: tags.value.filter(item => item.source === '系统').length,
-  external: tags.value.filter(item => ['企业微信', '外部SCRM'].includes(item.source)).length,
-  automation: tags.value.filter(item => ['规则', 'AI'].includes(item.source)).length,
-  coverage: tags.value.reduce((sum, item) => sum + item.coverage, 0)
+  total: filteredTags.value.length,
+  enabled: filteredTags.value.filter(item => item.status !== '停用').length,
+  disabled: filteredTags.value.filter(item => item.status === '停用').length,
+  system: filteredTags.value.filter(item => item.source === '系统').length,
+  external: filteredTags.value.filter(item => item.source === '企业微信').length,
+  coverage: filteredTags.value.reduce((sum, item) => sum + item.coverage, 0)
 }))
 const sourceType = (source: TagSource) => ({ 系统: 'primary', BOSS人工: 'warning', 企业微信: 'success', 外部SCRM: 'info', 规则: 'primary', AI: 'danger' }[source] as any)
-const editable = (tag: TagRow) => ['BOSS人工', '规则', 'AI'].includes(tag.source)
+const editable = (_tag: TagRow) => false
 
 function resetQuery() { Object.assign(query, { keyword: '', object: '', source: '', status: '' }) }
 function openDetail(tag: TagRow) { activeTag.value = tag; detailVisible.value = true }
@@ -158,17 +155,12 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
 
 <template>
   <div class="page tag-page">
-    <PageHeader eyebrow="CUSTOMER · TAG GOVERNANCE" title="标签管理中心" description="统一管理BOSS人工标签、系统业务标签、企微及外部标签、自动规则和AI标签。">
-      <el-button :icon="Connection" @click="openMapping">新建映射</el-button>
-      <el-button type="primary" :icon="Plus" @click="openCreate()">新建标签</el-button>
-    </PageHeader>
+    <PageHeader eyebrow="CUSTOMER · TAG MANAGEMENT" title="标签管理中心" description="统一管理系统标签与企业微信标签，标签来源固定且不可扩展。" />
 
     <section class="metrics-grid">
       <article><span>标签总数</span><strong>{{ summary.total }}</strong><small>启用 {{ summary.enabled }} · 停用 {{ summary.disabled }}</small></article>
       <article><span>系统标签</span><strong>{{ summary.system }}</strong><small>营期 / 客户阶段 / 订单事实</small></article>
-      <article><span>企微及外部标签</span><strong>{{ summary.external }}</strong><small>通过映射进入统一标签库</small></article>
-      <article><span>规则 / AI 标签</span><strong>{{ summary.automation }}</strong><small>动态计算并保留规则版本</small></article>
-      <article class="risk-card"><span>治理异常</span><strong>{{ governanceRows.length }}</strong><small>重复、闲置或映射中断</small></article>
+      <article><span>企业微信标签</span><strong>{{ summary.external }}</strong><small>由企业微信同步进入标签库</small></article>
     </section>
 
     <nav class="tag-tabs" aria-label="标签管理模块">
@@ -183,7 +175,7 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
         <div class="filters">
           <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索标签名称 / ID / 来源系统" />
           <el-select v-model="query.object" clearable placeholder="全部对象"><el-option v-for="item in ['客户','线索','订单']" :key="item" :label="item" :value="item" /></el-select>
-          <el-select v-model="query.source" clearable placeholder="全部来源"><el-option v-for="item in ['系统','BOSS人工','企业微信','外部SCRM','规则','AI']" :key="item" :label="item" :value="item" /></el-select>
+          <el-select v-model="query.source" clearable placeholder="全部来源"><el-option v-for="item in ['系统','企业微信']" :key="item" :label="item" :value="item" /></el-select>
           <el-select v-model="query.status" clearable placeholder="全部状态"><el-option v-for="item in ['启用','停用','已同步']" :key="item" :label="item" :value="item" /></el-select>
           <el-button :icon="RefreshRight" circle title="重置筛选" @click="resetQuery" />
         </div>
@@ -193,9 +185,6 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
         <el-table-column prop="object" label="对象" width="90" />
         <el-table-column prop="category" label="分类" min-width="170" />
         <el-table-column label="来源" width="125"><template #default="{ row }"><el-tag :type="sourceType(row.source)" effect="light" round>{{ row.source }}</el-tag></template></el-table-column>
-        <el-table-column prop="generation" label="生成方式" min-width="200" show-overflow-tooltip />
-        <el-table-column label="覆盖对象" width="115" align="right"><template #default="{ row }"><el-button link type="primary" class="number-link" @click="openCoverage(row)">{{ row.coverage.toLocaleString() }}</el-button></template></el-table-column>
-        <el-table-column prop="validity" label="有效期" width="110" />
         <el-table-column label="状态" width="100"><template #default="{ row }"><span :class="['status-dot', row.status === '停用' ? 'off' : 'on']">{{ row.status }}</span></template></el-table-column>
         <el-table-column label="操作" width="155" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row)">查看</el-button><el-button v-if="editable(row)" link type="primary" @click="openCreate(row)">编辑</el-button><el-button v-if="editable(row)" link :type="row.status === '停用' ? 'success' : 'danger'" @click="toggleTag(row)">{{ row.status === '停用' ? '启用' : '停用' }}</el-button><el-button v-else link disabled>只读</el-button></template></el-table-column>
       </el-table>
@@ -207,21 +196,6 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
       <el-table :data="groups"><el-table-column prop="name" label="标签组名称" min-width="180"/><el-table-column prop="object" label="对象" width="100"/><el-table-column label="包含标签" min-width="320"><template #default="{row}"><el-tag v-for="tag in row.tags" :key="tag" class="group-tag" effect="plain">{{ tag }}</el-tag></template></el-table-column><el-table-column prop="owner" label="维护组织" min-width="160"/><el-table-column prop="status" label="状态" width="100"/><el-table-column prop="updatedAt" label="更新时间" width="165"/><el-table-column label="操作" width="120"><template #default><el-button link type="primary">编辑</el-button><el-button link>排序</el-button></template></el-table-column></el-table>
     </section>
 
-    <section v-else-if="activeTab === 'rules'" class="surface content-card">
-      <header class="section-head"><div><h2>自动规则</h2><p>规则发布后按事件触发，保存规则版本、命中证据和标签有效期。</p></div><el-button type="primary" :icon="Plus" @click="ElMessage.info('请从规则标签进入规则配置')">新建规则</el-button></header>
-      <el-table :data="rules"><el-table-column prop="name" label="规则名称" min-width="170"/><el-table-column prop="target" label="目标标签" min-width="140"/><el-table-column prop="object" label="对象" width="90"/><el-table-column prop="trigger" label="触发事件" min-width="150"/><el-table-column prop="condition" label="命中条件" min-width="330"/><el-table-column prop="validity" label="有效期" width="100"/><el-table-column prop="status" label="状态" width="100"><template #default="{row}"><el-tag type="success">{{row.status}}</el-tag></template></el-table-column><el-table-column prop="lastRun" label="最近执行" width="165"/><el-table-column label="操作" width="130"><template #default><el-button link type="primary">查看</el-button><el-button link type="primary">试算</el-button></template></el-table-column></el-table>
-    </section>
-
-    <section v-else-if="activeTab === 'mapping'" class="surface content-card">
-      <header class="section-head"><div><h2>外部标签映射</h2><p>外部标签保留原始ID和来源；映射只统一展示与使用口径，不覆盖来源数据。</p></div><el-button type="primary" :icon="Connection" @click="openMapping">新建映射</el-button></header>
-      <el-table :data="mappings"><el-table-column prop="source" label="来源系统" width="130"/><el-table-column prop="externalName" label="外部标签" min-width="180"/><el-table-column prop="externalCode" label="外部标签ID" min-width="180"/><el-table-column prop="bossTag" label="BOSS目标标签" min-width="180"/><el-table-column prop="direction" label="同步方向" width="130"/><el-table-column prop="status" label="状态" width="100"><template #default="{row}"><el-tag type="success">{{row.status}}</el-tag></template></el-table-column><el-table-column prop="lastSync" label="最近同步" width="170"/><el-table-column label="操作" width="120"><template #default><el-button link type="primary">编辑</el-button><el-button link>同步记录</el-button></template></el-table-column></el-table>
-    </section>
-
-    <section v-else class="surface content-card governance-card">
-      <header class="section-head"><div><h2>标签治理</h2><p>发现标签重复、长期未使用、映射中断和规则异常，所有处理均形成治理任务。</p></div><el-button :icon="RefreshRight" @click="ElMessage.success('治理扫描任务已创建')">重新扫描</el-button></header>
-      <div class="governance-summary"><Warning/><div><b>本次扫描发现 {{ governanceRows.length }} 类问题</b><p>系统不会自动删除或合并已使用标签，需责任人确认后执行。</p></div></div>
-      <el-table :data="governanceRows"><el-table-column prop="type" label="问题类型" width="140"/><el-table-column label="风险" width="90"><template #default="{row}"><el-tag :type="row.level === '高' ? 'danger' : 'warning'">{{row.level}}</el-tag></template></el-table-column><el-table-column prop="object" label="涉及标签" min-width="220"/><el-table-column prop="count" label="影响数量" width="100" align="right"/><el-table-column prop="suggestion" label="建议处理" min-width="320"/><el-table-column prop="owner" label="责任组织" min-width="150"/><el-table-column label="操作" width="120"><template #default="{row}"><el-button link type="primary" @click="handleGovernance(row)">创建任务</el-button></template></el-table-column></el-table>
-    </section>
 
     <el-drawer v-model="detailVisible" size="560px" :title="`${activeTag?.source || ''}标签详情 · ${activeTag?.name || ''}`">
       <template v-if="activeTag">
@@ -251,11 +225,6 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
       <template #footer><el-button @click="editorVisible=false">取消</el-button><el-button type="primary" @click="saveTag">保存标签</el-button></template>
     </el-drawer>
 
-    <el-dialog v-model="mappingVisible" title="新建外部标签映射" width="640px">
-      <el-alert title="映射不会删除或改写外部标签；同步失败时进入标签治理，并保留原始事件。" type="info" :closable="false" />
-      <el-form label-position="top" class="mapping-form"><div class="form-grid"><el-form-item label="来源系统" required><el-select v-model="mappingForm.source"><el-option label="企业微信" value="企业微信"/><el-option label="外部SCRM" value="外部SCRM"/></el-select></el-form-item><el-form-item label="外部标签名称" required><el-input v-model="mappingForm.externalName" /></el-form-item><el-form-item label="外部标签ID" required><el-input v-model="mappingForm.externalCode" /></el-form-item><el-form-item label="BOSS目标标签" required><el-select v-model="mappingForm.bossTagId" filterable><el-option v-for="item in tags.filter(tag => editable(tag))" :key="item.id" :label="`${item.name} · ${item.object}`" :value="item.id" /></el-select></el-form-item></div></el-form>
-      <template #footer><el-button @click="mappingVisible=false">取消</el-button><el-button type="primary" @click="saveMapping">创建映射</el-button></template>
-    </el-dialog>
 
     <el-dialog v-model="coverageVisible" :title="`标签覆盖明细 · ${activeTag?.name || ''}`" width="820px">
       <el-alert :title="`当前显示权限范围内的${activeTag?.object || '对象'}样例；完整结果共 ${activeTag?.coverage.toLocaleString() || 0} 条。`" type="info" :closable="false" />

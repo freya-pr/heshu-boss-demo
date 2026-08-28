@@ -44,6 +44,10 @@ const journeyVisible = ref(false)
 const journeyLoading = ref(false)
 const journeyRows = ref<any[]>([])
 const activeLead = ref<any>(null)
+type LeadTag = { name: string; source: '系统' | '企业微信' }
+const leadTags = ref<Record<string, LeadTag[]>>({})
+const leadTagDialogVisible = ref(false)
+const activeTagLead = ref<any>(null)
 const mobileChangeVisible = ref(false)
 const mobileChangeLoading = ref(false)
 const mobileChangeSubmitting = ref(false)
@@ -52,6 +56,7 @@ const mobileValidation = ref<any>(null)
 const wechatStatusVisible = ref(false)
 const wechatStatusSubmitting = ref(false)
 const wechatStatusDraft = ref('NOT_ADDED')
+const wechatAddedAtDraft = ref('')
 const wechatStatusOptions = [
   { label: '否', value: 'NOT_ADDED' },
   { label: '已加企微', value: 'WECOM_ADDED' },
@@ -95,12 +100,12 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','lead_grade','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
   { value: 'original_mobile', label: '解密前手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
-  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' }, { value: 'demand_mined', label: '是否挖需' },
+  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' }, { value: 'lead_tags', label: '线索标签' }, { value: 'demand_mined', label: '是否挖需' },
   { value: 'first_product_name', label: '首单商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
   { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
@@ -113,7 +118,7 @@ const columnOptions = [
   { value: 'camp_name', label: '所属直播组' }, { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v8'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v9'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -123,6 +128,25 @@ function loadColumnPreference() {
 const visibleColumns = ref<string[]>(loadColumnPreference())
 const showColumn = (key: string) => mandatoryColumns.includes(key) || visibleColumns.value.includes(key)
 function resetColumns() { visibleColumns.value = [...defaultColumns] }
+
+const leadTagKey = (row: any) => String(row?.id ?? row?.order_no ?? '')
+const tagsForLead = (row: any) => leadTags.value[leadTagKey(row)] || []
+const leadTagSources: LeadTag['source'][] = ['系统', '企业微信']
+function seedLeadTags(items: any[]) {
+  const samples: LeadTag[][] = [
+    [{ name: '暑期活动', source: '系统' }, { name: '高意向', source: '系统' }, { name: '已加企微', source: '企业微信' }],
+    [{ name: '直播间咨询', source: '企业微信' }, { name: '待回访', source: '系统' }],
+    [{ name: '首次咨询', source: '系统' }]
+  ]
+  items.slice(0, samples.length).forEach((row, index) => {
+    const key = leadTagKey(row)
+    if (key && !leadTags.value[key]) leadTags.value[key] = samples[index]
+  })
+}
+function openLeadTags(row: any) {
+  activeTagLead.value = row
+  leadTagDialogVisible.value = true
+}
 
 async function load() {
   loading.value = true
@@ -136,6 +160,7 @@ async function load() {
     ])
     if (!isDemoMode) acquisitionPeriods.value = periodRes.data.map((item: any) => ({ id: String(item.id), name: item.period_name, stage: ({ PENDING: '待开始', RECEPTION: '接量期', CONVERSION: '转化期', FOLLOW_UP: '追单期', DISABLED: '已停用' } as Record<string, any>)[item.period_stage] || '接量期', startAt: item.start_at, endAt: item.end_at, status: item.status === 'ACTIVE' ? '启用' : '停用', creatorName: item.created_by, createdAt: item.created_at, qrRefCount: Number(item.qr_ref_count || 0), businessDataCount: Number(item.business_data_count || 0) }))
     rows.value = leadRes.data.map(normalizeLeadState)
+    if (sourceType.value === 'DRAINAGE') seedLeadTags(rows.value)
     assignees.value = employeeRes.data
     organizations.value = organizationRes.data
   } catch (e: any) {
@@ -272,16 +297,20 @@ function isWechatAdded(value: any) {
 function openWechatStatus(row: any) {
   activeLead.value = row
   wechatStatusDraft.value = normalizeWechatStatus(row.wechat_status)
+  wechatAddedAtDraft.value = row.wechat_added_at || (isWechatAdded(row.wechat_status) ? new Date().toISOString().slice(0, 19).replace('T', ' ') : '')
   wechatStatusVisible.value = true
 }
 
 async function submitWechatStatus() {
   if (!activeLead.value) return
-  if (normalizeWechatStatus(activeLead.value.wechat_status) === wechatStatusDraft.value) return ElMessage.info('加微状态未发生变化')
+  if (isWechatAdded(wechatStatusDraft.value) && !wechatAddedAtDraft.value) return ElMessage.warning('请选择加微时间')
+  const originalTime = activeLead.value.wechat_added_at || ''
+  const nextTime = isWechatAdded(wechatStatusDraft.value) ? wechatAddedAtDraft.value : ''
+  if (normalizeWechatStatus(activeLead.value.wechat_status) === wechatStatusDraft.value && originalTime === nextTime) return ElMessage.info('加微状态和加微时间均未发生变化')
   wechatStatusSubmitting.value = true
   try {
-    await http.post(`/leads/${activeLead.value.id}/wechat-status`, { wechatStatus: wechatStatusDraft.value })
-    ElMessage.success('加微状态已更新，并记录到线索旅程')
+    await http.post(`/leads/${activeLead.value.id}/wechat-status`, { wechatStatus: wechatStatusDraft.value, wechatAddedAt: nextTime || null })
+    ElMessage.success('加微状态和加微时间已更新，并记录到线索旅程')
     wechatStatusVisible.value = false
     await load()
   } catch (e: any) {
@@ -735,6 +764,13 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column prop="order_no" label="订单编号" width="180" fixed="left"><template #default="{ row }"><strong>{{ textOrDash(row.order_no) }}</strong></template></el-table-column>
           <el-table-column v-if="showColumn('lead_source')" prop="lead_source" label="线索来源" width="110" fixed="left"><template #default="{ row }">{{ textOrDash(row.lead_source || row.channel_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('lead_grade')" label="线索等级" width="116"><template #default="{ row }"><el-tag :type="gradeTagTypes[row.lead_grade] || 'info'">{{ gradeLabels[row.lead_grade] || row.lead_grade }}</el-tag><small class="cell-sub">{{ gradeSourceLabels[row.grade_source] || '尚未评级' }}</small></template></el-table-column>
+          <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('lead_tags')" label="线索标签" min-width="220"><template #default="{ row }">
+            <button type="button" class="lead-tags-cell" @click="openLeadTags(row)">
+              <el-tag v-for="tag in tagsForLead(row).slice(0, 2)" :key="`${tag.source}-${tag.name}`" effect="plain">{{ tag.name }}</el-tag>
+              <span v-if="tagsForLead(row).length > 2">+{{ tagsForLead(row).length - 2 }}</span>
+              <em v-if="!tagsForLead(row).length">添加标签</em>
+            </button>
+          </template></el-table-column>
           <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('demand_mined')" label="是否挖需" width="118" align="center"><template #default="{ row }">
             <div class="demand-mined-cell">
               <el-checkbox :model-value="Boolean(row.demand_mined)" :disabled="Boolean(row.demand_mined)" aria-label="标记已挖需" @change="markDemandMined(row, $event)"/>
@@ -797,6 +833,19 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         </el-table>
       </StatePanel>
     </div>
+
+    <el-dialog v-model="leadTagDialogVisible" :title="`${activeTagLead?.customer_name || activeTagLead?.name || activeTagLead?.order_no || '当前线索'} · 全部线索标签`" width="620px">
+      <div class="lead-tag-dialog">
+        <section v-for="source in leadTagSources" :key="source" class="tag-source-section">
+          <header><strong>{{ source }}</strong><span>{{ tagsForLead(activeTagLead).filter(tag => tag.source === source).length }} 个</span></header>
+          <div class="tag-source-list">
+            <el-tag v-for="tag in tagsForLead(activeTagLead).filter(tag => tag.source === source)" :key="tag.name" effect="plain">{{ tag.name }}</el-tag>
+            <em v-if="!tagsForLead(activeTagLead).some(tag => tag.source === source)">暂无标签</em>
+          </div>
+        </section>
+      </div>
+      <template #footer><el-button type="primary" @click="leadTagDialogVisible = false">完成</el-button></template>
+    </el-dialog>
 
     <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : batchAction === 'SYNC_ORDER' ? '720px' : batchAction === 'SMS_BROADCAST' ? '640px' : '560px'" class="batch-dialog">
       <div class="batch-dialog-content">
@@ -903,11 +952,13 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
     <el-dialog v-model="wechatStatusVisible" title="修改加微状态" width="640px" destroy-on-close>
       <div class="wechat-status-dialog-body">
         <span>加微状态：</span>
-        <el-radio-group v-model="wechatStatusDraft">
+        <el-radio-group v-model="wechatStatusDraft" @change="wechatStatusDraft === 'NOT_ADDED' && (wechatAddedAtDraft = '')">
           <el-radio v-for="item in wechatStatusOptions" :key="item.value" :value="item.value">{{ item.label }}</el-radio>
         </el-radio-group>
+        <span v-if="wechatStatusDraft !== 'NOT_ADDED'">加微时间：</span>
+        <el-date-picker v-if="wechatStatusDraft !== 'NOT_ADDED'" v-model="wechatAddedAtDraft" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" placeholder="选择实际加微时间" style="width:100%" />
       </div>
-      <el-alert class="wechat-status-dialog-tip" type="info" :closable="false" show-icon title="人工修改用于纠正线索加微状态；提交后将记录修改前后状态、操作人和操作时间。"/>
+      <el-alert class="wechat-status-dialog-tip" type="info" :closable="false" show-icon title="选择已加企微或已加个微时，加微时间必填；选择否时自动清空加微时间。提交后记录状态、加微时间、操作人和操作时间。"/>
       <template #footer><el-button @click="wechatStatusVisible = false">关闭</el-button><el-button type="primary" :loading="wechatStatusSubmitting" @click="submitWechatStatus">提交</el-button></template>
     </el-dialog>
 
@@ -1024,6 +1075,15 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
   max-height: 420px;
   overflow-y: auto;
 }
+.lead-tags-cell { display:flex;align-items:center;gap:6px;min-height:32px;padding:0;border:0;background:transparent;cursor:pointer;white-space:nowrap; }
+.lead-tags-cell span { color:#409eff;font-weight:700; }
+.lead-tags-cell em,.tag-source-list em { color:#94a3b8;font-style:normal;font-size:13px; }
+.lead-tag-dialog { display:grid;gap:14px; }
+.tag-source-section { padding:14px 16px;border:1px solid #e7edf5;border-radius:10px;background:#fafcff; }
+.tag-source-section header { display:flex;align-items:center;justify-content:space-between;margin-bottom:10px; }
+.tag-source-section header span { color:#94a3b8;font-size:12px; }
+.tag-source-list { display:flex;flex-wrap:wrap;gap:8px;min-height:24px;align-items:center; }
+.add-lead-tag-row { display:grid;grid-template-columns:1fr auto;gap:10px;padding-top:2px; }
 .batch-dialog-content {
   display: grid;
   gap: 18px;
