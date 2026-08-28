@@ -236,13 +236,17 @@ const analyticsChannels = [
 function scaleNumber(value: number, scale: number) { return Math.max(0, Math.round(value * scale)) }
 
 function buildLeadAnalytics(params: Row = {}) {
-  const periodName = String(params.period || '2026 暑期第 3 营')
+  const leadCreatedSummary = params.aggregationMode === 'LEAD_CREATED'
+  const selectedPeriods = Array.isArray(params.period) ? params.period.filter(Boolean) : params.period ? [params.period] : []
+  const periodName = leadCreatedSummary ? '线索数据汇总' : String(selectedPeriods.join('、') || '2026 暑期第 3 营')
   const selectedChannel = String(params.channel || '全部渠道')
   const selectedStore = String(params.store || '全部店铺')
   const selectedIpChannel = String(params.ipChannel || '全部IP渠道')
   const selectedIpName = String(params.ipName || '全部IP')
   const selectedTeam = String(params.team || '一转销售部')
-  const periodScale = ({ '2026 暑期第 3 营': 1, '2026 暑期第 2 营': 0.86, '2026 暑期体验营': 0.62 } as Row)[periodName] || 1
+  const createdRange = Array.isArray(params.leadCreatedRange) ? params.leadCreatedRange.filter(Boolean) : []
+  const createdDays = createdRange.length === 2 ? Math.max(1, Math.round((new Date(`${createdRange[1]}T00:00:00`).getTime() - new Date(`${createdRange[0]}T00:00:00`).getTime()) / 86400000) + 1) : 7
+  const periodScale = leadCreatedSummary ? createdDays / 7 : (({ '2026 暑期第 3 营': 1, '2026 暑期第 2 营': 0.86, '2026 暑期体验营': 0.62 } as Row)[periodName] || 1)
   const teamScale = ({ '一转销售部': 1, '一转一组': 0.54, '一转二组': 0.46 } as Row)[selectedTeam] || 1
   const storeScale = ({ '全部店铺': 1, '合数教育官方旗舰店': 0.43, '合数精品课程店': 0.27, '合数成长课堂': 0.19, '合数教育体验课': 0.11 } as Row)[selectedStore] || 1
   const ipChannelScale = ({ '全部IP渠道': 1, '店播': 0.61, '阿留专属': 0.39 } as Row)[selectedIpChannel] || 1

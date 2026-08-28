@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import http from '../api/http'
+import { Setting } from '@element-plus/icons-vue'
+import http, { isDemoMode } from '../api/http'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
 import BusinessScopeFilter, { type BusinessScopeValue } from '../components/BusinessScopeFilter.vue'
@@ -19,9 +20,9 @@ const nearestPeriod = availablePeriods.reduce((nearest, item) => {
   const distance = Math.min(Math.abs(today.getTime() - new Date(item.startAt).getTime()), Math.abs(today.getTime() - new Date(item.endAt).getTime()))
   return !nearest || distance < nearest.distance ? { item, distance } : nearest
 }, null as null | { item: ReturnType<typeof loadAcquisitionPeriods>[number]; distance: number })?.item
-const periodTimeRange = ref<[string, string]>(nearestPeriod ? [nearestPeriod.startAt.slice(0, 10), nearestPeriod.endAt.slice(0, 10)] : ['', ''])
+const periodTimeRange = ref<[string, string]>(isDemoMode ? ['', ''] : nearestPeriod ? [nearestPeriod.startAt.slice(0, 10), nearestPeriod.endAt.slice(0, 10)] : ['', ''])
 const leadCreatedRange = ref<[string, string]>(nearestPeriod ? [nearestPeriod.startAt.slice(0, 10), nearestPeriod.endAt.slice(0, 10)] : ['', ''])
-const period = ref<string[]>(nearestPeriod ? [nearestPeriod.name] : [])
+const period = ref<string[]>(isDemoMode ? [] : nearestPeriod ? [nearestPeriod.name] : [])
 const channel = ref<string[]>([])
 const store = ref<string[]>([])
 const ipChannel = ref<string[]>([])
@@ -35,7 +36,9 @@ const definitionVisible = ref(false)
 const drilldownVisible = ref(false)
 const drilldown = ref<DrilldownContext>({ key: '', label: '', value: 0 })
 const periodLabel = computed(() => period.value.join('、') || '全部期次')
-const filePeriodLabel = computed(() => periodLabel.value.replace(/\s/g, ''))
+const isLeadCreatedSummary = computed(() => !period.value.length && !periodTimeRange.value?.filter(Boolean).length && Boolean(leadCreatedRange.value?.filter(Boolean).length))
+const reportSubjectLabel = computed(() => periodLabel.value)
+const filePeriodLabel = computed(() => reportSubjectLabel.value.replace(/\s/g, ''))
 
 const stages = computed(() => {
   const f = data.value.funnel || {}
@@ -48,36 +51,65 @@ const stages = computed(() => {
   }))
 })
 
-type PeriodMetric = { key: string; label: string; value: string; sub: string; count?: number; warning?: boolean; highlight?: boolean; progress?: number }
+type PeriodMetric = { key: string; columnKey:string; label: string; value: string; sub: string; count?: number; warning?: boolean; highlight?: boolean; progress?: number }
 type PeriodMetricGroup = { label: string; tone: string; metrics: PeriodMetric[] }
+const operatingColumnOptions=[
+  {value:'period',label:'期次',mandatory:true},{value:'wechatRate',label:'加微率'},{value:'questionnaireRate',label:'问卷填写率'},
+  {value:'day1ArrivalRate',label:'DAY1 到课率'},{value:'day1CompletionRate',label:'DAY1 完课率'},{value:'day2ArrivalRate',label:'DAY2 到课率'},{value:'day2CompletionRate',label:'DAY2 完课率'},{value:'day3ArrivalRate',label:'DAY3 到课率'},{value:'day3CompletionRate',label:'DAY3 完课率'},
+  {value:'refundRate',label:'退款率'},{value:'finalConversionRate',label:'最终转化率'},{value:'gmvRate',label:'GMV完成率'},{value:'peopleServiceRatio',label:'人服比'},{value:'perCapitaGmv',label:'单人净GMV'},{value:'conversionDispersion',label:'团队转化离散率'},{value:'online',label:'当前在线'},{value:'grossGmv',label:'毛GMV'},{value:'refundAmount',label:'退款金额'},{value:'netGmv',label:'净GMV'}
+]
+const operatingColumnStorageKey='heshu_boss_analytics_operating_columns_v1'
+function loadOperatingColumns(){try{const saved=JSON.parse(localStorage.getItem(operatingColumnStorageKey)||'[]');return Array.isArray(saved)&&saved.length?[...new Set([...saved,'period'])]:operatingColumnOptions.map(item=>item.value)}catch{return operatingColumnOptions.map(item=>item.value)}}
+const operatingVisibleColumns=ref<string[]>(loadOperatingColumns()),operatingColumnSettingVisible=ref(false)
+const showOperatingColumn=(key:string)=>key==='period'||operatingVisibleColumns.value.includes(key)
+function resetOperatingColumns(){operatingVisibleColumns.value=operatingColumnOptions.map(item=>item.value)}
 
-const periodOperatingGroups = computed<PeriodMetricGroup[]>(() => {
+function buildOperatingGroups(scale=1):PeriodMetricGroup[] {
   const f = data.value.funnel || {}, finance = data.value.finance || {}, e = data.value.efficiency || {}
-  const lead = f.leads || 0
-  const finalDeal = Math.max((f.deal || 0) - (f.refund || 0), 0)
-  const gmvRate = div(finance.netGmv, finance.targetGmv)
+  const scaled=(value:number)=>Math.round((value||0)*scale)
+  const lead = scaled(f.leads)
+  const wechat=scaled(f.wechat),questionnaire=scaled(f.questionnaire),refund=scaled(f.refund),deal=scaled(f.deal)
+  const day1Arrival=scaled(f.arrival),day1Completion=scaled(f.completion)
+  const day2Arrival=scaled((f.arrival||0)*.82),day2Completion=scaled((f.completion||0)*.86)
+  const day3Arrival=scaled((f.arrival||0)*.68),day3Completion=scaled((f.completion||0)*.72)
+  const grossGmv=scaled(finance.grossGmv),refundAmount=scaled(finance.refundAmount),netGmv=scaled(finance.netGmv),targetGmv=scaled(finance.targetGmv)
+  const finalDeal = Math.max(deal-refund, 0)
+  const gmvRate = div(netGmv,targetGmv)
   return [
     { label: '过程转化', tone: 'process', metrics: [
-      { key: 'wechat', label: '加微率', value: pct(div(f.wechat, lead)), sub: format(f.wechat), count: f.wechat },
-      { key: 'questionnaire', label: '问卷填写率', value: pct(div(f.questionnaire, lead)), sub: format(f.questionnaire), count: f.questionnaire },
+      { key: 'wechat',columnKey:'wechatRate', label: '加微率', value: pct(div(wechat, lead)), sub: format(wechat), count: wechat },
+      { key: 'questionnaire',columnKey:'questionnaireRate', label: '问卷填写率', value: pct(div(questionnaire, lead)), sub: format(questionnaire), count: questionnaire },
+      { key: 'arrival',columnKey:'day1ArrivalRate',label:'DAY1 到课率',value:pct(div(day1Arrival,questionnaire)),sub:`${format(day1Arrival)} 人`,count:day1Arrival },
+      { key: 'completion',columnKey:'day1CompletionRate',label:'DAY1 完课率',value:pct(div(day1Completion,day1Arrival)),sub:`${format(day1Completion)} 人`,count:day1Completion },
+      { key: 'arrival',columnKey:'day2ArrivalRate',label:'DAY2 到课率',value:pct(div(day2Arrival,questionnaire)),sub:`${format(day2Arrival)} 人`,count:day2Arrival },
+      { key: 'completion',columnKey:'day2CompletionRate',label:'DAY2 完课率',value:pct(div(day2Completion,day2Arrival)),sub:`${format(day2Completion)} 人`,count:day2Completion },
+      { key: 'arrival',columnKey:'day3ArrivalRate',label:'DAY3 到课率',value:pct(div(day3Arrival,questionnaire)),sub:`${format(day3Arrival)} 人`,count:day3Arrival },
+      { key: 'completion',columnKey:'day3CompletionRate',label:'DAY3 完课率',value:pct(div(day3Completion,day3Arrival)),sub:`${format(day3Completion)} 人`,count:day3Completion },
     ] },
     { label: '结果质量', tone: 'quality', metrics: [
-      { key: 'refund', label: '退款率', value: pct(div(f.refund, lead)), sub: `${format(f.refund)} 人`, count: f.refund, warning: true },
-      { key: 'finalDeal', label: '最终转化率', value: pct(div(finalDeal, lead)), sub: format(finalDeal), count: finalDeal, highlight: true },
-      { key: '', label: 'GMV完成率', value: pct(gmvRate), sub: `目标 ${money(finance.targetGmv)}`, progress: Math.min(Math.max(gmvRate * 100, 0), 100) }
+      { key: 'refund',columnKey:'refundRate', label: '退款率', value: pct(div(refund, lead)), sub: `${format(refund)} 人`, count: refund, warning: true },
+      { key: 'finalDeal',columnKey:'finalConversionRate', label: '最终转化率', value: pct(div(finalDeal, lead)), sub: format(finalDeal), count: finalDeal, highlight: true },
+      { key: '',columnKey:'gmvRate', label: 'GMV完成率', value: pct(gmvRate), sub: `目标 ${money(targetGmv)}`, progress: Math.min(Math.max(gmvRate * 100, 0), 100) }
     ] },
     { label: '经营效能', tone: 'efficiency', metrics: [
-      { key: '', label: '人服比', value: String(e.peopleServiceRatio || '—'), sub: '用户 / 服务人员' },
-      { key: '', label: '单人净GMV', value: money(e.perCapitaGmv), sub: '按带班人数' },
-      { key: '', label: '团队转化离散率', value: `${e.conversionDispersion || 0}%`, sub: '团队波动', warning: true },
-      { key: 'online', label: '当前在线', value: format(f.online), sub: '实时人数', count: f.online }
+      { key: '',columnKey:'peopleServiceRatio', label: '人服比', value: String(e.peopleServiceRatio || '—'), sub: '用户 / 服务人员' },
+      { key: '',columnKey:'perCapitaGmv', label: '单人净GMV', value: money(scaled(e.perCapitaGmv)), sub: '按带班人数' },
+      { key: '',columnKey:'conversionDispersion', label: '团队转化离散率', value: `${e.conversionDispersion || 0}%`, sub: '团队波动', warning: true },
+      { key: 'online',columnKey:'online', label: '当前在线', value: format(scaled(f.online)), sub: '实时人数', count: scaled(f.online) }
     ] },
     { label: '成交金额', tone: 'finance', metrics: [
-      { key: '', label: '毛GMV', value: money(finance.grossGmv), sub: '含退款' },
-      { key: 'refund', label: '退款金额', value: money(finance.refundAmount), sub: `${format(f.refund)} 人`, count: f.refund, warning: true },
-      { key: '', label: '净GMV', value: money(finance.netGmv), sub: '退款后', highlight: true }
+      { key: '',columnKey:'grossGmv', label: '毛GMV', value: money(grossGmv), sub: '含退款' },
+      { key: 'refund',columnKey:'refundAmount', label: '退款金额', value: money(refundAmount), sub: `${format(refund)} 人`, count: refund, warning: true },
+      { key: '',columnKey:'netGmv', label: '净GMV', value: money(netGmv), sub: '退款后', highlight: true }
     ] }
-  ]
+  ].map(group=>({...group,metrics:group.metrics.filter(metric=>showOperatingColumn(metric.columnKey))})).filter(group=>group.metrics.length)
+}
+const periodOperatingGroups = computed<PeriodMetricGroup[]>(()=>buildOperatingGroups())
+const operatingRows=computed(()=>{
+  if(!period.value.length)return [{label:'',groups:buildOperatingGroups()}]
+  if(period.value.length===1)return [{label:period.value[0],groups:buildOperatingGroups()}]
+  const weights=period.value.map((_,index)=>1+index*.08),total=weights.reduce((sum,value)=>sum+value,0)
+  return [{label:'汇总',groups:buildOperatingGroups()},...period.value.map((name,index)=>({label:name,groups:buildOperatingGroups(weights[index]/total)}))]
 })
 
 const chartPoints = computed(() => {
@@ -127,7 +159,7 @@ function reportRows() {
   const f = data.value.funnel || {}, finance = data.value.finance || {}, e = data.value.efficiency || {}
   const lead = f.leads || 0
   const rows: any[][] = [
-    ['合数BOSS期次线索经营报表'], ['期次', periodLabel.value, '期次时间', periodTimeRange.value.join(' 至 '), '线索创建时间', leadCreatedRange.value.join(' 至 '), '口径版本', data.value.metricVersion],
+    ['合数BOSS经营报表'], ['期次', period.value.join('、'), '期次时间', periodTimeRange.value.join(' 至 ') || '未筛选', '线索创建时间', leadCreatedRange.value.join(' 至 '), '口径版本', data.value.metricVersion],
     ['筛选', channel.value.join('、') || '全部渠道', store.value.join('、') || '全部店铺', ipChannel.value.join('、') || '全部IP渠道', ipName.value.join('、') || '全部IP'], [], ['指标名称', '指标值', '计算口径'],
     ['人服比', e.peopleServiceRatio, '私域用户总数 / 服务人员数'], ['有效线索数', f.leads, '有效且已解密的去重线索'],
     ['加微数', f.wechat, '已加微去重人数'], ['问卷填写数', f.questionnaire, '有效答卷去重人数'], ['在线数', f.online, '查询时点在线'],
@@ -169,13 +201,14 @@ async function load() {
   error.value = ''
   try {
     const effectiveViewScope = auth.user?.role === 'ADMIN' ? scopeFilters.value.viewScope : 'SELF'
-    const result: any = await http.get('/leads/analytics', { params: { periodTimeRange: periodTimeRange.value, leadCreatedRange: leadCreatedRange.value, period: period.value, channel: channel.value, store: store.value, ipChannel: ipChannel.value, ipName: ipName.value, organizationId: scopeFilters.value.organizationId, ownerId: scopeFilters.value.ownerId, viewScope: effectiveViewScope } })
+    const result: any = await http.get('/leads/analytics', { params: { aggregationMode: isLeadCreatedSummary.value ? 'LEAD_CREATED' : 'PERIOD', periodTimeRange: periodTimeRange.value, leadCreatedRange: leadCreatedRange.value, period: period.value, channel: channel.value, store: store.value, ipChannel: ipChannel.value, ipName: ipName.value, organizationId: scopeFilters.value.organizationId, ownerId: scopeFilters.value.ownerId, viewScope: effectiveViewScope } })
     data.value = result.data
   } catch (cause: any) {
     error.value = cause.message || '线索概览加载失败'
   } finally { loading.value = false }
 }
 
+watch(operatingVisibleColumns,value=>localStorage.setItem(operatingColumnStorageKey,JSON.stringify([...new Set([...value,'period'])])),{deep:true})
 onMounted(async () => {
   const [organizationResult, employeeResult]: any = await Promise.all([http.get('/system/organizations'), http.get('/system/employees')])
   organizations.value = organizationResult.data
@@ -186,7 +219,7 @@ onMounted(async () => {
 
 <template>
   <section class="page lead-analytics-page">
-    <PageHeader eyebrow="LEAD PERFORMANCE · 期次经营驾驶舱" title="线索概览" description="从期次结果回看线索旅程，并继续下钻到来源渠道、IP渠道和IP名称。">
+    <PageHeader eyebrow="LEAD PERFORMANCE · 线索经营驾驶舱" title="线索概览" description="按期次或线索创建时间查看转化链路，并继续下钻到来源渠道、IP渠道和IP名称。">
       <el-button @click="definitionVisible = true">指标口径</el-button>
       <el-button @click="exportReport">导出本期报表</el-button>
       <el-button type="primary" @click="load">刷新数据</el-button>
@@ -209,13 +242,13 @@ onMounted(async () => {
 
     <StatePanel :loading="loading" :error="error" @retry="load">
       <article class="period-strip surface">
-        <div><span>当前报表期</span><strong>{{ periodLabel }}</strong><small>期次 {{ periodTimeRange.join(' 至 ') }} · 线索创建 {{ leadCreatedRange.join(' 至 ') }} · {{ data.metricVersion }}</small></div>
+        <div><span>当前筛选范围</span><strong>{{ periodLabel }}</strong><small>期次 {{ periodTimeRange.join(' 至 ') || '未筛选' }} · 线索创建 {{ leadCreatedRange.join(' 至 ') }} · {{ data.metricVersion }}</small></div>
         <p>所有模块共享当前筛选与数据权限；蓝色数字可查看组成该指标的线索明细。</p>
         <el-button type="primary" plain @click="exportReport">导出总览 + 渠道 + IP渠道</el-button>
       </article>
 
       <article class="journey-board surface">
-        <header><div><span class="section-kicker">FULL-FUNNEL SIGNAL</span><h2>期次转化主链路</h2></div><button class="live-chip" @click="openDrilldown('online', '当前在线', data.funnel?.online)"><i></i>当前在线 <b>{{ format(data.funnel?.online) }}</b></button></header>
+        <header><div><span class="section-kicker">FULL-FUNNEL SIGNAL</span><h2>转化链路</h2></div><button class="live-chip" @click="openDrilldown('online', '当前在线', data.funnel?.online)"><i></i>当前在线 <b>{{ format(data.funnel?.online) }}</b></button></header>
         <div class="journey-rail">
           <template v-for="(stage, index) in stages" :key="stage.key">
             <button class="journey-stage" :class="{ final: index === stages.length - 1 }" @click="openDrilldown(stage.key, stage.label, stage.value)">
@@ -229,8 +262,8 @@ onMounted(async () => {
 
       <article class="surface period-operating-panel">
         <div class="panel-heading period-operating-heading">
-          <div><span class="section-kicker">PERIOD OPERATING DATA</span><h3>期次经营数据</h3><p>本期关键指标与成交质量按经营链路集中展示；可点击的指标继续支持下钻明细。</p></div>
-          <div class="period-heading-actions"><strong>{{ data.periodName }}</strong><el-button @click="exportReport">导出数据</el-button></div>
+          <div><span class="section-kicker">OPERATING DATA</span><h3>经营数据</h3><p>单期展示期次数据，多期展示汇总及各期次数据；未选择期次时按当前筛选正常汇总。</p></div>
+          <div class="period-heading-actions"><strong>{{ period.length ? periodLabel : '全部数据' }}</strong><el-popover v-model:visible="operatingColumnSettingVisible" placement="bottom-end" :width="430" trigger="click"><template #reference><el-button circle :icon="Setting" aria-label="设置经营数据表头" title="设置经营数据表头"/></template><div class="operating-column-head"><strong>设置表头字段</strong><el-button link type="primary" @click="resetOperatingColumns">恢复默认</el-button></div><p class="operating-column-tip">期次为固定列，其他经营指标可自由选择并自动记忆。</p><el-checkbox-group v-model="operatingVisibleColumns" class="operating-column-grid"><el-checkbox v-for="item in operatingColumnOptions" :key="item.value" :value="item.value" :disabled="item.mandatory">{{ item.label }}</el-checkbox></el-checkbox-group></el-popover><el-button @click="exportReport">导出数据</el-button></div>
         </div>
         <div class="period-operating-scroll">
           <table class="period-operating-table">
@@ -239,9 +272,9 @@ onMounted(async () => {
               <tr><template v-for="group in periodOperatingGroups" :key="`${group.label}-labels`"><th v-for="metric in group.metrics" :key="metric.label">{{ metric.label }}</th></template></tr>
             </thead>
             <tbody>
-              <tr>
-                <th class="period-value">{{ data.periodName }}</th>
-                <template v-for="group in periodOperatingGroups" :key="`${group.label}-values`">
+              <tr v-for="row in operatingRows" :key="row.label||'all-summary'">
+                <th class="period-value">{{ row.label }}</th>
+                <template v-for="group in row.groups" :key="`${row.label}-${group.label}-values`">
                   <td v-for="metric in group.metrics" :key="metric.label" :class="{ warning: metric.warning, highlight: metric.highlight }">
                     <button type="button" :class="{ clickable: metric.key }" :disabled="!metric.key" @click="metric.key && openDrilldown(metric.key, metric.label, metric.count || 0)">
                       <strong>{{ metric.value }}</strong><small>{{ metric.sub }}</small>
@@ -331,6 +364,7 @@ onMounted(async () => {
 .period-operating-heading{align-items:center}
 .period-heading-actions{display:flex;align-items:center;gap:12px;color:var(--analytics-ink);white-space:nowrap}
 .period-heading-actions strong{font-size:14px}
+.operating-column-head{display:flex;align-items:center;justify-content:space-between}.operating-column-tip{margin:8px 0 14px;color:var(--muted);font-size:12px;line-height:1.6}.operating-column-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;max-height:360px;overflow:auto}
 .period-operating-scroll{margin-top:18px;padding-bottom:8px;overflow-x:auto;scrollbar-color:#cbd7e7 #f4f7fb;scrollbar-width:thin}
 .period-operating-table{width:100%;min-width:1480px;border-collapse:separate;border-spacing:0;table-layout:fixed;color:var(--analytics-ink);font-variant-numeric:tabular-nums}
 .period-operating-table th,.period-operating-table td{height:72px;border-right:1px solid #dbe6f3;border-bottom:1px solid #dbe6f3;background:#fff;text-align:center;vertical-align:middle}
