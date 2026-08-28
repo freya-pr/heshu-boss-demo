@@ -26,7 +26,7 @@ const total=computed(()=>filtered.value.length)
 const active=computed(()=>filtered.value.filter(row=>row.status==='ACTIVE').length)
 const highValue=computed(()=>filtered.value.filter(row=>['S','A'].includes(row.grade)).length)
 const deal=computed(()=>filtered.value.filter(row=>row.lifecycle==='DEAL').length)
-const lifecycle=computed(()=>['LEAD','INTENT','DEAL','LOST'].map((key,index)=>({key,label:['线索客户','意向客户','成交客户','流失客户'][index],count:filtered.value.filter(row=>(row.lifecycle||'LEAD')===key).length})))
+const lifecycle=computed(()=>['LEAD','INTENT','DEAL'].map((key,index)=>({key,label:['线索客户','意向客户','成交客户'][index],count:filtered.value.filter(row=>(row.lifecycle||'LEAD')===key).length})))
 const grades=computed(()=>['S','A','B','C'].map(key=>({key,count:filtered.value.filter(row=>row.grade===key).length})))
 const methods=computed(()=>Object.entries(addLabels).map(([key,label])=>({key,label,count:filtered.value.filter(row=>row.add_method===key).length})))
 async function load(){loading.value=true;try{const [customersResult,organizationsResult,employeesResult]:any=await Promise.all([http.get('/customers'),http.get('/system/organizations'),http.get('/system/employees')]);rows.value=customersResult.data;organizations.value=organizationsResult.data;employees.value=employeesResult.data}finally{loading.value=false}}
@@ -49,7 +49,7 @@ onMounted(load)
       <button class="metric-card" @click="drill({lifecycle:'DEAL'})"><span>成交客户</span><b>{{ deal }}</b><small>生命周期结果</small></button>
     </div>
     <div class="overview-grid">
-      <article class="surface journey-panel"><header><div><span>LIFECYCLE</span><h3>客户生命周期</h3></div><button @click="drill()">查看全部 →</button></header><div class="journey"><button v-for="(item,index) in lifecycle" :key="item.key" @click="drill({lifecycle:item.key})"><i>{{ index+1 }}</i><b>{{ item.count }}</b><span>{{ item.label }}</span></button></div><p>退款回退、流失和重新激活只改变生命周期，不覆盖等级、商机或订单事实。</p></article>
+      <article class="surface journey-panel"><header><div><span>LIFECYCLE</span><h3>客户生命周期</h3></div><button @click="drill()">查看全部 →</button></header><div class="journey"><button v-for="(item,index) in lifecycle" :key="item.key" @click="drill({lifecycle:item.key})"><i>{{ index+1 }}</i><b>{{ item.count }}</b><span>{{ item.label }}</span></button></div><p>引流线索进入即为线索客户；发生挖需动作后转为意向客户；存在成交订单后转为成交客户。</p></article>
       <article class="surface grade-panel"><header><div><span>GRADE MIX</span><h3>SABC等级分布</h3></div></header><div v-for="item in grades" :key="item.key" class="bar-row" @click="drill({grade:item.key})"><b>{{ item.key }}</b><div><i :style="{width:`${total?Math.max(8,item.count/total*100):0}%`}"></i></div><span>{{ item.count }}</span></div></article>
       <article class="surface method-panel"><header><div><span>ENTRY BEHAVIOR</span><h3>添加方式</h3></div></header><button v-for="item in methods" :key="item.key" @click="drill({addMethod:item.key})"><span>{{ item.label }}</span><b>{{ item.count }}</b><small>{{ total?Math.round(item.count/total*100):0 }}%</small></button><p>添加方式用于描述客户如何进入；渠道、店铺和IP继续由首次来源承担归因。</p></article>
       <article class="surface owner-panel"><header><div><span>OWNER LOAD</span><h3>负责人客户量</h3></div></header><div v-for="name in [...new Set(filtered.map(row=>row.owner_name||'待分配'))]" :key="name"><span>{{ name }}</span><b>{{ filtered.filter(row=>(row.owner_name||'待分配')===name).length }} 位</b></div></article>
