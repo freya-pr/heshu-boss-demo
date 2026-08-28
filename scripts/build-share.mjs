@@ -14,6 +14,7 @@ html = html.replace('<title>合数 BOSS</title>', '<title>合数BOSS · 可分�
 const outputs = [
   resolve(root, '../preview/heshu-boss-share.html'),
   resolve(root, '../vercel-share/index.html'),
+  resolve(root, '../preview-public/index.html'),
 ]
 for (const output of outputs) {
   await mkdir(dirname(output), { recursive: true })
