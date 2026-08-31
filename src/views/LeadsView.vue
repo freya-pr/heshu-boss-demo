@@ -57,6 +57,9 @@ const wechatStatusVisible = ref(false)
 const wechatStatusSubmitting = ref(false)
 const wechatStatusDraft = ref('NOT_ADDED')
 const wechatAddedAtDraft = ref('')
+const wechatCustomerNoDraft = ref('')
+const wechatCustomerOptions = ref<any[]>([])
+const wechatCustomerSearching = ref(false)
 const wechatStatusOptions = [
   { label: '否', value: 'NOT_ADDED' },
   { label: '已加企微', value: 'WECOM_ADDED' },
@@ -294,23 +297,73 @@ function isWechatAdded(value: any) {
   return ['ADDED', 'WECOM_ADDED', 'PERSONAL_WECHAT_ADDED'].includes(String(value))
 }
 
+function maskCustomerMobile(value: any) {
+  return String(value || '').replace(/(\d{3})\d{4}(\d{4})/, '$1****$2') || '无手机号'
+}
+
+async function searchWechatCustomers(query = '') {
+  wechatCustomerSearching.value = true
+  try {
+    const result: any = await http.get('/customers', { params: { keyword: query.trim() || undefined } })
+    wechatCustomerOptions.value = result.data.filter((item: any) => item.status !== 'MERGED')
+  } catch (e: any) {
+    wechatCustomerOptions.value = []
+    ElMessage.error(e.message || '客户搜索失败')
+  } finally {
+    wechatCustomerSearching.value = false
+  }
+}
+
+function changeWechatStatusDraft(value: any) {
+  if (value === 'NOT_ADDED') wechatAddedAtDraft.value = ''
+  if (value !== 'WECOM_ADDED') wechatCustomerNoDraft.value = ''
+  if (value === 'WECOM_ADDED') searchWechatCustomers('')
+}
+
+function handleWechatCustomerSelectVisible(visible: boolean) {
+  if (visible) searchWechatCustomers('')
+}
+
+function handleWechatCustomerChange(customerNo: string) {
+  if (!customerNo) return
+  const selectedCustomer = wechatCustomerOptions.value.find((item: any) => item.customer_no === customerNo)
+  if (selectedCustomer?.created_at) wechatAddedAtDraft.value = selectedCustomer.created_at
+}
+
 function openWechatStatus(row: any) {
   activeLead.value = row
   wechatStatusDraft.value = normalizeWechatStatus(row.wechat_status)
   wechatAddedAtDraft.value = row.wechat_added_at || (isWechatAdded(row.wechat_status) ? new Date().toISOString().slice(0, 19).replace('T', ' ') : '')
+  wechatCustomerNoDraft.value = wechatStatusDraft.value === 'WECOM_ADDED' ? (row.customer_no || '') : ''
+  wechatCustomerOptions.value = []
+  if (wechatStatusDraft.value === 'WECOM_ADDED') searchWechatCustomers('')
   wechatStatusVisible.value = true
 }
 
 async function submitWechatStatus() {
   if (!activeLead.value) return
   if (isWechatAdded(wechatStatusDraft.value) && !wechatAddedAtDraft.value) return ElMessage.warning('请选择加微时间')
+  if (wechatStatusDraft.value === 'WECOM_ADDED' && !wechatCustomerNoDraft.value) return ElMessage.warning('请选择关联客户')
+  let selectedCustomer: any = null
+  if (wechatStatusDraft.value === 'WECOM_ADDED') {
+    try {
+      const result: any = await http.get('/customers', { params: { keyword: wechatCustomerNoDraft.value } })
+      selectedCustomer = result.data.find((item: any) => item.customer_no === wechatCustomerNoDraft.value && item.status !== 'MERGED')
+    } catch (e: any) {
+      return ElMessage.error(e.message || '客户校验失败')
+    }
+    if (!selectedCustomer) return ElMessage.warning('所选客户不存在或已失效，请重新搜索选择')
+    wechatAddedAtDraft.value = selectedCustomer.created_at || ''
+    if (!wechatAddedAtDraft.value) return ElMessage.warning('所选客户缺少添加时间，暂不能关联')
+  }
   const originalTime = activeLead.value.wechat_added_at || ''
-  const nextTime = isWechatAdded(wechatStatusDraft.value) ? wechatAddedAtDraft.value : ''
-  if (normalizeWechatStatus(activeLead.value.wechat_status) === wechatStatusDraft.value && originalTime === nextTime) return ElMessage.info('加微状态和加微时间均未发生变化')
+  const nextTime = wechatStatusDraft.value === 'WECOM_ADDED' ? selectedCustomer.created_at : (isWechatAdded(wechatStatusDraft.value) ? wechatAddedAtDraft.value : '')
+  const customerUnchanged = wechatStatusDraft.value !== 'WECOM_ADDED' || activeLead.value.customer_no === selectedCustomer?.customer_no
+  if (normalizeWechatStatus(activeLead.value.wechat_status) === wechatStatusDraft.value && originalTime === nextTime && customerUnchanged) return ElMessage.info('加微状态、加微时间和关联客户均未发生变化')
   wechatStatusSubmitting.value = true
   try {
-    await http.post(`/leads/${activeLead.value.id}/wechat-status`, { wechatStatus: wechatStatusDraft.value, wechatAddedAt: nextTime || null })
-    ElMessage.success('加微状态和加微时间已更新，并记录到线索旅程')
+    await http.post(`/leads/${activeLead.value.id}/wechat-status`, { wechatStatus: wechatStatusDraft.value, wechatAddedAt: nextTime || null, customerId: selectedCustomer?.id || null, customerNo: selectedCustomer?.customer_no || null })
+    ElMessage.success(wechatStatusDraft.value === 'WECOM_ADDED' ? `已更新加微状态，并将线索绑定至客户 ${selectedCustomer.customer_no}` : '加微状态和加微时间已更新，并记录到线索旅程')
     wechatStatusVisible.value = false
     await load()
   } catch (e: any) {
@@ -322,7 +375,7 @@ async function submitWechatStatus() {
 
 function handleOperation(command: string, row: any) {
   const operationLabels: Record<string, string> = {
-    CREATE_CUSTOMER: '建立客户档案', CHANGE_MARK: '变更线索标记', REASSIGN: '改派负责人',
+    CREATE_CUSTOMER: '建立客户档案', REASSIGN: '改派负责人',
     CHANGE_MOBILE: '变更手机号', CHANGE_WECHAT_STATUS: '修改加微状态', CHANGE_PERIOD: '变更期次', SMS_REMINDER: '短信提醒', REMARK: '备注'
   }
   if (command === 'CREATE_CUSTOMER') return convert(row)
@@ -821,7 +874,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
               <el-button link type="primary">更多⌄</el-button>
               <template #dropdown><el-dropdown-menu>
                 <el-dropdown-item v-if="isWechatAdded(row.wechat_status) && !row.customer_no" command="CREATE_CUSTOMER">建立客户档案</el-dropdown-item>
-                <el-dropdown-item command="CHANGE_MARK">变更线索标记</el-dropdown-item><el-dropdown-item command="REASSIGN">改派负责人</el-dropdown-item>
+                <el-dropdown-item command="REASSIGN">改派负责人</el-dropdown-item>
                 <el-dropdown-item v-if="sourceType === 'DRAINAGE'" divided command="CHANGE_WECHAT_STATUS">修改加微状态</el-dropdown-item>
                 <el-dropdown-item command="CHANGE_PERIOD">变更期次</el-dropdown-item>
                 <el-dropdown-item divided command="CHANGE_MOBILE">变更手机号</el-dropdown-item>
@@ -952,13 +1005,17 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
     <el-dialog v-model="wechatStatusVisible" title="修改加微状态" width="640px" destroy-on-close>
       <div class="wechat-status-dialog-body">
         <span>加微状态：</span>
-        <el-radio-group v-model="wechatStatusDraft" @change="wechatStatusDraft === 'NOT_ADDED' && (wechatAddedAtDraft = '')">
+        <el-radio-group v-model="wechatStatusDraft" @change="changeWechatStatusDraft">
           <el-radio v-for="item in wechatStatusOptions" :key="item.value" :value="item.value">{{ item.label }}</el-radio>
         </el-radio-group>
+        <span v-if="wechatStatusDraft === 'WECOM_ADDED'">关联客户：</span>
+        <el-select v-if="wechatStatusDraft === 'WECOM_ADDED'" v-model="wechatCustomerNoDraft" filterable remote reserve-keyword clearable :remote-method="searchWechatCustomers" :loading="wechatCustomerSearching" placeholder="输入客户名称或手机号搜索" style="width:100%" @visible-change="handleWechatCustomerSelectVisible" @change="handleWechatCustomerChange">
+          <el-option v-for="customer in wechatCustomerOptions" :key="customer.customer_no" :label="`${customer.name} · ${maskCustomerMobile(customer.mobile)}`" :value="customer.customer_no"><div class="customer-select-option"><b>{{ customer.name }}</b><span>{{ maskCustomerMobile(customer.mobile) }}</span><small>{{ customer.customer_no }}</small></div></el-option>
+        </el-select>
         <span v-if="wechatStatusDraft !== 'NOT_ADDED'">加微时间：</span>
-        <el-date-picker v-if="wechatStatusDraft !== 'NOT_ADDED'" v-model="wechatAddedAtDraft" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" placeholder="选择实际加微时间" style="width:100%" />
+        <el-date-picker v-if="wechatStatusDraft !== 'NOT_ADDED'" v-model="wechatAddedAtDraft" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" placeholder="选择实际加微时间" style="width:100%" :disabled="wechatStatusDraft === 'WECOM_ADDED'" />
       </div>
-      <el-alert class="wechat-status-dialog-tip" type="info" :closable="false" show-icon title="选择已加企微或已加个微时，加微时间必填；选择否时自动清空加微时间。提交后记录状态、加微时间、操作人和操作时间。"/>
+      <el-alert class="wechat-status-dialog-tip" type="info" :closable="false" show-icon title="选择已加企微时，关联客户和加微时间均必填；选中客户后自动带出客户添加时间且不允许修改。提交前会再次校验客户是否存在并将线索绑定至该客户。"/>
       <template #footer><el-button @click="wechatStatusVisible = false">关闭</el-button><el-button type="primary" :loading="wechatStatusSubmitting" @click="submitWechatStatus">提交</el-button></template>
     </el-dialog>
 
@@ -1211,6 +1268,10 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 .wechat-status-dialog-body :deep(.el-radio-group) { display: flex; flex-wrap: wrap; gap: 22px; }
 .wechat-status-dialog-body :deep(.el-radio) { margin-right: 0; }
 .wechat-status-dialog-tip { margin-bottom: 6px; }
+.customer-select-option { display:flex;align-items:center;gap:10px; }
+.customer-select-option b { color:#1e293b; }
+.customer-select-option span { color:#64748b; }
+.customer-select-option small { margin-left:auto;color:#94a3b8; }
 @media (max-width: 1200px) {
   .search-grid,
   .advanced-search { grid-template-columns: repeat(2, minmax(180px, 1fr)); }

@@ -72,6 +72,11 @@ async function loadPeriods() {
   finally { loading.value = false }
 }
 function persist() { if (isDemoMode) saveAcquisitionPeriods(periods.value) }
+function normalizePeriodName(name: string) { return name.trim().toLocaleLowerCase('zh-CN') }
+function findDuplicatePeriodName(name: string, excludeId = '') {
+  const normalizedName = normalizePeriodName(name)
+  return periods.value.find(item => item.id !== excludeId && normalizePeriodName(item.name) === normalizedName)
+}
 function resetFilters() { keyword.value = ''; statusFilter.value = '' }
 function openCreate() {
   editingId.value = ''
@@ -85,6 +90,7 @@ function openEdit(row: AcquisitionPeriod) {
 }
 async function saveEdit() {
   if (!form.name.trim() || !form.startAt || !form.endAt) return ElMessage.warning('请完整填写期次名称和起止时间')
+  if (findDuplicatePeriodName(form.name, editingId.value)) return ElMessage.warning('期次名称已存在，请更换后再保存')
   if (new Date(form.startAt) > new Date(form.endAt)) return ElMessage.warning('期次结束时间不能早于开始时间')
   if (!isDemoMode) {
     const body = { name: form.name.trim(), stage: 'RECEPTION', startAt: form.startAt.replace(' ', 'T'), endAt: form.endAt.replace(' ', 'T'), status: form.status === '启用' ? 'ACTIVE' : 'INACTIVE', remark: form.remark }
@@ -108,7 +114,10 @@ async function createBatch() {
   if (batchPreview.value.some(item => !item.name.trim())) return ElMessage.warning('期次名称不能为空')
   if (batchPreview.value.some(item => !item.startAt || !item.endAt)) return ElMessage.warning('请完整填写每个期次的开始和结束时间')
   if (batchPreview.value.some(item => new Date(item.startAt) > new Date(item.endAt))) return ElMessage.warning('期次结束时间不能早于开始时间')
-  if (new Set(batchPreview.value.map(item => item.name.trim())).size !== batchPreview.value.length) return ElMessage.warning('预览中存在重复期次名称，请修改后再创建')
+  const previewNames = batchPreview.value.map(item => normalizePeriodName(item.name))
+  if (new Set(previewNames).size !== previewNames.length) return ElMessage.warning('预览中存在重复期次名称，请修改后再创建')
+  const duplicateExisting = batchPreview.value.find(item => findDuplicatePeriodName(item.name))
+  if (duplicateExisting) return ElMessage.warning(`期次名称“${duplicateExisting.name.trim()}”已存在，请修改后再创建`)
   if (!isDemoMode) {
     try {
       for (const item of batchPreview.value) await http.post('/acquisition-periods', { name: item.name.trim(), stage: 'RECEPTION', startAt: item.startAt.replace(' ', 'T'), endAt: item.endAt.replace(' ', 'T'), status: 'ACTIVE', remark: '' })
@@ -116,13 +125,11 @@ async function createBatch() {
     } catch (error: any) { ElMessage.error(error.message || '批量创建失败') }
     return
   }
-  const existingNames = new Set(periods.value.map(item => item.name))
-  const additions = batchPreview.value.filter(item => !existingNames.has(item.name)).map((item, index) => ({
+  const additions = batchPreview.value.map((item, index) => ({
     id: `AP-${Date.now()}-${index + 1}`, ...item, stage: '接量期' as const, status: '启用' as const, creatorName: '林校长', createdAt: new Date().toLocaleString('zh-CN', { hour12: false }), qrRefCount: 0, businessDataCount: 0
   }))
-  if (!additions.length) return ElMessage.warning('预览期次均已存在，请调整名称前缀或生成范围')
   periods.value.push(...additions); persist(); batchVisible.value = false
-  ElMessage.success(`已创建 ${additions.length} 个期次，重复名称已自动跳过`)
+  ElMessage.success(`已创建 ${additions.length} 个期次`)
 }
 async function toggleStatus(row: AcquisitionPeriod) {
   if (!isDemoMode) {
@@ -186,12 +193,12 @@ onMounted(loadPeriods)
     </section>
 
     <el-dialog v-model="editVisible" :title="editingId ? '编辑期次' : '新建期次'" width="620px">
-      <el-form label-position="top"><el-form-item label="期次名称" required><el-input v-model="form.name" maxlength="40" show-word-limit /></el-form-item><el-form-item label="状态"><el-radio-group v-model="form.status"><el-radio-button value="启用">启用</el-radio-button><el-radio-button value="停用">停用</el-radio-button></el-radio-group></el-form-item><div class="form-grid"><el-form-item label="期次开始时间" required><el-date-picker v-model="form.startAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" /></el-form-item><el-form-item label="期次结束时间" required><el-date-picker v-model="form.endAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" /></el-form-item></div><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="3" /></el-form-item></el-form>
+      <el-form label-position="top"><el-form-item label="期次名称" required><el-input v-model="form.name" maxlength="40" show-word-limit /><small class="field-tip">期次名称全局唯一，不允许与已有期次重复。</small></el-form-item><el-form-item label="状态"><el-radio-group v-model="form.status"><el-radio-button value="启用">启用</el-radio-button><el-radio-button value="停用">停用</el-radio-button></el-radio-group></el-form-item><div class="form-grid"><el-form-item label="期次开始时间" required><el-date-picker v-model="form.startAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" /></el-form-item><el-form-item label="期次结束时间" required><el-date-picker v-model="form.endAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" /></el-form-item></div><el-form-item label="备注"><el-input v-model="form.remark" type="textarea" :rows="3" /></el-form-item></el-form>
       <template #footer><el-button @click="editVisible = false">取消</el-button><el-button type="primary" @click="saveEdit">保存</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="batchVisible" title="批量创建引流期次" width="1080px">
-      <el-alert :title="`按${batch.range==='YEAR'?'年':'月'}生成预览，确认后一次性创建；重名期次会自动跳过。`" type="info" show-icon :closable="false" />
+      <el-alert :title="`按${batch.range==='YEAR'?'年':'月'}生成预览，确认后一次性创建；期次名称不允许与预览内或已有期次重复。`" type="info" show-icon :closable="false" />
       <el-form label-position="top" class="batch-form"><el-form-item label="生成范围" required><el-radio-group v-model="batch.range"><el-radio-button value="MONTH">按月</el-radio-button><el-radio-button value="YEAR">按年</el-radio-button></el-radio-group></el-form-item><el-form-item label="期次开始时间" required><el-date-picker v-model="batch.startDate" type="date" value-format="YYYY-MM-DD" /></el-form-item><el-form-item label="固定周期" required><el-input-number v-model="batch.cycleDays" :min="1" :max="31" /><span class="unit">天 / 期</span></el-form-item><el-form-item label="期次时长" required><el-input-number v-model="batch.durationDays" :min="1" :max="90" /><span class="unit">天</span></el-form-item><el-form-item label="默认命名规则"><el-input model-value="年月日，如 20260803" disabled /></el-form-item></el-form>
       <div class="preview"><h3>生成预览 · {{ batchPreview.length }} 个期次 <small>名称、开始时间和结束时间均可直接修改</small></h3><el-table :data="batchPreview" max-height="320"><el-table-column label="期次名称" min-width="180"><template #default="{ row }"><el-input v-model="row.name" maxlength="40" /></template></el-table-column><el-table-column label="开始时间" min-width="220"><template #default="{ row }"><el-date-picker v-model="row.startAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" /></template></el-table-column><el-table-column label="结束时间" min-width="220"><template #default="{ row }"><el-date-picker v-model="row.endAt" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" /></template></el-table-column></el-table></div>
       <template #footer><el-button @click="batchVisible = false">取消</el-button><el-button type="primary" @click="createBatch">确认批量创建</el-button></template>
@@ -202,5 +209,5 @@ onMounted(loadPeriods)
 </template>
 
 <style scoped>
-.period-page{padding:28px;background:#f4f7fb;min-height:100%}.panel,.metric-grid article{background:#fff;border:1px solid #e2e9f3;border-radius:16px;box-shadow:0 8px 24px rgba(29,57,95,.05)}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0}.metric-grid article{padding:20px}.metric-grid span,.metric-grid small{display:block;color:#7b8ba5}.metric-grid b{display:block;font-size:30px;color:#172b4d;margin:10px 0}.filter-panel{display:flex;align-items:center;gap:12px;padding:18px;margin-bottom:16px}.filter-panel .el-input{width:260px}.filter-panel .el-select{width:150px}.grow{flex:1}.table-panel{padding:0 18px 18px}.table-panel header{display:flex;justify-content:space-between;align-items:center;padding:20px 4px}.table-panel h2{margin:0;color:#172b4d}.table-panel p{margin:6px 0 0;color:#7b8ba5}.sub{display:block;color:#91a0b7;margin-top:5px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form-grid .el-date-editor,.form-grid .el-select{width:100%}.batch-form{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}.batch-form .el-select,.batch-form .el-date-editor{width:100%}.unit{margin-left:8px;color:#7b8ba5}.preview{border-top:1px solid #e5ebf4;padding-top:14px}.preview h3{color:#172b4d}.preview :deep(.el-date-editor){width:100%}@media(max-width:1000px){.metric-grid{grid-template-columns:1fr 1fr}.filter-panel{flex-wrap:wrap}.batch-form{grid-template-columns:1fr 1fr}}
+.period-page{padding:28px;background:#f4f7fb;min-height:100%}.panel,.metric-grid article{background:#fff;border:1px solid #e2e9f3;border-radius:16px;box-shadow:0 8px 24px rgba(29,57,95,.05)}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0}.metric-grid article{padding:20px}.metric-grid span,.metric-grid small{display:block;color:#7b8ba5}.metric-grid b{display:block;font-size:30px;color:#172b4d;margin:10px 0}.filter-panel{display:flex;align-items:center;gap:12px;padding:18px;margin-bottom:16px}.filter-panel .el-input{width:260px}.filter-panel .el-select{width:150px}.grow{flex:1}.table-panel{padding:0 18px 18px}.table-panel header{display:flex;justify-content:space-between;align-items:center;padding:20px 4px}.table-panel h2{margin:0;color:#172b4d}.table-panel p{margin:6px 0 0;color:#7b8ba5}.sub{display:block;color:#91a0b7;margin-top:5px}.field-tip{display:block;margin-top:6px;color:#91a0b7}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form-grid .el-date-editor,.form-grid .el-select{width:100%}.batch-form{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}.batch-form .el-select,.batch-form .el-date-editor{width:100%}.unit{margin-left:8px;color:#7b8ba5}.preview{border-top:1px solid #e5ebf4;padding-top:14px}.preview h3{color:#172b4d}.preview :deep(.el-date-editor){width:100%}@media(max-width:1000px){.metric-grid{grid-template-columns:1fr 1fr}.filter-panel{flex-wrap:wrap}.batch-form{grid-template-columns:1fr 1fr}}
 </style>

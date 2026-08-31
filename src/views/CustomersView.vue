@@ -68,7 +68,7 @@ const columnOptions = [
   { value: 'owner', label: '客户负责人' },
   { value: 'organization', label: '归属组织' },
   { value: 'status', label: '客户状态' },
-  { value: 'created_at', label: '客户创建时间' },
+  { value: 'created_at', label: '客户添加时间' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
 const columnStorageKey = 'heshu_boss_customer_table_columns_v1'
@@ -161,7 +161,7 @@ onMounted(load)
           <el-table-column v-if="showColumn('owner')" label="客户负责人" min-width="150"><template #default="{row}"><b>{{ row.owner_name||'待分配' }}</b><small class="cell-sub">{{ row.owner_employee_no||'—' }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('organization')" label="归属组织" min-width="150"><template #default="{row}">{{ row.owner_organization_name||'—' }}</template></el-table-column>
           <el-table-column v-if="showColumn('status')" prop="status" label="客户状态" width="100"><template #default="{row}">{{ customerStatusLabels[row.status]||row.status }}</template></el-table-column>
-          <el-table-column v-if="showColumn('created_at')" prop="created_at" label="客户创建时间" width="168" />
+          <el-table-column v-if="showColumn('created_at')" prop="created_at" label="客户添加时间" width="168" />
           <el-table-column label="操作" width="260" fixed="right"><template #default="{row}"><el-button link type="primary" @click="openDetail(row)">客户档案</el-button><el-button link type="primary" @click="openGradeEditor(row)">编辑等级</el-button><el-button link type="primary" @click="openMobileChange(row)">变更手机号</el-button></template></el-table-column>
         </el-table>
       </StatePanel>

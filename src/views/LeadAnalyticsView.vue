@@ -54,12 +54,12 @@ const stages = computed(() => {
 type PeriodMetric = { key: string; columnKey:string; label: string; value: string; sub: string; count?: number; warning?: boolean; highlight?: boolean; progress?: number }
 type PeriodMetricGroup = { label: string; tone: string; metrics: PeriodMetric[] }
 const operatingColumnOptions=[
-  {value:'period',label:'期次',mandatory:true},{value:'wechatRate',label:'加微率'},{value:'questionnaireRate',label:'问卷填写率'},
+  {value:'period',label:'期次',mandatory:true},{value:'validLeads',label:'有效线索数'},{value:'wechatRate',label:'加微率'},{value:'questionnaireRate',label:'问卷填写率'},
   {value:'day1ArrivalRate',label:'DAY1 到课率'},{value:'day1CompletionRate',label:'DAY1 完课率'},{value:'day2ArrivalRate',label:'DAY2 到课率'},{value:'day2CompletionRate',label:'DAY2 完课率'},{value:'day3ArrivalRate',label:'DAY3 到课率'},{value:'day3CompletionRate',label:'DAY3 完课率'},
   {value:'refundRate',label:'退款率'},{value:'finalConversionRate',label:'最终转化率'},{value:'gmvRate',label:'GMV完成率'},{value:'peopleServiceRatio',label:'人服比'},{value:'perCapitaGmv',label:'单人净GMV'},{value:'conversionDispersion',label:'团队转化离散率'},{value:'online',label:'当前在线'},{value:'grossGmv',label:'毛GMV'},{value:'refundAmount',label:'退款金额'},{value:'netGmv',label:'净GMV'}
 ]
 const operatingColumnStorageKey='heshu_boss_analytics_operating_columns_v1'
-function loadOperatingColumns(){try{const saved=JSON.parse(localStorage.getItem(operatingColumnStorageKey)||'[]');return Array.isArray(saved)&&saved.length?[...new Set([...saved,'period'])]:operatingColumnOptions.map(item=>item.value)}catch{return operatingColumnOptions.map(item=>item.value)}}
+function loadOperatingColumns(){try{const saved=JSON.parse(localStorage.getItem(operatingColumnStorageKey)||'[]');return Array.isArray(saved)&&saved.length?[...new Set([...saved,'period','validLeads'])]:operatingColumnOptions.map(item=>item.value)}catch{return operatingColumnOptions.map(item=>item.value)}}
 const operatingVisibleColumns=ref<string[]>(loadOperatingColumns()),operatingColumnSettingVisible=ref(false)
 const showOperatingColumn=(key:string)=>key==='period'||operatingVisibleColumns.value.includes(key)
 function resetOperatingColumns(){operatingVisibleColumns.value=operatingColumnOptions.map(item=>item.value)}
@@ -77,6 +77,7 @@ function buildOperatingGroups(scale=1):PeriodMetricGroup[] {
   const gmvRate = div(netGmv,targetGmv)
   return [
     { label: '过程转化', tone: 'process', metrics: [
+      { key: 'leads',columnKey:'validLeads', label: '有效线索数', value: format(lead), sub: '', count: lead },
       { key: 'wechat',columnKey:'wechatRate', label: '加微率', value: pct(div(wechat, lead)), sub: format(wechat), count: wechat },
       { key: 'questionnaire',columnKey:'questionnaireRate', label: '问卷填写率', value: pct(div(questionnaire, lead)), sub: format(questionnaire), count: questionnaire },
       { key: 'arrival',columnKey:'day1ArrivalRate',label:'DAY1 到课率',value:pct(div(day1Arrival,questionnaire)),sub:`${format(day1Arrival)} 人`,count:day1Arrival },
@@ -277,7 +278,7 @@ onMounted(async () => {
                 <template v-for="group in row.groups" :key="`${row.label}-${group.label}-values`">
                   <td v-for="metric in group.metrics" :key="metric.label" :class="{ warning: metric.warning, highlight: metric.highlight }">
                     <button type="button" :class="{ clickable: metric.key }" :disabled="!metric.key" @click="metric.key && openDrilldown(metric.key, metric.label, metric.count || 0)">
-                      <strong>{{ metric.value }}</strong><small>{{ metric.sub }}</small>
+                      <strong>{{ metric.value }}</strong><small v-if="metric.sub">{{ metric.sub }}</small>
                       <i v-if="metric.progress !== undefined" class="metric-progress"><em :style="{ width: `${metric.progress}%` }"></em></i>
                       <span v-if="metric.key">查看明细 →</span>
                     </button>

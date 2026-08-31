@@ -395,7 +395,13 @@ export const demoHttp = {
         .map(enrichCollision)
         .filter(item => !keyword || [item.collision_no, item.mobile, item.union_id, item.incoming_name, item.source_business_no, item.mobile_customer?.customer_no, item.mobile_customer?.name, item.union_customer?.customer_no, item.union_customer?.name].some(value => String(value || '').toLowerCase().includes(keyword))))
     }
-    if (path === '/customers') { const grade = config.params?.grade; return ok(grade ? db.customers.filter(item => item.grade === grade) : db.customers) }
+    if (path === '/customers') {
+      const grade = config.params?.grade
+      const keyword = String(config.params?.keyword || '').trim().toLowerCase()
+      return ok(db.customers
+        .filter(item => !grade || item.grade === grade)
+        .filter(item => !keyword || [item.customer_no, item.name, item.mobile].some(value => String(value || '').toLowerCase().includes(keyword))))
+    }
     if (path === '/messages') { const read = config.params?.readStatus; return ok(read ? db.messages.filter(item => item.read_status === read) : db.messages) }
     if (path === '/system/organizations') return ok(db.organizations)
     if (path === '/system/employees') return ok(db.employees)
@@ -457,16 +463,22 @@ export const demoHttp = {
       const nextStatus = String(body.wechatStatus || '')
       const allowedStatuses = ['NOT_ADDED', 'WECOM_ADDED', 'PERSONAL_WECHAT_ADDED']
       if (!allowedStatuses.includes(nextStatus)) return fail('加微状态无效')
+      const selectedCustomer = nextStatus === 'WECOM_ADDED' ? db.customers.find(item => item.customer_no === body.customerNo && item.status !== 'MERGED') : null
+      if (nextStatus === 'WECOM_ADDED' && !selectedCustomer) return fail('所选客户不存在或已失效，请重新搜索选择')
+      if (nextStatus === 'WECOM_ADDED' && !selectedCustomer?.created_at) return fail('所选客户缺少添加时间，暂不能关联')
+      const nextWechatAddedAt = nextStatus === 'NOT_ADDED' ? '' : nextStatus === 'WECOM_ADDED' ? String(selectedCustomer?.created_at || '') : String(body.wechatAddedAt || '')
+      if (nextStatus !== 'NOT_ADDED' && !nextWechatAddedAt) return fail('请选择加微时间')
       const currentStatus = lead.wechat_status === 'ADDED' ? 'WECOM_ADDED' : lead.wechat_status === 'DELETED' ? 'NOT_ADDED' : (lead.wechat_status || (lead.wechat_added_at ? (lead.wechat_method === 'PERSONAL_WECHAT' ? 'PERSONAL_WECHAT_ADDED' : 'WECOM_ADDED') : 'NOT_ADDED'))
-      if (currentStatus === nextStatus) return ok({ wechatStatus: currentStatus, idempotent: true })
+      if (currentStatus === nextStatus && String(lead.wechat_added_at || '') === nextWechatAddedAt && (nextStatus !== 'WECOM_ADDED' || lead.customer_no === selectedCustomer?.customer_no)) return ok({ wechatStatus: currentStatus, idempotent: true })
       const statusLabels: Record<string, string> = { NOT_ADDED: '否', WECOM_ADDED: '已加企微', PERSONAL_WECHAT_ADDED: '已加个微' }
       const occurredAt = nowText()
       const operatorName = currentUser().displayName
       lead.wechat_status_history ||= []
-      lead.wechat_status_history.unshift({ from_status: currentStatus, to_status: nextStatus, operator_name: operatorName, occurred_at: occurredAt, detail: `加微状态由“${statusLabels[currentStatus] || currentStatus}”修改为“${statusLabels[nextStatus]}”` })
-      Object.assign(lead, { wechat_status: nextStatus, wechat_method: nextStatus === 'WECOM_ADDED' ? 'WECOM' : nextStatus === 'PERSONAL_WECHAT_ADDED' ? 'PERSONAL_WECHAT' : '', updated_at: occurredAt })
+      lead.wechat_status_history.unshift({ from_status: currentStatus, to_status: nextStatus, operator_name: operatorName, occurred_at: occurredAt, detail: `加微状态由“${statusLabels[currentStatus] || currentStatus}”修改为“${statusLabels[nextStatus]}”${selectedCustomer ? `，线索绑定至客户 ${selectedCustomer.customer_no}` : ''}` })
+      Object.assign(lead, { wechat_status: nextStatus, wechat_method: nextStatus === 'WECOM_ADDED' ? 'WECOM' : nextStatus === 'PERSONAL_WECHAT_ADDED' ? 'PERSONAL_WECHAT' : '', wechat_added_at: nextWechatAddedAt, updated_at: occurredAt })
+      if (selectedCustomer) Object.assign(lead, { customer_id: selectedCustomer.id, customer_no: selectedCustomer.customer_no, customer_name: selectedCustomer.name, customer_linked_at: lead.customer_linked_at || occurredAt })
       save()
-      return ok({ wechatStatus: nextStatus, occurredAt, operatorName })
+      return ok({ wechatStatus: nextStatus, occurredAt, operatorName, customerNo: selectedCustomer?.customer_no || lead.customer_no || '' })
     }
     const validateMobileChange = path.match(/^\/leads\/(\d+)\/mobile-change\/validate$/)
     if (validateMobileChange) {
