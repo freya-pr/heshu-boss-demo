@@ -28,7 +28,11 @@ const leadMark = ref('')
 const leadGradeFilter = ref('')
 const demandMinedFilter = ref('')
 const conversionStatus = ref('')
-const keyword = ref('')
+const customerFilterField = ref<'mobile' | 'name_wechat'>('mobile')
+const customerKeyword = ref('')
+const orderKeyword = ref('')
+const productFilterField = ref<'name' | 'id'>('name')
+const productKeyword = ref('')
 const sourceFilter = ref('')
 const orderStatusFilter = ref('')
 const entryMethodFilter = ref('')
@@ -47,7 +51,10 @@ const activeLead = ref<any>(null)
 type LeadTag = { name: string; source: '系统' | '企业微信' }
 const leadTags = ref<Record<string, LeadTag[]>>({})
 const leadTagDialogVisible = ref(false)
+const leadTagFilterVisible = ref(false)
 const activeTagLead = ref<any>(null)
+const selectedLeadTagFilters = ref<string[]>([])
+const leadTagSearch = ref('')
 const mobileChangeVisible = ref(false)
 const mobileChangeLoading = ref(false)
 const mobileChangeSubmitting = ref(false)
@@ -135,6 +142,13 @@ function resetColumns() { visibleColumns.value = [...defaultColumns] }
 const leadTagKey = (row: any) => String(row?.id ?? row?.order_no ?? '')
 const tagsForLead = (row: any) => leadTags.value[leadTagKey(row)] || []
 const leadTagSources: LeadTag['source'][] = ['系统', '企业微信']
+const leadTagCatalog = computed(() => {
+  const unique = new Map<string, LeadTag>()
+  Object.values(leadTags.value).flat().forEach(tag => unique.set(`${tag.source}:${tag.name}`, tag))
+  const search = leadTagSearch.value.trim().toLowerCase()
+  return [...unique.values()].filter(tag => !search || tag.name.toLowerCase().includes(search))
+})
+const leadTagsBySource = computed(() => leadTagSources.map(source => ({ source, tags: leadTagCatalog.value.filter(tag => tag.source === source) })))
 function seedLeadTags(items: any[]) {
   const samples: LeadTag[][] = [
     [{ name: '暑期活动', source: '系统' }, { name: '高意向', source: '系统' }, { name: '已加企微', source: '企业微信' }],
@@ -206,7 +220,13 @@ function resetFilters() {
   leadGradeFilter.value = ''
   demandMinedFilter.value = ''
   conversionStatus.value = ''
-  keyword.value = ''
+  selectedLeadTagFilters.value = []
+  leadTagSearch.value = ''
+  customerFilterField.value = 'mobile'
+  customerKeyword.value = ''
+  orderKeyword.value = ''
+  productFilterField.value = 'name'
+  productKeyword.value = ''
   sourceFilter.value = ''
   orderStatusFilter.value = ''
   entryMethodFilter.value = ''
@@ -693,9 +713,16 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesShop = !shopFilter.value.trim() || String(row.shop_name || '').toLowerCase().includes(shopFilter.value.trim().toLowerCase())
   const selectedDate = String(row[dateField.value] || '').slice(0, 10)
   const matchesDate = createdRange.value.length !== 2 || (!!selectedDate && selectedDate >= createdRange.value[0] && selectedDate <= createdRange.value[1])
-  const text = [row.order_no, row.third_party_product_id, row.name, row.mobile, row.original_mobile, row.decrypted_mobile, row.wechat_nickname, row.customer_no, row.customer_name].join(' ').toLowerCase()
-  const matchesKeyword = !keyword.value.trim() || text.includes(keyword.value.trim().toLowerCase())
-  return matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesPeriod && matchesShop && matchesDate && matchesKeyword
+  const customerValue = customerFilterField.value === 'name_wechat'
+    ? [row.customer_name, row.name, row.wechat_nickname].join(' ')
+    : [row.mobile, row.original_mobile, row.decrypted_mobile].join(' ')
+  const matchesCustomer = !customerKeyword.value.trim() || String(customerValue || '').toLowerCase().includes(customerKeyword.value.trim().toLowerCase())
+  const matchesOrder = !orderKeyword.value.trim() || String(row.order_no || '').toLowerCase().includes(orderKeyword.value.trim().toLowerCase())
+  const productValue = productFilterField.value === 'id' ? row.third_party_product_id : row.first_product_name
+  const matchesProduct = !productKeyword.value.trim() || String(productValue || '').toLowerCase().includes(productKeyword.value.trim().toLowerCase())
+  const rowTagNames = tagsForLead(row).map(tag => tag.name)
+  const matchesLeadTags = !selectedLeadTagFilters.value.length || selectedLeadTagFilters.value.some(tag => rowTagNames.includes(tag))
+  return matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesPeriod && matchesShop && matchesDate && matchesCustomer && matchesOrder && matchesProduct && matchesLeadTags
 }))
 const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
@@ -756,7 +783,16 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           :role="auth.user?.role"
         />
         <div class="search-grid">
-          <el-input v-model="keyword" clearable placeholder="订单/商品/客户/手机号/微信昵称"/>
+          <div class="dimension-search-filter customer-search-filter">
+            <el-select v-model="customerFilterField" aria-label="客户筛选类型"><el-option label="客户手机号" value="mobile"/><el-option label="客户名称/微信昵称" value="name_wechat"/></el-select>
+            <el-input v-model="customerKeyword" clearable :placeholder="customerFilterField === 'mobile' ? '请输入客户手机号' : '请输入客户名称或微信昵称'"/>
+          </div>
+          <el-input v-model="orderKeyword" clearable placeholder="订单编号"/>
+          <div class="dimension-search-filter product-search-filter">
+            <el-select v-model="productFilterField" aria-label="商品筛选类型"><el-option label="商品名称" value="name"/><el-option label="商品ID" value="id"/></el-select>
+            <el-input v-model="productKeyword" clearable :placeholder="productFilterField === 'name' ? '请输入商品名称' : '请输入商品ID'"/>
+          </div>
+          <el-button v-if="sourceType === 'DRAINAGE'" class="lead-tag-filter-trigger" @click="leadTagFilterVisible = true">线索标签<template v-if="selectedLeadTagFilters.length">（{{ selectedLeadTagFilters.length }}）</template></el-button>
           <el-select v-model="leadMark" placeholder="线索标记" clearable><el-option v-for="(label, value) in leadMarkLabels" :key="value" :label="label" :value="value"/></el-select>
           <el-select v-model="conversionStatus" placeholder="转化状态" clearable><el-option v-for="(label, value) in conversionLabels" :key="value" :label="label" :value="value"/></el-select>
         </div>
@@ -886,6 +922,18 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         </el-table>
       </StatePanel>
     </div>
+
+    <el-dialog v-model="leadTagFilterVisible" title="选择线索标签" width="780px">
+      <div class="selected-lead-tag-box">
+        <b>已选标签</b>
+        <div><el-tag v-for="tag in selectedLeadTagFilters" :key="tag" closable @close="selectedLeadTagFilters = selectedLeadTagFilters.filter(item => item !== tag)">{{ tag }}</el-tag><span v-if="!selectedLeadTagFilters.length">暂未选择</span></div>
+      </div>
+      <el-input v-model="leadTagSearch" clearable placeholder="搜索标签名称" class="lead-tag-search"/>
+      <div class="lead-tag-filter-groups">
+        <section v-for="group in leadTagsBySource" :key="group.source"><h4>{{ group.source }}</h4><el-checkbox-group v-model="selectedLeadTagFilters"><el-checkbox-button v-for="tag in group.tags" :key="`${tag.source}-${tag.name}`" :value="tag.name">{{ tag.name }}</el-checkbox-button></el-checkbox-group><span v-if="!group.tags.length">暂无匹配标签</span></section>
+      </div>
+      <template #footer><el-button @click="selectedLeadTagFilters = []">清空</el-button><el-button @click="leadTagFilterVisible = false">取消</el-button><el-button type="primary" @click="leadTagFilterVisible = false">确定</el-button></template>
+    </el-dialog>
 
     <el-dialog v-model="leadTagDialogVisible" :title="`${activeTagLead?.customer_name || activeTagLead?.name || activeTagLead?.order_no || '当前线索'} · 全部线索标签`" width="620px">
       <div class="lead-tag-dialog">
@@ -1081,9 +1129,21 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 }
 .search-grid {
   display: grid;
-  grid-template-columns: minmax(280px, 1.4fr) repeat(3, minmax(160px, 1fr));
+  grid-template-columns: minmax(260px, 1.35fr) minmax(180px, .8fr) minmax(300px, 1.35fr) repeat(3, minmax(140px, .65fr));
   gap: 12px;
 }
+.dimension-search-filter { display:grid;grid-template-columns:112px minmax(150px,1fr);gap:8px; }
+.customer-search-filter { grid-template-columns:145px minmax(150px,1fr); }
+.lead-tag-filter-trigger { min-width:140px; }
+.selected-lead-tag-box { padding:14px;border:1px solid #e2e8f0;border-radius:10px;background:#fafcff; }
+.selected-lead-tag-box>b { display:block;margin-bottom:10px;color:#334155; }
+.selected-lead-tag-box>div { display:flex;flex-wrap:wrap;gap:7px;color:#94a3b8; }
+.lead-tag-search { margin:14px 0; }
+.lead-tag-filter-groups { display:grid;gap:14px;max-height:390px;overflow:auto; }
+.lead-tag-filter-groups section { padding:14px;border:1px solid #e7edf5;border-radius:10px; }
+.lead-tag-filter-groups h4 { margin:0 0 12px;color:#334155; }
+.lead-tag-filter-groups section>span { color:#94a3b8;font-size:12px; }
+.lead-tag-filter-groups :deep(.el-checkbox-group) { display:flex;flex-wrap:wrap;gap:8px; }
 .business-scope-filter + .search-grid { margin-top: 12px; }
 .advanced-search {
   grid-template-columns: repeat(5, minmax(170px, 1fr));
