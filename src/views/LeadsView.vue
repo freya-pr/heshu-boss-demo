@@ -7,6 +7,7 @@ import http, { isDemoMode } from '../api/http'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
 import BusinessScopeFilter, { type BusinessScopeValue } from '../components/BusinessScopeFilter.vue'
+import { loadIpCategoryOptions } from '../stores/ipCategoryScope'
 import { useAuthStore } from '../stores/auth'
 import { loadAcquisitionPeriods, type AcquisitionPeriod } from '../data/acquisitionPeriods'
 
@@ -110,12 +111,12 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
   { value: 'original_mobile', label: '解密前手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
-  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'lead_grade', label: '线索等级' }, { value: 'lead_tags', label: '线索标签' }, { value: 'demand_mined', label: '是否挖需' },
+  { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'ip_category', label: 'IP大类' }, { value: 'lead_grade', label: '线索等级' }, { value: 'lead_tags', label: '线索标签' }, { value: 'demand_mined', label: '是否挖需' },
   { value: 'first_product_name', label: '首单商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
   { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
@@ -128,7 +129,7 @@ const columnOptions = [
   { value: 'camp_name', label: '所属直播组' }, { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v9'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v10'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -136,6 +137,8 @@ function loadColumnPreference() {
   } catch { return [...defaultColumns] }
 }
 const visibleColumns = ref<string[]>(loadColumnPreference())
+const ipCategoryOptions = loadIpCategoryOptions()
+const ipCategoryLabel = (value: string) => ipCategoryOptions.find(item => item.value === value)?.label || value || '教育规划'
 const showColumn = (key: string) => mandatoryColumns.includes(key) || visibleColumns.value.includes(key)
 function resetColumns() { visibleColumns.value = [...defaultColumns] }
 
@@ -852,6 +855,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column type="selection" width="48" fixed="left"/>
           <el-table-column prop="order_no" label="订单编号" width="180" fixed="left"><template #default="{ row }"><strong>{{ textOrDash(row.order_no) }}</strong></template></el-table-column>
           <el-table-column v-if="showColumn('lead_source')" prop="lead_source" label="线索来源" width="110" fixed="left"><template #default="{ row }">{{ textOrDash(row.lead_source || row.channel_name) }}</template></el-table-column>
+          <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('ip_category')" label="IP大类" width="132"><template #default="{ row }"><el-tag effect="plain">{{ ipCategoryLabel(row.ip_category || 'EDUCATION_PLANNING') }}</el-tag></template></el-table-column>
           <el-table-column v-if="showColumn('lead_grade')" label="线索等级" width="116"><template #default="{ row }"><el-tag :type="gradeTagTypes[row.lead_grade] || 'info'">{{ gradeLabels[row.lead_grade] || row.lead_grade }}</el-tag><small class="cell-sub">{{ gradeSourceLabels[row.grade_source] || '尚未评级' }}</small></template></el-table-column>
           <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('lead_tags')" label="线索标签" min-width="220"><template #default="{ row }">
             <button type="button" class="lead-tags-cell" @click="openLeadTags(row)">

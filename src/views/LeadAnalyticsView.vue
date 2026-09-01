@@ -8,6 +8,7 @@ import StatePanel from '../components/StatePanel.vue'
 import BusinessScopeFilter, { type BusinessScopeValue } from '../components/BusinessScopeFilter.vue'
 import { useAuthStore } from '../stores/auth'
 import { loadAcquisitionPeriods } from '../data/acquisitionPeriods'
+import { loadIpCategoryOptions } from '../stores/ipCategoryScope'
 
 type DrilldownContext = { key: string; label: string; value: number; dimension?: string }
 
@@ -25,8 +26,10 @@ const leadCreatedRange = ref<[string, string]>(nearestPeriod ? [nearestPeriod.st
 const period = ref<string[]>(isDemoMode ? [] : nearestPeriod ? [nearestPeriod.name] : [])
 const channel = ref<string[]>([])
 const store = ref<string[]>([])
+const ipCategory = ref<string[]>([])
 const ipChannel = ref<string[]>([])
 const ipName = ref<string[]>([])
+const ipCategoryOptions = loadIpCategoryOptions()
 const auth = useAuthStore()
 const organizations = ref<any[]>([])
 const employees = ref<any[]>([])
@@ -161,7 +164,7 @@ function reportRows() {
   const lead = f.leads || 0
   const rows: any[][] = [
     ['合数BOSS经营报表'], ['期次', period.value.join('、'), '期次时间', periodTimeRange.value.join(' 至 ') || '未筛选', '线索创建时间', leadCreatedRange.value.join(' 至 '), '口径版本', data.value.metricVersion],
-    ['筛选', channel.value.join('、') || '全部渠道', store.value.join('、') || '全部店铺', ipChannel.value.join('、') || '全部IP渠道', ipName.value.join('、') || '全部IP'], [], ['指标名称', '指标值', '计算口径'],
+    ['筛选', channel.value.join('、') || '全部渠道', store.value.join('、') || '全部店铺', ipCategory.value.map(value => ipCategoryOptions.find(item => item.value === value)?.label || value).join('、') || '全部IP大类', ipChannel.value.join('、') || '全部IP渠道', ipName.value.join('、') || '全部IP'], [], ['指标名称', '指标值', '计算口径'],
     ['人服比', e.peopleServiceRatio, '私域用户总数 / 服务人员数'], ['有效线索数', f.leads, '有效且已解密的去重线索'],
     ['加微数', f.wechat, '已加微去重人数'], ['问卷填写数', f.questionnaire, '有效答卷去重人数'], ['在线数', f.online, '查询时点在线'],
     ['成交数', f.deal, '正式课支付成功去重人数'], ['退款数', f.refund, '支付后30日内退款成功去重人数'],
@@ -202,7 +205,7 @@ async function load() {
   error.value = ''
   try {
     const effectiveViewScope = auth.user?.role === 'ADMIN' ? scopeFilters.value.viewScope : 'SELF'
-    const result: any = await http.get('/leads/analytics', { params: { aggregationMode: isLeadCreatedSummary.value ? 'LEAD_CREATED' : 'PERIOD', periodTimeRange: periodTimeRange.value, leadCreatedRange: leadCreatedRange.value, period: period.value, channel: channel.value, store: store.value, ipChannel: ipChannel.value, ipName: ipName.value, organizationId: scopeFilters.value.organizationId, ownerId: scopeFilters.value.ownerId, viewScope: effectiveViewScope } })
+    const result: any = await http.get('/leads/analytics', { params: { aggregationMode: isLeadCreatedSummary.value ? 'LEAD_CREATED' : 'PERIOD', periodTimeRange: periodTimeRange.value, leadCreatedRange: leadCreatedRange.value, period: period.value, channel: channel.value, store: store.value, ipCategory: ipCategory.value, ipChannel: ipChannel.value, ipName: ipName.value, organizationId: scopeFilters.value.organizationId, ownerId: scopeFilters.value.ownerId, viewScope: effectiveViewScope } })
     data.value = result.data
   } catch (cause: any) {
     error.value = cause.message || '线索概览加载失败'
@@ -234,6 +237,7 @@ onMounted(async () => {
         <div class="time-filter"><span>线索创建时间</span><el-date-picker v-model="leadCreatedRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" /></div>
         <el-select v-model="channel" multiple collapse-tags filterable placeholder="全部渠道"><el-option v-for="item in ['抖音','有赞','小鹅通','百家号']" :key="item" :label="item" :value="item" /></el-select>
         <el-select v-model="store" multiple collapse-tags filterable placeholder="全部店铺"><el-option v-for="item in ['合数教育官方旗舰店','合数精品课程店','合数成长课堂','合数教育体验课']" :key="item" :label="item" :value="item" /></el-select>
+        <el-select v-model="ipCategory" multiple collapse-tags filterable placeholder="全部IP大类"><el-option v-for="item in ipCategoryOptions" :key="item.value" :label="item.label" :value="item.value" /></el-select>
         <el-select v-model="ipChannel" multiple collapse-tags filterable placeholder="全部IP渠道"><el-option v-for="item in ['店播','阿留专属']" :key="item" :label="item" :value="item" /></el-select>
         <el-select v-model="ipName" multiple collapse-tags filterable placeholder="全部IP"><el-option v-for="item in ['阿留皮皮','皮皮老师','周老师']" :key="item" :label="item" :value="item" /></el-select>
         <el-button type="primary" @click="load">查询</el-button>

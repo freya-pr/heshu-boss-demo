@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
+import { globalIpCategory, loadIpCategoryOptions } from '../stores/ipCategoryScope'
 
 type Product = {
   id: number
@@ -69,15 +70,13 @@ const rows = ref<IpRow[]>([
   }
 ])
 
-const dictionaryStorageKey = 'heshu_boss_dictionaries_v1'
 const ipBindingStorageKey = 'heshu_boss_ip_bindings_v1'
 const router = useRouter()
-const fallbackCategories = [{ label: '教育规划', value: 'EDUCATION_PLANNING' }]
 const ipChannels = [
   { code: 'CH000001', name: '店播' },
   { code: 'CH000002', name: '阿留专属' }
 ]
-const categoryOptions = ref([...fallbackCategories])
+const categoryOptions = ref(loadIpCategoryOptions())
 const query = reactive({ keyword: '', category: '', channelCode: '', platform: '', status: '' })
 const platformDialogVisible = ref(false)
 const editorVisible = ref(false)
@@ -88,6 +87,7 @@ const form = reactive({ name: '', category: 'EDUCATION_PLANNING', channelCode: '
 const filteredRows = computed(() => {
   const term = query.keyword.trim().toLowerCase()
   return rows.value.filter(row => (!term || `${row.ipNo}${row.name}${row.creator}`.toLowerCase().includes(term))
+    && (!globalIpCategory.value || row.category === globalIpCategory.value)
     && (!query.category || row.category === query.category)
     && (!query.channelCode || row.channelCode === query.channelCode)
     && (!query.platform || row.platforms.includes(query.platform))
@@ -98,11 +98,7 @@ const totalProducts = computed(() => filteredRows.value.reduce((sum, row) => sum
 const totalPlatforms = computed(() => new Set(filteredRows.value.flatMap(row => row.platforms)).size)
 
 function loadIpCategories() {
-  try {
-    const dictionaries = JSON.parse(localStorage.getItem(dictionaryStorageKey) || '[]')
-    const items = dictionaries.find((item: any) => item.code === 'ip_category' && item.status === 'ACTIVE')?.items
-    categoryOptions.value = Array.isArray(items) && items.some((item: any) => item.status === 'ACTIVE') ? items.filter((item: any) => item.status === 'ACTIVE').sort((a: any, b: any) => a.sort - b.sort).map((item: any) => ({ label: item.label, value: item.value })) : [...fallbackCategories]
-  } catch { categoryOptions.value = [...fallbackCategories] }
+  categoryOptions.value = loadIpCategoryOptions()
 }
 function persistIpBindings() {
   localStorage.setItem(ipBindingStorageKey, JSON.stringify(rows.value.map(row => ({ ipNo: row.ipNo, name: row.name, category: row.category, channelCode: row.channelCode, status: row.status }))))

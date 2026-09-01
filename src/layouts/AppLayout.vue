@@ -11,6 +11,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useAuthStore, type MenuItem } from '../stores/auth'
 import { useTabsStore } from '../stores/tabs'
+import { globalIpCategory, loadIpCategoryOptions, setGlobalIpCategory } from '../stores/ipCategoryScope'
 import { isDemoMode } from '../api/http'
 import { menuByPath } from '../config/menu'
 import '../styles/nested-menu.css'
@@ -21,6 +22,7 @@ const route = useRoute()
 const router = useRouter()
 const openGroups = reactive<Record<string, boolean>>({})
 const profileOpen = ref(false)
+const ipCategoryOptions = ref(loadIpCategoryOptions())
 
 const groupIcons: Record<string, Component> = {
   HOME: House,
@@ -97,6 +99,8 @@ watch(() => route.path, path => {
 
 onMounted(async () => {
   if (!auth.user) await auth.loadMe()
+  ipCategoryOptions.value = loadIpCategoryOptions()
+  if (globalIpCategory.value && !ipCategoryOptions.value.some(item => item.value === globalIpCategory.value)) setGlobalIpCategory('')
   const current = menuByPath.get(route.path)
   if (current) openGroups[current.groupCode] = true
 })
@@ -107,7 +111,14 @@ onMounted(async () => {
     <header class="global-header">
       <div class="brand"><div class="brand-mark">合</div><div><strong>合数BOSS</strong><small>客户关系业务主系统</small></div></div>
       <div class="header-actions">
-        <div class="global-search"><el-icon><Search/></el-icon><span>搜索客户、线索</span><kbd>⌘ K</kbd></div>
+        <div class="global-ip-scope">
+          <el-icon><Search/></el-icon>
+          <el-select :model-value="globalIpCategory" aria-label="全局IP大类" @update:model-value="setGlobalIpCategory">
+            <el-option label="全部IP大类" value="" />
+            <el-option v-for="item in ipCategoryOptions" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+          <span>全局</span>
+        </div>
         <el-badge :value="3"><el-button circle text><el-icon><Bell/></el-icon></el-button></el-badge>
         <el-button circle text><el-icon><Setting/></el-icon></el-button>
         <el-popover v-model:visible="profileOpen" placement="bottom-end" :width="320" trigger="click" popper-class="profile-popover">
