@@ -755,7 +755,7 @@ const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', F
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
 const wechatLabels: any = { WECOM: '企微', PERSONAL_WECHAT: '个微' }
 const sourceLabels: any = { DRAINAGE: '引流线索', THIRD_PRODUCT: '三方品线索', REFERRAL: '转介绍' }
-const leadSourceOptions = ['抖店','小红书','淘宝','百家号','视频号','有赞','快手','小鹅通','伴鱼','火花思维','自有系统','支付宝','公户','抖音','星橙','飞策','认证赠送','店播/阿留直播间']
+const leadSourceOptions = ['抖店','小红书','淘宝','百家号','视频号','有赞','快手','小鹅通','伴鱼','火花思维','自有系统','支付宝','公户','抖音','星橙','飞策']
 const dateFieldOptions = [
   { value: 'created_at', label: '线索创建时间' }, { value: 'assigned_at', label: '线索分配时间' },
   { value: 'decrypted_at', label: '解密时间' }, { value: 'first_follow_at', label: '首次跟进时间' },
