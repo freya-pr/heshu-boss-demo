@@ -750,7 +750,7 @@ const conversionTagTypes: any = { UNCONVERTED: 'info', CONVERTED: 'success' }
 const gradeLabels: any = { S: 'S级', A: 'A级', B: 'B级', C: 'C级', UNRATED: '未定级' }
 const gradeTagTypes: any = { S: 'danger', A: 'warning', B: 'success', C: 'info', UNRATED: 'info' }
 const gradeSourceLabels: any = { QUESTIONNAIRE_AUTO: '问卷自动评级', MANUAL: '人工调整', LEAD_INHERITED: '线索继承' }
-const orderLabels: any = { NO_ORDER: '无订单', UNPAID: '未支付', PAID: '已支付', REFUNDING: '退款中', REFUNDED: '已退款' }
+const orderLabels: any = { UNPAID: '未支付', PAID: '已支付', CANCELLED: '已取消', COMPLETED: '已完成', REFUNDING: '退款中', REFUNDED: '已退款' }
 const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', FOLLOWED: '已跟进' }
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
 const wechatLabels: any = { WECOM: '企微', PERSONAL_WECHAT: '个微' }
@@ -810,7 +810,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="leadGradeFilter" placeholder="线索等级" clearable><el-option v-for="(label, value) in gradeLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-if="sourceType === 'DRAINAGE'" v-model="demandMinedFilter" placeholder="是否挖需" clearable><el-option label="是" value="YES"/><el-option label="否" value="NO"/></el-select>
             <el-select v-model="sourceFilter" placeholder="线索来源" clearable filterable><el-option v-for="item in leadSourceOptions" :key="item" :label="item" :value="item"/></el-select>
-            <el-select v-model="orderStatusFilter" placeholder="订单状态" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
+            <el-select v-model="orderStatusFilter" placeholder="订单状态（实时第三方回传）" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="wechatFilter" placeholder="加微方式" clearable><el-option label="企业微信" value="WECOM"/><el-option label="个人微信" value="PERSONAL_WECHAT"/></el-select>
             <el-select v-model="campFilter" placeholder="所属直播组" clearable filterable><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select>
@@ -872,7 +872,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           </template></el-table-column>
           <el-table-column v-if="showColumn('third_party_product_id')" prop="third_party_product_id" label="第三方商品ID" width="170"><template #default="{ row }">{{ textOrDash(row.third_party_product_id) }}</template></el-table-column>
           <el-table-column v-if="showColumn('source_type')" prop="source_type" label="线索类型" width="110"><template #default="{ row }">{{ sourceLabels[row.source_type] || row.source_type }}</template></el-table-column>
-          <el-table-column v-if="showColumn('order_status')" label="订单状态" width="100"><template #default="{ row }">{{ orderLabels[row.order_status] || textOrDash(row.order_status) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('order_status')" width="146"><template #header><span>订单状态</span><small class="cell-sub">实时第三方回传</small></template><template #default="{ row }">{{ orderLabels[row.order_status] || textOrDash(row.order_status) }}</template></el-table-column>
           <el-table-column v-if="showColumn('related_customer')" label="关联客户" width="170"><template #default="{ row }"><strong>{{ textOrDash(row.customer_name) }}</strong><small class="cell-sub">{{ textOrDash(row.customer_no) }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('wechat_nickname')" prop="wechat_nickname" label="微信昵称" width="130"><template #default="{ row }">{{ textOrDash(row.wechat_nickname) }}</template></el-table-column>
           <el-table-column v-if="showColumn('original_mobile')" label="解密前手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.original_mobile) }}</template></el-table-column>

@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Download, Plus, Search } from '@element-plus/icons-vue'
+import { Download, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
 type ChannelStatus = '启用' | '停用'
@@ -27,12 +27,11 @@ const route = useRoute()
 const router = useRouter()
 const activeTab = ref(route.query.tab === 'analysis' ? 'analysis' : 'list')
 const query = reactive({ keyword: '', type: '', status: '' as '' | ChannelStatus, dateRange: ['2026-08-01', '2026-08-18'] })
-const editorVisible = ref(false)
 const rows = ref<ChannelRow[]>([
-  { id: 1, code: 'DY-LIVE', name: '抖音直播', type: '付费投放', owner: '陈老师', source: '抖音店 / 直播间', rule: '平台 + 店铺 + 直播间', status: '启用', leads: 12846, valid: 11320, wechat: 7894, customers: 6428, paid: 1128, netGmv: 3049800 },
-  { id: 2, code: 'YZ-STORE', name: '有赞店铺', type: '自营店铺', owner: '李士文', source: '有赞 / 商品订单', rule: '店铺ID + 商品ID', status: '启用', leads: 6820, valid: 5986, wechat: 3926, customers: 3158, paid: 596, netGmv: 1627000 },
-  { id: 3, code: 'XET-COURSE', name: '小鹅通课程', type: '内容渠道', owner: '刘老师', source: '小鹅通 / 课程', rule: '店铺ID + 课程ID', status: '启用', leads: 4215, valid: 3882, wechat: 2864, customers: 2340, paid: 528, netGmv: 1456300 },
-  { id: 4, code: 'XHS-CONTENT', name: '小红书内容', type: '内容渠道', owner: '陈老师', source: '小红书 / 笔记', rule: '账号 + 笔记ID', status: '停用', leads: 2168, valid: 1820, wechat: 986, customers: 748, paid: 126, netGmv: 317800 }
+  { id: 1, code: 'DY-LIVE', name: '抖音直播', type: '平台渠道', owner: '陈老师', source: '抖音店 / 直播间', rule: '平台 + 店铺 + 直播间', status: '启用', leads: 12846, valid: 11320, wechat: 7894, customers: 6428, paid: 1128, netGmv: 3049800 },
+  { id: 2, code: 'YZ-STORE', name: '有赞店铺', type: '平台渠道', owner: '李士文', source: '有赞 / 商品订单', rule: '店铺ID + 商品ID', status: '启用', leads: 6820, valid: 5986, wechat: 3926, customers: 3158, paid: 596, netGmv: 1627000 },
+  { id: 3, code: 'XET-COURSE', name: '小鹅通课程', type: 'IP渠道', owner: '刘老师', source: '小鹅通 / 课程', rule: '店铺ID + 课程ID', status: '启用', leads: 4215, valid: 3882, wechat: 2864, customers: 2340, paid: 528, netGmv: 1456300 },
+  { id: 4, code: 'XHS-CONTENT', name: '小红书内容', type: 'IP渠道', owner: '陈老师', source: '小红书 / 笔记', rule: '账号 + 笔记ID', status: '停用', leads: 2168, valid: 1820, wechat: 986, customers: 748, paid: 126, netGmv: 317800 }
 ])
 
 const filteredRows = computed(() => {
@@ -67,8 +66,7 @@ function toggle(row: ChannelRow) { row.status = row.status === '启用' ? '停�
 <template>
   <section class="page channel-page">
     <PageHeader title="渠道管理" description="在一个入口维护渠道主数据，并核对渠道从线索进入到成交的转化质量。">
-      <el-button v-if="activeTab === 'list'" type="primary" :icon="Plus" @click="editorVisible = true">新增渠道</el-button>
-      <el-button v-else :icon="Download" @click="ElMessage.success('渠道分析正在导出')">导出分析</el-button>
+      <el-button v-if="activeTab === 'analysis'" :icon="Download" @click="ElMessage.success('渠道分析正在导出')">导出分析</el-button>
     </PageHeader>
 
     <div class="channel-workspace surface">
@@ -81,7 +79,7 @@ function toggle(row: ChannelRow) { row.status = row.status === '启用' ? '停�
 
     <div class="channel-filter surface">
       <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="渠道名称、编码、负责人或来源" />
-      <el-select v-model="query.type" clearable placeholder="渠道类型"><el-option v-for="item in ['付费投放','自营店铺','内容渠道']" :key="item" :label="item" :value="item" /></el-select>
+      <el-select v-model="query.type" clearable placeholder="渠道类型"><el-option v-for="item in ['平台渠道','IP渠道']" :key="item" :label="item" :value="item" /></el-select>
       <el-select v-model="query.status" clearable placeholder="渠道状态"><el-option label="启用" value="启用"/><el-option label="停用" value="停用"/></el-select>
       <el-date-picker v-if="activeTab === 'analysis'" v-model="query.dateRange" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
       <el-button type="primary">查询</el-button><el-button @click="resetQuery">重置</el-button>
@@ -122,10 +120,9 @@ function toggle(row: ChannelRow) { row.status = row.status === '启用' ? '停�
       </div>
     </template>
 
-    <el-drawer v-model="editorVisible" title="新增渠道" size="560px"><div class="drawer-empty"><b>渠道基础信息</b><p>后续在此配置渠道编码、名称、类型、负责人、来源映射和归因规则。</p></div><template #footer><el-button @click="editorVisible = false">取消</el-button><el-button type="primary" @click="editorVisible = false; ElMessage.success('渠道已保存')">保存渠道</el-button></template></el-drawer>
   </section>
 </template>
 
 <style scoped>
-.channel-page{--ink:#142541;--blue:#2875e6;--mint:#20ad91}.channel-workspace{position:relative;padding:0 18px;margin-bottom:10px}.channel-tabs :deep(.el-tabs__header){margin:0}.channel-tabs :deep(.el-tabs__item){height:52px;font-weight:700}.workspace-note{position:absolute;right:18px;top:19px;color:#8b99ab;font-size:10px}.channel-filter{display:grid;grid-template-columns:1.5fr .7fr .6fr 1.25fr auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.channel-filter :deep(.el-date-editor){width:100%}.channel-list,.channel-ranking{padding:0 18px 18px}.channel-list>header,.channel-ranking>header,.channel-funnel>header{display:flex;align-items:center;justify-content:space-between;height:62px}.channel-list header>div,.channel-ranking header>div{display:flex;align-items:baseline;gap:9px}.channel-list h3,.channel-ranking h3,.channel-funnel h3{margin:0;color:var(--ink)}.channel-list header span,.channel-list header p,.channel-ranking header span,.channel-funnel header p{color:#8b99ab;font-size:10px}.channel-list code{padding:5px 7px;border-radius:6px;background:#f0f5fc;color:#3e6594;font-weight:700}.channel-funnel{padding:0 20px 20px;margin-bottom:14px}.channel-funnel header>div>span{color:var(--blue);font:700 9px Inter,sans-serif;letter-spacing:.14em}.channel-funnel h3{margin-top:5px}.funnel-rail{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}.funnel-rail button{position:relative;min-height:105px;padding:15px;border:1px solid #dce7f5;border-radius:9px;background:#f8fbff;text-align:left;cursor:pointer}.funnel-rail button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.funnel-rail small,.funnel-rail b,.funnel-rail span{display:block}.funnel-rail small{color:#71839b}.funnel-rail b{margin:9px 0 5px;color:var(--ink);font:700 22px Inter,sans-serif}.funnel-rail span{color:#8b99ab;font-size:9px}.funnel-rail i{position:absolute;right:-10px;top:40px;z-index:2;color:#8eb3e4;font-style:normal}.analysis-grid{display:grid;grid-template-columns:1fr 280px;gap:14px}.analysis-note{padding:21px;border-top:3px solid var(--blue)}.analysis-note>span{color:var(--blue);font:700 9px Inter,sans-serif;letter-spacing:.12em}.analysis-note h3{margin:10px 0;color:var(--ink);line-height:1.45}.analysis-note p{color:#718198;font-size:11px;line-height:1.8}.analysis-note button{padding:0;border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer}.rate{color:var(--blue)}.drawer-empty{padding:18px;border-radius:9px;background:#f4f7fb;color:#667a94}.drawer-empty b{color:var(--ink)}.drawer-empty p{font-size:12px;line-height:1.7}@media(max-width:1200px){.channel-filter{grid-template-columns:repeat(3,1fr)}.analysis-grid{grid-template-columns:1fr}.funnel-rail{grid-template-columns:repeat(3,1fr)}}
+.channel-page{--ink:#142541;--blue:#2875e6;--mint:#20ad91}.channel-workspace{position:relative;padding:0 18px;margin-bottom:10px}.channel-tabs :deep(.el-tabs__header){margin:0}.channel-tabs :deep(.el-tabs__item){height:52px;font-weight:700}.workspace-note{position:absolute;right:18px;top:19px;color:#8b99ab;font-size:10px}.channel-filter{display:grid;grid-template-columns:1.5fr .7fr .6fr 1.25fr auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.channel-filter :deep(.el-date-editor){width:100%}.channel-list,.channel-ranking{padding:0 18px 18px}.channel-list>header,.channel-ranking>header,.channel-funnel>header{display:flex;align-items:center;justify-content:space-between;height:62px}.channel-list header>div,.channel-ranking header>div{display:flex;align-items:baseline;gap:9px}.channel-list h3,.channel-ranking h3,.channel-funnel h3{margin:0;color:var(--ink)}.channel-list header span,.channel-list header p,.channel-ranking header span,.channel-funnel header p{color:#8b99ab;font-size:10px}.channel-list code{padding:5px 7px;border-radius:6px;background:#f0f5fc;color:#3e6594;font-weight:700}.channel-funnel{padding:0 20px 20px;margin-bottom:14px}.channel-funnel header>div>span{color:var(--blue);font:700 9px Inter,sans-serif;letter-spacing:.14em}.channel-funnel h3{margin-top:5px}.funnel-rail{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}.funnel-rail button{position:relative;min-height:105px;padding:15px;border:1px solid #dce7f5;border-radius:9px;background:#f8fbff;text-align:left;cursor:pointer}.funnel-rail button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.funnel-rail small,.funnel-rail b,.funnel-rail span{display:block}.funnel-rail small{color:#71839b}.funnel-rail b{margin:9px 0 5px;color:var(--ink);font:700 22px Inter,sans-serif}.funnel-rail span{color:#8b99ab;font-size:9px}.funnel-rail i{position:absolute;right:-10px;top:40px;z-index:2;color:#8eb3e4;font-style:normal}.analysis-grid{display:grid;grid-template-columns:1fr 280px;gap:14px}.analysis-note{padding:21px;border-top:3px solid var(--blue)}.analysis-note>span{color:var(--blue);font:700 9px Inter,sans-serif;letter-spacing:.12em}.analysis-note h3{margin:10px 0;color:var(--ink);line-height:1.45}.analysis-note p{color:#718198;font-size:11px;line-height:1.8}.analysis-note button{padding:0;border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer}.rate{color:var(--blue)}@media(max-width:1200px){.channel-filter{grid-template-columns:repeat(3,1fr)}.analysis-grid{grid-template-columns:1fr}.funnel-rail{grid-template-columns:repeat(3,1fr)}}
 </style>

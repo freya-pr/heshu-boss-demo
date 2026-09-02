@@ -66,7 +66,7 @@ function normalizeEmployeeNo(value: unknown) { const text=String(value||'');retu
 function normalizeDb(source: DemoDb): DemoDb {
   source.collisionCases ||= clone(seed.collisionCases)
   source.employees.forEach(item=>{item.employee_no=normalizeEmployeeNo(item.employee_no)})
-  source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no);item.demand_mined=Boolean(item.demand_mined||item.demand_mined_at);item.mobile_change_history ||= []})
+  source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no);item.demand_mined=Boolean(item.demand_mined||item.demand_mined_at);item.mobile_change_history ||= [];if(item.order_status==='NO_ORDER')item.order_status=''})
   source.customers.forEach((item,index)=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.grade_source=item.grade_source||'LEAD_INHERITED';item.lifecycle=item.lifecycle||(item.order_count>0?'DEAL':item.demand_mined?'INTENT':'LEAD');item.add_method=item.add_method||(['QR_CODE','LINK','BUSINESS_CARD'][index%3]);item.source_name=item.source_name||'历史数据';item.source_lead_no=item.source_lead_no||'';item.camp_name=item.camp_name||''})
   return source
 }

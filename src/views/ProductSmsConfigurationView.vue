@@ -21,10 +21,10 @@ type SmsConfigRow = {
 }
 
 const rows = ref<SmsConfigRow[]>([
-  { id: 1, group: '默认分组', createdAt: '2026-05-18 15:33:15', updatedAt: '2026-08-24 23:28:19', storeType: '抖店', storeName: '熹瑶学堂', productName: '阿留教育规划精华家长课【全平台首创】读书卡', productId: '372412015418395886', qrCode: '0830 8.25', purchaseReminder: '用户下单', authorizationReminder: '用户授权', manualReminder: '用户提醒', status: '启用' },
-  { id: 2, group: '阿留皮皮', createdAt: '2026-06-13 17:39:06', updatedAt: '2026-08-24 23:28:19', storeType: '抖店', storeName: '熹瑶教育规划', productName: '阿留教育规划精华家长课-读书卡', productId: '3735011933473079446', qrCode: '0830 8.25', purchaseReminder: '下单1', authorizationReminder: '下单2', manualReminder: '下单3', status: '启用' },
-  { id: 3, group: '阿留皮皮', createdAt: '2026-07-24 12:13:56', updatedAt: '2026-08-24 23:28:19', storeType: '抖店', storeName: '合数智胜', productName: '【状元阿留】教育精华家长课-读书卡', productId: '3832962989930185133', qrCode: '0830 8.25', purchaseReminder: '下单1', authorizationReminder: '下单2', manualReminder: '下单3', status: '启用' },
-  { id: 4, group: '周老师', createdAt: '2026-06-24 08:28:09', updatedAt: '2026-08-24 23:28:09', storeType: '百家号', storeName: '阿留状元教育规划', productName: '家庭教育直播体验课', productId: '71967409586', qrCode: '0830 周老师', purchaseReminder: '支付成功后5分钟', authorizationReminder: '用户授权', manualReminder: '运营手动触发', status: '停用' }
+  { id: 1, group: '默认分组', createdAt: '2026-05-18 15:33:15', updatedAt: '2026-08-24 23:28:19', storeType: '抖店', storeName: '熹瑶学堂', productName: '阿留教育规划精华家长课【全平台首创】读书卡', productId: '372412015418395886', qrCode: '0830 8.25', purchaseReminder: '短信模版一', authorizationReminder: '短信模版二', manualReminder: '短信模版一', status: '启用' },
+  { id: 2, group: '阿留皮皮', createdAt: '2026-06-13 17:39:06', updatedAt: '2026-08-24 23:28:19', storeType: '抖店', storeName: '熹瑶教育规划', productName: '阿留教育规划精华家长课-读书卡', productId: '3735011933473079446', qrCode: '0830 8.25', purchaseReminder: '短信模版二', authorizationReminder: '短信模版一', manualReminder: '短信模版二', status: '启用' },
+  { id: 3, group: '阿留皮皮', createdAt: '2026-07-24 12:13:56', updatedAt: '2026-08-24 23:28:19', storeType: '抖店', storeName: '合数智胜', productName: '【状元阿留】教育精华家长课-读书卡', productId: '3832962989930185133', qrCode: '0830 8.25', purchaseReminder: '短信模版一', authorizationReminder: '短信模版二', manualReminder: '短信模版一', status: '启用' },
+  { id: 4, group: '周老师', createdAt: '2026-06-24 08:28:09', updatedAt: '2026-08-24 23:28:09', storeType: '百家号', storeName: '阿留状元教育规划', productName: '家庭教育直播体验课', productId: '71967409586', qrCode: '0830 周老师', purchaseReminder: '短信模版二', authorizationReminder: '短信模版一', manualReminder: '短信模版二', status: '停用' }
 ])
 
 const groups = ref(['全部', '默认分组', '阿留皮皮', '周老师', '北京店播'])
@@ -34,7 +34,7 @@ const dialogVisible = ref(false)
 const batchMode = ref(false)
 const editingId = ref<number | null>(null)
 const query = reactive({ keyword: '', storeType: '', status: '' })
-const form = reactive({ group: '默认分组', productId: '', qrCode: '', purchaseReminder: '用户下单', authorizationReminder: '用户授权', manualReminder: '用户提醒', status: '启用' as '启用' | '停用' })
+const form = reactive({ group: '默认分组', productId: '', qrCode: '', purchaseReminder: '短信模版一', authorizationReminder: '短信模版二', manualReminder: '短信模版一', status: '启用' as '启用' | '停用' })
 
 const products = computed(() => [...new Map(rows.value.map(row => [row.productId, { id: row.productId, name: row.productName, store: row.storeName, storeType: row.storeType }])).values()])
 const qrOptions = ['0830 8.25', '0830 周老师', '0906 秋季营', '不关联活码']
@@ -49,7 +49,7 @@ const filteredRows = computed(() => {
 const selectedProduct = computed(() => products.value.find(item => item.id === form.productId))
 
 function resetQuery() { Object.assign(query, { keyword: '', storeType: '', status: '' }) }
-function resetForm() { Object.assign(form, { group: '默认分组', productId: '', qrCode: '', purchaseReminder: '用户下单', authorizationReminder: '用户授权', manualReminder: '用户提醒', status: '启用' }) }
+function resetForm() { Object.assign(form, { group: '默认分组', productId: '', qrCode: '', purchaseReminder: '短信模版一', authorizationReminder: '短信模版二', manualReminder: '短信模版一', status: '启用' }) }
 function openCreate() { batchMode.value = false; editingId.value = null; resetForm(); dialogVisible.value = true }
 function openEdit(row: SmsConfigRow) {
   batchMode.value = false
@@ -143,9 +143,9 @@ async function addGroup() {
           <el-form-item label="活码" required><el-select v-model="form.qrCode" filterable placeholder="请选择活码" style="width:100%"><el-option v-for="item in qrOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
         </template>
         <div class="form-grid">
-          <el-form-item label="购买后提醒" required><el-select v-model="form.purchaseReminder" style="width:100%"><el-option v-for="item in ['不提醒','用户下单','支付成功后5分钟','支付成功后1小时']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
-          <el-form-item label="授权后提醒" required><el-select v-model="form.authorizationReminder" style="width:100%"><el-option v-for="item in ['不提醒','用户授权','授权成功后10分钟']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
-          <el-form-item label="手动提醒" required><el-select v-model="form.manualReminder" style="width:100%"><el-option v-for="item in ['不提醒','用户提醒','运营手动触发']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+          <el-form-item label="购买后提醒" required><el-select v-model="form.purchaseReminder" style="width:100%"><el-option v-for="item in ['短信模版一','短信模版二']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+          <el-form-item label="授权后提醒" required><el-select v-model="form.authorizationReminder" style="width:100%"><el-option v-for="item in ['短信模版一','短信模版二']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+          <el-form-item label="手动提醒" required><el-select v-model="form.manualReminder" style="width:100%"><el-option v-for="item in ['短信模版一','短信模版二']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
           <el-form-item label="状态" required><el-radio-group v-model="form.status"><el-radio-button value="启用">启用</el-radio-button><el-radio-button value="停用">停用</el-radio-button></el-radio-group></el-form-item>
         </div>
       </el-form>
