@@ -8,6 +8,7 @@ type Employee = { id: number; name: string; no: string; role: string; limit: num
 type IpBinding = { ipNo: string; name: string; category: string; channelCode: string; channelName?: string; status: '启用' | '停用' }
 type LiveCode = {
   id: number; codeNo: string; name: string; type: '多人活码' | '单人活码'; campId?: number; campName?: string;
+  corpId: string; corpName: string;
   groupId: number; groupName: string;
   ipNo?: string; ipName?: string; ipChannelCode?: string; ipChannelName?: string;
   classId?: number; className?: string; receptionStart: string; receptionEnd: string; status: '启用' | '停用' | '待生效' | '已结束';
@@ -15,6 +16,13 @@ type LiveCode = {
 }
 
 type LiveCodeGroup = { id: number; name: string }
+
+const wecomCorps = [
+  { corpId: 'ww89d89a4f1eb5d1f1', name: '光合成长教育', status: '已授权' },
+  { corpId: 'ww6f218c90a733e82b', name: '合数教育', status: '已授权' }
+]
+const selectedCorpId = ref(wecomCorps[0].corpId)
+const selectedCorp = computed(() => wecomCorps.find(item => item.corpId === selectedCorpId.value) || wecomCorps[0])
 
 const camps = [
   { id: 301, name: '2026年8月第1期', status: '启用' },
@@ -50,10 +58,10 @@ const groups = ref<LiveCodeGroup[]>([
 ])
 
 const rows = ref<LiveCode[]>([
-  { id: 1, codeNo: 'QR20260818001', name: '8月第1期 · 抖音一转', type: '多人活码', groupId: 2, groupName: '一转活码', ipNo: 'IP000001', ipName: '阿留皮皮', ipChannelCode: 'CH000002', ipChannelName: '阿留专属', campId: 301, campName: '2026年8月第1期', classId: 501, className: '8月第1期 · 一转一班', receptionStart: '2026-08-12', receptionEnd: '2026-08-31', status: '启用', employees: employeePool.slice(0, 4).map(item => ({ ...item })), wecomTags: ['8月第1期', '抖音新客'], internalTags: ['一转', '重点跟进'], scans: 2846, added: 1972, creatorName: '张铭钰', createdAt: '2026-08-10 10:20' },
-  { id: 2, codeNo: 'QR20260818002', name: '8月第1期 · 有赞承接', type: '多人活码', groupId: 2, groupName: '一转活码', ipNo: 'IP000001', ipName: '阿留皮皮', ipChannelCode: 'CH000002', ipChannelName: '阿留专属', campId: 301, campName: '2026年8月第1期', receptionStart: '2026-08-15', receptionEnd: '2026-09-05', status: '启用', employees: employeePool.slice(1, 4).map(item => ({ ...item, limit: item.limit + 5 })), wecomTags: ['8月第1期'], internalTags: ['有赞', '一转'], scans: 1638, added: 1024, creatorName: '陈庆焕', createdAt: '2026-08-12 14:08' },
-  { id: 3, codeNo: 'QR20260818003', name: '秋季体验营 · 预热', type: '多人活码', groupId: 4, groupName: '体验课班主任活码', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 303, campName: '2026 秋季体验营', classId: 504, className: '秋季体验营 · A班', receptionStart: '2026-09-01', receptionEnd: '2026-09-20', status: '待生效', employees: employeePool.slice(0, 2).map(item => ({ ...item, received: 0 })), wecomTags: ['秋季体验营'], internalTags: ['预热', '班主任'], scans: 0, added: 0, creatorName: '张铭钰', createdAt: '2026-08-17 09:30' },
-  { id: 4, codeNo: 'QR20260715001', name: '8月第2期 · 历史承接', type: '单人活码', groupId: 1, groupName: '默认分组', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 302, campName: '2026年8月第2期', classId: 503, className: '8月第2期 · 体验班', receptionStart: '2026-07-15', receptionEnd: '2026-08-10', status: '已结束', employees: [{ ...employeePool[4], limit: 60, received: 54 }], wecomTags: ['8月第2期'], internalTags: ['历史期次'], scans: 1240, added: 886, creatorName: '系统迁移', createdAt: '2026-07-12 16:45' }
+  { id: 1, codeNo: 'QR20260818001', name: '8月第1期 · 抖音一转', type: '多人活码', corpId: wecomCorps[0].corpId, corpName: wecomCorps[0].name, groupId: 2, groupName: '一转活码', ipNo: 'IP000001', ipName: '阿留皮皮', ipChannelCode: 'CH000002', ipChannelName: '阿留专属', campId: 301, campName: '2026年8月第1期', classId: 501, className: '8月第1期 · 一转一班', receptionStart: '2026-08-12', receptionEnd: '2026-08-31', status: '启用', employees: employeePool.slice(0, 4).map(item => ({ ...item })), wecomTags: ['8月第1期', '抖音新客'], internalTags: ['一转', '重点跟进'], scans: 2846, added: 1972, creatorName: '张铭钰', createdAt: '2026-08-10 10:20' },
+  { id: 2, codeNo: 'QR20260818002', name: '8月第1期 · 有赞承接', type: '多人活码', corpId: wecomCorps[0].corpId, corpName: wecomCorps[0].name, groupId: 2, groupName: '一转活码', ipNo: 'IP000001', ipName: '阿留皮皮', ipChannelCode: 'CH000002', ipChannelName: '阿留专属', campId: 301, campName: '2026年8月第1期', receptionStart: '2026-08-15', receptionEnd: '2026-09-05', status: '启用', employees: employeePool.slice(1, 4).map(item => ({ ...item, limit: item.limit + 5 })), wecomTags: ['8月第1期'], internalTags: ['有赞', '一转'], scans: 1638, added: 1024, creatorName: '陈庆焕', createdAt: '2026-08-12 14:08' },
+  { id: 3, codeNo: 'QR20260818003', name: '秋季体验营 · 预热', type: '多人活码', corpId: wecomCorps[1].corpId, corpName: wecomCorps[1].name, groupId: 4, groupName: '体验课班主任活码', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 303, campName: '2026 秋季体验营', classId: 504, className: '秋季体验营 · A班', receptionStart: '2026-09-01', receptionEnd: '2026-09-20', status: '待生效', employees: employeePool.slice(0, 2).map(item => ({ ...item, received: 0 })), wecomTags: ['秋季体验营'], internalTags: ['预热', '班主任'], scans: 0, added: 0, creatorName: '张铭钰', createdAt: '2026-08-17 09:30' },
+  { id: 4, codeNo: 'QR20260715001', name: '8月第2期 · 历史承接', type: '单人活码', corpId: wecomCorps[1].corpId, corpName: wecomCorps[1].name, groupId: 1, groupName: '默认分组', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 302, campName: '2026年8月第2期', classId: 503, className: '8月第2期 · 体验班', receptionStart: '2026-07-15', receptionEnd: '2026-08-10', status: '已结束', employees: [{ ...employeePool[4], limit: 60, received: 54 }], wecomTags: ['8月第2期'], internalTags: ['历史期次'], scans: 1240, added: 886, creatorName: '系统迁移', createdAt: '2026-07-12 16:45' }
 ])
 
 const query = reactive({ keyword: '', campId: '', status: '' })
@@ -77,7 +85,8 @@ function loadIpBindings() {
 }
 onMounted(loadIpBindings)
 
-const filteredRows = computed(() => rows.value.filter(row => {
+const scopedRows = computed(() => rows.value.filter(row => row.corpId === selectedCorpId.value))
+const filteredRows = computed(() => scopedRows.value.filter(row => {
   const keyword = query.keyword.trim().toLowerCase()
   return (!keyword || `${row.name}${row.codeNo}${row.ipName || ''}${row.ipNo || ''}${row.ipChannelName || ''}${row.employees.map(item => item.name).join('')}`.toLowerCase().includes(keyword))
     && (selectedGroupId.value === 'all' || row.groupId === selectedGroupId.value)
@@ -88,10 +97,10 @@ const activeIpOptions = computed(() => ipOptions.value.filter(item => item.statu
 const selectedIp = computed(() => ipOptions.value.find(item => item.ipNo === form.ipNo))
 const selectedEmployees = computed(() => form.employeeIds.map(id => employeePool.find(item => item.id === id)).filter(Boolean) as Employee[])
 const summary = computed(() => ({
-  total: rows.value.length,
-  active: rows.value.filter(item => item.status === '启用').length,
-  capacity: rows.value.filter(item => item.status === '启用').reduce((sum, row) => sum + row.employees.reduce((n, item) => n + item.limit, 0), 0),
-  received: rows.value.reduce((sum, row) => sum + row.employees.reduce((n, item) => n + item.received, 0), 0)
+  total: scopedRows.value.length,
+  active: scopedRows.value.filter(item => item.status === '启用').length,
+  capacity: scopedRows.value.filter(item => item.status === '启用').reduce((sum, row) => sum + row.employees.reduce((n, item) => n + item.limit, 0), 0),
+  received: scopedRows.value.reduce((sum, row) => sum + row.employees.reduce((n, item) => n + item.received, 0), 0)
 }))
 
 function resetForm() { Object.assign(form, { name: '', type: '多人活码', groupId: selectedGroupId.value === 'all' ? 1 : selectedGroupId.value, ipNo: '', campId: undefined, classId: undefined, receptionRange: [], employeeIds: [], wecomTags: [], internalTags: [], status: '启用' }) }
@@ -122,7 +131,7 @@ function save() {
     Object.assign(target, { ...form, ...ipBinding, status: target.status === '停用' ? '停用' : dateStatus, groupName: group.name, campName: camp?.name, className: classItem?.name, receptionStart: form.receptionRange[0] || '', receptionEnd: form.receptionRange[1] || '', employees })
     ElMessage.success('活码配置已更新')
   } else {
-    rows.value.unshift({ id: Date.now(), codeNo: `QR${Date.now().toString().slice(-11)}`, name: form.name, type: form.type, groupId: group.id, groupName: group.name, ...ipBinding, campId: camp?.id, campName: camp?.name, classId: classItem?.id, className: classItem?.name, receptionStart: form.receptionRange[0] || '', receptionEnd: form.receptionRange[1] || '', status: dateStatus, employees, wecomTags: [...form.wecomTags], internalTags: [...form.internalTags], scans: 0, added: 0, creatorName: '林校长', createdAt: new Date().toLocaleString('zh-CN', { hour12: false }) })
+    rows.value.unshift({ id: Date.now(), codeNo: `QR${Date.now().toString().slice(-11)}`, name: form.name, type: form.type, corpId: selectedCorp.value.corpId, corpName: selectedCorp.value.name, groupId: group.id, groupName: group.name, ...ipBinding, campId: camp?.id, campName: camp?.name, classId: classItem?.id, className: classItem?.name, receptionStart: form.receptionRange[0] || '', receptionEnd: form.receptionRange[1] || '', status: dateStatus, employees, wecomTags: [...form.wecomTags], internalTags: [...form.internalTags], scans: 0, added: 0, creatorName: '林校长', createdAt: new Date().toLocaleString('zh-CN', { hour12: false }) })
     ElMessage.success('活码已创建')
   }
   drawerVisible.value = false
@@ -139,7 +148,12 @@ async function toggleStatus(row: LiveCode) {
 function download(row: LiveCode) { ElMessage.success(`正在生成“${row.name}”二维码文件`) }
 function statusType(status: string) { return status === '启用' ? 'success' : status === '待生效' ? 'warning' : status === '停用' ? 'danger' : 'info' }
 function capacityRate(row: LiveCode) { const limit = row.employees.reduce((sum, item) => sum + item.limit, 0); const received = row.employees.reduce((sum, item) => sum + item.received, 0); return limit ? Math.min(100, Math.round(received / limit * 100)) : 0 }
-function groupCount(groupId: number) { return rows.value.filter(item => item.groupId === groupId).length }
+function groupCount(groupId: number) { return scopedRows.value.filter(item => item.groupId === groupId).length }
+function switchWecomCorp() {
+  selectedGroupId.value = 'all'
+  resetQuery()
+  ElMessage.success(`已切换至${selectedCorp.value.name}，活码数据已刷新`)
+}
 async function addGroup() {
   try {
     const { value } = await ElMessageBox.prompt('请输入分组名称', '新增活码分组', { inputPlaceholder: '例如：一转活码', inputPattern: /\S+/, inputErrorMessage: '分组名称不能为空', confirmButtonText: '新增', cancelButtonText: '取消' })
@@ -159,6 +173,11 @@ async function addGroup() {
       <el-button :icon="Download">导出接量情况</el-button><el-button type="primary" :icon="Plus" @click="openCreate">新建活码</el-button>
     </PageHeader>
 
+    <div class="wecom-scope surface">
+      <div class="wecom-scope-copy"><i>企</i><span><small>当前企业微信主体</small><b>{{ selectedCorp.name }}</b><code>{{ selectedCorp.corpId }}</code></span></div>
+      <div class="wecom-scope-action"><span>企微ID</span><el-select v-model="selectedCorpId" @change="switchWecomCorp"><el-option v-for="item in wecomCorps" :key="item.corpId" :value="item.corpId" :label="`${item.name} · ${item.corpId}`"><div class="corp-option"><span><b>{{ item.name }}</b><small>{{ item.corpId }}</small></span><el-tag size="small" type="success">{{ item.status }}</el-tag></div></el-option></el-select><small>切换后，分组、列表、统计及新建活码均使用所选企微ID。</small></div>
+    </div>
+
     <div class="summary-strip surface">
       <div><span>活码总数</span><b>{{ summary.total }}</b></div><div><span>启用中</span><b>{{ summary.active }}</b></div>
       <div><span>轮询容量</span><b>{{ summary.capacity }}</b><small>仅约束自动轮询</small></div><div><span>当前已接量</span><b>{{ summary.received }}</b><small>未转化线索</small></div>
@@ -176,7 +195,7 @@ async function addGroup() {
     <aside class="group-panel surface">
       <header><div><el-icon><FolderOpened /></el-icon><h3>活码分组</h3></div><el-button link type="primary" :icon="Plus" @click="addGroup">新增分组</el-button></header>
       <nav aria-label="活码分组筛选">
-        <button :class="{ active: selectedGroupId === 'all' }" @click="selectedGroupId = 'all'"><el-icon><FolderOpened /></el-icon><span>全部活码</span><em>{{ rows.length }}</em></button>
+        <button :class="{ active: selectedGroupId === 'all' }" @click="selectedGroupId = 'all'"><el-icon><FolderOpened /></el-icon><span>全部活码</span><em>{{ scopedRows.length }}</em></button>
         <button v-for="group in groups" :key="group.id" :class="{ active: selectedGroupId === group.id }" @click="selectedGroupId = group.id"><el-icon><Folder /></el-icon><span>{{ group.name }}</span><em>{{ groupCount(group.id) }}</em></button>
       </nav>
       <p>选择分组后，右侧仅展示该分组下的活码。</p>
@@ -202,7 +221,7 @@ async function addGroup() {
     </div>
 
     <el-drawer v-model="drawerVisible" :title="editingId ? '编辑活码' : '新建活码'" size="760px" class="qr-config-drawer">
-      <div class="drawer-lead"><b>活码接量配置</b><span>期次、班级和接量日期均用于限定业务归属与轮询范围，可按实际场景选填。</span></div>
+      <div class="drawer-lead"><b>活码接量配置 · {{ selectedCorp.name }}</b><span>当前企微ID：{{ selectedCorp.corpId }}。新建活码将归属当前主体；期次、班级和接量日期可按实际场景选填。</span></div>
       <el-form label-position="top" class="qr-form">
         <div class="form-section"><h4>基础信息</h4><div class="form-grid">
           <el-form-item label="活码名称" required><el-input v-model="form.name" maxlength="30" show-word-limit placeholder="例如：暑期三营 · 抖音一转" /></el-form-item>
@@ -225,7 +244,7 @@ async function addGroup() {
 
     <el-drawer v-model="detailVisible" title="活码详情" size="680px">
       <template v-if="activeRow"><div class="detail-hero"><div class="qr-large"><i></i><em>合</em></div><div><el-tag :type="statusType(activeRow.status)">{{ activeRow.status }}</el-tag><h2>{{ activeRow.name }}</h2><p>{{ activeRow.codeNo }} · {{ activeRow.type }}</p><el-button type="primary" :icon="Download" @click="download(activeRow)">下载活码</el-button></div></div>
-      <el-descriptions :column="2" border><el-descriptions-item label="活码分组">{{ activeRow.groupName }}</el-descriptions-item><el-descriptions-item label="创建人">{{ activeRow.creatorName }}</el-descriptions-item><el-descriptions-item label="关联IP">{{ activeRow.ipName ? `${activeRow.ipName} · ${activeRow.ipNo}` : '未关联' }}</el-descriptions-item><el-descriptions-item label="IP渠道">{{ activeRow.ipChannelName ? `${activeRow.ipChannelName} · ${activeRow.ipChannelCode}` : '未配置' }}</el-descriptions-item><el-descriptions-item label="所属期次">{{ activeRow.campName || '未关联（通用活码）' }}</el-descriptions-item><el-descriptions-item label="所属班级">{{ activeRow.className || '未关联' }}</el-descriptions-item><el-descriptions-item label="接量开始">{{ activeRow.receptionStart || '长期有效' }}</el-descriptions-item><el-descriptions-item label="接量结束">{{ activeRow.receptionEnd || '长期有效' }}</el-descriptions-item><el-descriptions-item label="企微标签">{{ activeRow.wecomTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="内部标签">{{ activeRow.internalTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="扫码数">{{ activeRow.scans.toLocaleString() }}</el-descriptions-item><el-descriptions-item label="加微数">{{ activeRow.added.toLocaleString() }}</el-descriptions-item></el-descriptions>
+      <el-descriptions :column="2" border><el-descriptions-item label="企业微信主体">{{ activeRow.corpName }}</el-descriptions-item><el-descriptions-item label="企微ID">{{ activeRow.corpId }}</el-descriptions-item><el-descriptions-item label="活码分组">{{ activeRow.groupName }}</el-descriptions-item><el-descriptions-item label="创建人">{{ activeRow.creatorName }}</el-descriptions-item><el-descriptions-item label="关联IP">{{ activeRow.ipName ? `${activeRow.ipName} · ${activeRow.ipNo}` : '未关联' }}</el-descriptions-item><el-descriptions-item label="IP渠道">{{ activeRow.ipChannelName ? `${activeRow.ipChannelName} · ${activeRow.ipChannelCode}` : '未配置' }}</el-descriptions-item><el-descriptions-item label="所属期次">{{ activeRow.campName || '未关联（通用活码）' }}</el-descriptions-item><el-descriptions-item label="所属班级">{{ activeRow.className || '未关联' }}</el-descriptions-item><el-descriptions-item label="接量开始">{{ activeRow.receptionStart || '长期有效' }}</el-descriptions-item><el-descriptions-item label="接量结束">{{ activeRow.receptionEnd || '长期有效' }}</el-descriptions-item><el-descriptions-item label="企微标签">{{ activeRow.wecomTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="内部标签">{{ activeRow.internalTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="扫码数">{{ activeRow.scans.toLocaleString() }}</el-descriptions-item><el-descriptions-item label="加微数">{{ activeRow.added.toLocaleString() }}</el-descriptions-item></el-descriptions>
       <h3 class="detail-title">接待员工</h3><el-table :data="activeRow.employees"><el-table-column prop="name" label="姓名"/><el-table-column prop="no" label="员工编号"/><el-table-column prop="role" label="岗位"/><el-table-column prop="received" label="已接量"/><el-table-column prop="limit" label="轮询上限"/></el-table></template>
     </el-drawer>
   </section>
@@ -233,5 +252,6 @@ async function addGroup() {
 
 <style scoped>
 .qr-page{--qr-ink:#142541;--qr-blue:#2875e6;--qr-mint:#26b99a}.summary-strip{display:grid;grid-template-columns:repeat(4,150px) 1fr;align-items:center;gap:18px;padding:17px 20px;margin-bottom:14px}.summary-strip>div{padding-right:18px;border-right:1px solid var(--line)}.summary-strip span,.summary-strip b,.summary-strip small{display:block}.summary-strip span{font-size:11px;color:var(--muted)}.summary-strip b{margin-top:4px;font:700 23px Inter,"PingFang SC",sans-serif;color:var(--qr-ink)}.summary-strip small{margin-top:2px;font-size:9px;color:#93a0b1}.summary-strip p{display:flex;align-items:center;gap:9px;justify-self:end;margin:0;color:#647690;font-size:11px}.summary-strip p i{width:7px;height:7px;border-radius:50%;background:var(--qr-mint);box-shadow:0 0 0 5px #26b99a18}.filter-bar{display:grid;grid-template-columns:1.5fr 1fr .8fr auto auto;gap:10px;padding:14px 16px;margin-bottom:14px}.option-status{float:right;color:#97a5b7}.management-layout{display:grid;grid-template-columns:230px minmax(0,1fr);align-items:start;gap:14px}.group-panel{position:sticky;top:12px;overflow:hidden}.group-panel header{height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--line)}.group-panel header>div{display:flex;align-items:center;gap:8px;color:var(--qr-ink)}.group-panel h3{margin:0;font-size:15px}.group-panel nav{display:grid;gap:4px;padding:10px}.group-panel nav button{width:100%;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:8px;padding:11px 10px;border:0;border-radius:7px;background:transparent;color:#5f718a;text-align:left;cursor:pointer;transition:background .18s,color .18s,transform .18s}.group-panel nav button:hover{background:#f2f6fc;color:var(--qr-blue);transform:translateX(2px)}.group-panel nav button:focus-visible{outline:2px solid var(--qr-blue);outline-offset:1px}.group-panel nav button.active{background:#eaf2ff;color:var(--qr-blue);font-weight:600}.group-panel nav button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.group-panel nav button em{min-width:24px;padding:2px 6px;border-radius:10px;background:#f0f3f8;color:#8492a5;font-size:10px;font-style:normal;text-align:center}.group-panel nav button.active em{background:#fff;color:var(--qr-blue)}.group-panel>p{margin:0;padding:12px 14px 16px;border-top:1px solid var(--line);color:#98a4b5;font-size:10px;line-height:1.6}.code-list{padding:0 18px 18px;min-width:0}.code-list>header{height:64px;display:flex;align-items:center;justify-content:space-between}.code-list>header div{display:flex;align-items:baseline;gap:10px}.code-list h3{margin:0;color:var(--qr-ink)}.code-list header span{font-size:11px;color:var(--muted)}.qr-thumb,.qr-large{position:relative;overflow:hidden;background:repeating-conic-gradient(#1b3151 0 8%,transparent 0 16%) 0 0/12px 12px,#fff;border:5px solid #fff;box-shadow:0 0 0 1px #cfdaea}.qr-thumb{width:52px;height:52px}.qr-large{width:150px;height:150px;flex:0 0 150px}.qr-thumb i,.qr-large i{position:absolute;inset:25%;background:#fff;border:5px solid var(--qr-blue)}.qr-thumb em,.qr-large em{position:absolute;inset:38%;display:grid;place-items:center;background:var(--qr-blue);color:#fff;font-style:normal;font-weight:700}.code-name b,.code-name>span,.camp-cell b,.camp-cell span{display:block}.code-name b,.camp-cell b{color:var(--qr-ink)}.code-name>span,.camp-cell span{margin-top:5px;color:#8492a5;font-size:11px}.code-name small{display:flex;gap:5px;margin-top:8px}.date-cell{display:flex;align-items:center;gap:7px;font-size:11px;color:#435773}.date-cell i{width:12px;height:1px;background:#a8b7ca}.long-term{color:#76879d;font-size:11px}.capacity-cell>div{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:11px}.capacity-cell b{color:var(--qr-blue)}.tag-cell{display:grid;gap:7px}.tag-cell>div{display:grid;grid-template-columns:32px minmax(0,1fr);gap:7px;align-items:start}.tag-cell>div>span{padding-top:3px;color:#8492a5;font-size:9px}.tag-cell p{display:flex;flex-wrap:wrap;gap:4px;margin:0}.tag-cell p em{padding-top:3px;color:#a4afbd;font-size:9px;font-style:normal}.creator-cell b,.creator-cell span{display:block}.creator-cell b{color:var(--qr-ink);font-size:12px}.creator-cell span{margin-top:5px;color:#96a3b4;font-size:9px}.result-cell{display:grid;grid-template-columns:1fr 1fr;gap:4px}.result-cell b{color:var(--qr-ink)}.result-cell span{color:var(--qr-mint)}.drawer-lead{display:flex;flex-direction:column;gap:6px;padding:14px 16px;margin-bottom:18px;border-radius:8px;background:#f4f8fe}.drawer-lead b{color:var(--qr-ink)}.drawer-lead span{font-size:12px;color:#6e8099}.form-section{padding:0 0 20px;margin-bottom:22px;border-bottom:1px solid var(--line)}.form-section h4{margin:0 0 16px;padding-left:10px;border-left:3px solid var(--qr-blue);color:var(--qr-ink)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.span-2{grid-column:1/-1}.qr-form :deep(.el-select),.qr-form :deep(.el-date-editor){width:100%}.qr-form :deep(.el-form-item__content>small){margin-top:6px;color:#93a0b1;font-size:10px}.optional{padding:2px 6px;margin-left:6px;border-radius:8px;background:#eef2f7;color:#7b899c;font-size:9px;font-style:normal}.employee-config-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.employee-config{display:grid;grid-template-columns:38px 1fr auto;align-items:center;gap:10px;padding:12px;border:1px solid #dce6f4;border-radius:8px}.employee-config>i{width:38px;height:38px;display:grid;place-items:center;border-radius:8px;background:#eaf2ff;color:var(--qr-blue);font-style:normal;font-weight:700}.employee-config span b,.employee-config span small{display:block}.employee-config span small{margin-top:3px;color:#8a99ac;font-size:9px}.employee-config label{display:grid;grid-template-columns:auto auto;align-items:center;gap:8px;color:#75859a;font-size:10px}.employee-config label :deep(.el-input-number){width:88px}.employee-config>em{grid-column:2/4;color:#8c9bad;font-size:9px;font-style:normal}.detail-hero{display:flex;gap:24px;align-items:center;padding:24px;margin-bottom:22px;border-radius:12px;background:#f3f7fd}.detail-hero h2{margin:10px 0 5px;color:var(--qr-ink)}.detail-hero p{margin:0 0 18px;color:#7b8ca2}.detail-title{margin:26px 0 12px;color:var(--qr-ink)}@media(max-width:1300px){.summary-strip{grid-template-columns:repeat(4,1fr)}.summary-strip p{grid-column:1/-1;justify-self:start}.management-layout{grid-template-columns:190px minmax(0,1fr)}.employee-config-list{grid-template-columns:1fr}}@media(max-width:980px){.management-layout{grid-template-columns:1fr}.group-panel{position:static}.group-panel nav{display:flex;overflow-x:auto}.group-panel nav button{min-width:150px}.group-panel>p{display:none}}
+.wecom-scope{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--qr-blue)}.wecom-scope-copy{display:flex;align-items:center;gap:13px}.wecom-scope-copy>i{width:42px;height:42px;display:grid;place-items:center;border-radius:10px;background:#eaf2ff;color:var(--qr-blue);font-style:normal;font-weight:700}.wecom-scope-copy span,.wecom-scope-copy small,.wecom-scope-copy b,.wecom-scope-copy code{display:block}.wecom-scope-copy small{color:#8a99ad}.wecom-scope-copy b{margin-top:3px;color:var(--qr-ink);font-size:16px}.wecom-scope-copy code{margin-top:3px;color:#69809d}.wecom-scope-action{display:grid;grid-template-columns:auto 360px;align-items:center;gap:5px 12px}.wecom-scope-action>span{color:#435773;font-weight:600}.wecom-scope-action>small{grid-column:2;color:#8a99ad}.corp-option{display:flex;align-items:center;justify-content:space-between;gap:20px}.corp-option span,.corp-option b,.corp-option small{display:block}.corp-option small{margin-top:2px;color:#8b99ab;font-size:10px}@media(max-width:980px){.wecom-scope{align-items:flex-start;flex-direction:column}.wecom-scope-action{width:100%;grid-template-columns:1fr}.wecom-scope-action>small{grid-column:1}.wecom-scope-action :deep(.el-select){width:100%}}
 .ip-binding-cell b,.ip-binding-cell code,.ip-binding-cell span{display:block}.ip-binding-cell b{color:var(--qr-ink)}.ip-binding-cell code{width:max-content;margin-top:4px;padding:2px 6px;border-radius:4px;background:#edf3fc;color:#57708f;font-size:9px}.ip-binding-cell span{margin-top:6px;color:var(--qr-blue);font-size:10px}
 </style>
