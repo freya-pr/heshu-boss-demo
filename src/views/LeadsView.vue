@@ -667,6 +667,19 @@ onMounted(() => load())
 
 function normalizeLeadState(source: any) {
   const row = { ...source }
+  const legacyOrderStatusMap: Record<string, string> = {
+    NO_ORDER: '',
+    UNPAID: 'PENDING_PAY',
+    REFUNDING: 'AFTER_SALE_PROCESSING'
+  }
+  if (row.order_status === 'REFUNDED') {
+    const fulfillment = String(row.fulfillment_status || '').toUpperCase()
+    row.order_status = row.received_at || row.completed_at || ['RECEIVED', 'COMPLETED'].includes(fulfillment)
+      ? 'REFUNDED_AFTER_RECEIPT'
+      : row.shipped_at || ['PARTIALLY_SHIPPED', 'SHIPPED'].includes(fulfillment)
+        ? 'REFUNDED_AFTER_SHIP'
+        : 'REFUNDED_BEFORE_SHIP'
+  } else row.order_status = legacyOrderStatusMap[row.order_status] ?? row.order_status
   const fallbackPeriod = periodOptions.value[0]
   row.period_id ||= row.acquisition_period_id || fallbackPeriod?.id
   row.period_name ||= row.acquisition_period_name || fallbackPeriod?.name || '未归属期次'
@@ -750,7 +763,19 @@ const conversionTagTypes: any = { UNCONVERTED: 'info', CONVERTED: 'success' }
 const gradeLabels: any = { S: 'S级', A: 'A级', B: 'B级', C: 'C级', UNRATED: '未定级' }
 const gradeTagTypes: any = { S: 'danger', A: 'warning', B: 'success', C: 'info', UNRATED: 'info' }
 const gradeSourceLabels: any = { QUESTIONNAIRE_AUTO: '问卷自动评级', MANUAL: '人工调整', LEAD_INHERITED: '线索继承' }
-const orderLabels: any = { UNPAID: '未支付', PAID: '已支付', CANCELLED: '已取消', COMPLETED: '已完成', REFUNDING: '退款中', REFUNDED: '已退款' }
+const orderLabels: any = {
+  PENDING_PAY: '待支付',
+  PAID: '已支付',
+  PREPARING: '备货中',
+  SHIPPED: '已发货',
+  CANCELLED: '已取消',
+  COMPLETED: '已完成',
+  AFTER_SALE_PROCESSING: '售后处理中',
+  REFUNDED_BEFORE_SHIP: '发货前退款完结',
+  REFUNDED_AFTER_SHIP: '发货后退款完结',
+  REFUNDED_AFTER_RECEIPT: '收货后退款完结',
+  PARTIAL_REFUNDED: '部分退款'
+}
 const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', FOLLOWED: '已跟进' }
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
 const wechatLabels: any = { WECOM: '企微', PERSONAL_WECHAT: '个微' }
@@ -872,7 +897,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           </template></el-table-column>
           <el-table-column v-if="showColumn('third_party_product_id')" prop="third_party_product_id" label="第三方商品ID" width="170"><template #default="{ row }">{{ textOrDash(row.third_party_product_id) }}</template></el-table-column>
           <el-table-column v-if="showColumn('source_type')" prop="source_type" label="线索类型" width="110"><template #default="{ row }">{{ sourceLabels[row.source_type] || row.source_type }}</template></el-table-column>
-          <el-table-column v-if="showColumn('order_status')" width="146"><template #header><span>订单状态</span><small class="cell-sub">实时第三方回传</small></template><template #default="{ row }">{{ orderLabels[row.order_status] || textOrDash(row.order_status) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('order_status')" width="174"><template #header><span>订单状态</span><small class="cell-sub">第三方映射结果</small></template><template #default="{ row }">{{ orderLabels[row.order_status] || textOrDash(row.order_status) }}</template></el-table-column>
           <el-table-column v-if="showColumn('related_customer')" label="关联客户" width="170"><template #default="{ row }"><strong>{{ textOrDash(row.customer_name) }}</strong><small class="cell-sub">{{ textOrDash(row.customer_no) }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('wechat_nickname')" prop="wechat_nickname" label="微信昵称" width="130"><template #default="{ row }">{{ textOrDash(row.wechat_nickname) }}</template></el-table-column>
           <el-table-column v-if="showColumn('original_mobile')" label="解密前手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.original_mobile) }}</template></el-table-column>
