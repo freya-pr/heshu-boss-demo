@@ -48,33 +48,21 @@ const saved = localStorage.getItem(STORAGE_KEY)
 const tags = ref<TagRow[]>((saved ? JSON.parse(saved) : seedTags).filter((item: TagRow) => ['系统', '企业微信'].includes(item.source)))
 const allowedSources: TagSource[] = ['系统', '企业微信']
 const activeTab = ref<TabKey>('library')
-const query = reactive({ keyword: '', object: '' as '' | TagObject, source: '' as '' | TagSource, status: '' as '' | TagStatus })
+const query = reactive({ keyword: '', source: '' as '' | TagSource, status: '' as '' | TagStatus })
 const detailVisible = ref(false)
 const editorVisible = ref(false)
-const mappingVisible = ref(false)
 const coverageVisible = ref(false)
 const activeTag = ref<TagRow | null>(null)
 const editingId = ref<number | null>(null)
-const form = reactive({ name: '', object: '客户' as TagObject, source: 'BOSS人工' as 'BOSS人工' | '规则' | 'AI', category: '', validity: '永久', permission: '业务人员可查看和打标', description: '' })
-const mappingForm = reactive({ source: '企业微信' as const, externalName: '', externalCode: '', bossTagId: undefined as number | undefined })
+const form = reactive({ name: '', object: '客户' as TagObject, source: '系统' as TagSource, category: '未分类', validity: '永久', permission: '业务人员可查看和打标', groupName: '', description: '' })
+const groupEditorVisible = ref(false)
+const groupEditingId = ref<number | null>(null)
+const groupForm = reactive({ name: '', object: '客户' as TagObject, tags: [] as string[], owner: '', status: '启用' as '启用' | '停用' })
 
 const groups = ref([
   { id: 1, name: '客户阶段', object: '客户', tags: ['正式课客户', '高意向'], owner: '客户运营部', status: '启用', updatedAt: '2026-08-24 18:20' },
   { id: 2, name: '销售判断', object: '客户', tags: ['价格敏感', '重点客户'], owner: '一转事业部', status: '启用', updatedAt: '2026-08-23 15:42' },
   { id: 3, name: '问卷洞察', object: '线索', tags: ['问卷高匹配'], owner: '产品中心', status: '启用', updatedAt: '2026-08-22 11:06' }
-])
-const rules = ref([
-  { id: 1, name: '高意向识别', target: '高意向', object: '客户', trigger: '客户行为变化', condition: '近7天命中问卷高分、预约、到课、主动咨询任意3项', validity: '14天', status: '运行中', lastRun: '2026-08-25 03:00' },
-  { id: 2, name: '问卷高匹配识别', target: '问卷高匹配', object: '线索', trigger: '问卷提交', condition: '语义模型置信度 ≥ 0.82', validity: '本营期', status: '运行中', lastRun: '2026-08-25 08:12' }
-])
-const mappings = ref([
-  { id: 1, source: '企业微信', externalName: '重点客户', externalCode: 'wx_tag_6519', bossTag: '重点客户', direction: '外部 → BOSS', status: '正常', lastSync: '2026-08-25 08:16' },
-  { id: 2, source: '外部SCRM', externalName: '试听已沟通', externalCode: 'ext_tag_339', bossTag: '试听已沟通', direction: '外部 → BOSS', status: '正常', lastSync: '2026-08-24 23:45' }
-])
-const governanceRows = computed(() => [
-  { type: '疑似重复', level: '高', object: '价格敏感 / 对价格敏感', count: 2, suggestion: '合并到“价格敏感”，保留历史关系', owner: '客户运营部' },
-  { type: '长期未使用', level: '中', object: '寒假意向2024', count: 1, suggestion: '确认无历史用途后停用', owner: '运营中心' },
-  { type: '映射中断', level: '高', object: '企微：家长会已预约', count: 36, suggestion: '补充BOSS目标标签或解除映射', owner: '系统管理员' }
 ])
 const coverageSamples = computed(() => {
   if (!activeTag.value) return []
@@ -95,7 +83,6 @@ watch(tags, value => localStorage.setItem(STORAGE_KEY, JSON.stringify(value)), {
 const filteredTags = computed(() => {
   const keyword = query.keyword.trim().toLowerCase()
   return tags.value.filter(tag => allowedSources.includes(tag.source) && (!keyword || `${tag.name}${tag.code}${tag.source}`.toLowerCase().includes(keyword))
-    && (!query.object || tag.object === query.object)
     && (!query.source || tag.source === query.source)
     && (!query.status || tag.status === query.status))
 })
@@ -109,19 +96,19 @@ const summary = computed(() => ({
 }))
 const sourceType = (source: TagSource) => ({ 系统: 'primary', BOSS人工: 'warning', 企业微信: 'success', 外部SCRM: 'info', 规则: 'primary', AI: 'danger' }[source] as any)
 const editable = (_tag: TagRow) => false
+const groupNamesForTag = (tagName: string) => groups.value.filter(group => group.tags.includes(tagName)).map(group => group.name)
 
-function resetQuery() { Object.assign(query, { keyword: '', object: '', source: '', status: '' }) }
+function resetQuery() { Object.assign(query, { keyword: '', source: '', status: '' }) }
 function openDetail(tag: TagRow) { activeTag.value = tag; detailVisible.value = true }
 function openCoverage(tag: TagRow) { activeTag.value = tag; coverageVisible.value = true }
 function openCreate(tag?: TagRow) {
   editingId.value = tag?.id || null
-  Object.assign(form, tag ? { name: tag.name, object: tag.object, source: tag.source, category: tag.category, validity: tag.validity, permission: tag.permission, description: tag.description } : { name: '', object: '客户', source: 'BOSS人工', category: '', validity: '永久', permission: '业务人员可查看和打标', description: '' })
+  Object.assign(form, tag ? { name: tag.name, object: tag.object, source: tag.source, category: tag.category, validity: tag.validity, permission: tag.permission, groupName: groupNamesForTag(tag.name)[0] || '', description: tag.description } : { name: '', object: '客户', source: '系统', category: '未分类', validity: '永久', permission: '业务人员可查看和打标', groupName: '', description: '' })
   editorVisible.value = true
 }
 function saveTag() {
   if (!form.name.trim()) return ElMessage.warning('请输入标签名称')
-  if (!form.category.trim()) return ElMessage.warning('请选择标签分类')
-  if (tags.value.some(item => item.id !== editingId.value && item.name === form.name.trim() && item.object === form.object)) return ElMessage.warning('同一对象下已存在同名标签')
+  if (tags.value.some(item => item.id !== editingId.value && item.name.trim().toLowerCase() === form.name.trim().toLowerCase())) return ElMessage.warning('标签名称已存在，不允许重复')
   const now = new Date().toLocaleString('zh-CN', { hour12: false })
   if (editingId.value) {
     const target = tags.value.find(item => item.id === editingId.value)!
@@ -129,10 +116,39 @@ function saveTag() {
     ElMessage.success('标签已更新')
   } else {
     const suffix = String(Date.now()).slice(-6)
-    tags.value.unshift({ id: Date.now(), ...form, name: form.name.trim(), code: `TAG-${form.source === 'BOSS人工' ? 'MAN' : form.source === '规则' ? 'RULE' : 'AI'}-${suffix}`, generation: form.source === 'BOSS人工' ? '业务人员手工打标' : form.source === '规则' ? '规则命中自动生成' : 'AI模型识别', coverage: 0, status: '启用', event: form.source === 'BOSS人工' ? '人工操作' : '待配置', basis: form.source === 'BOSS人工' ? '业务判断' : '待配置', updatedAt: now })
-    ElMessage.success('BOSS标签已创建')
+    tags.value.unshift({ id: Date.now(), ...form, name: form.name.trim(), code: `TAG-SYS-${suffix}`, generation: '系统创建', coverage: 0, status: '启用', event: '人工创建', basis: '标签库配置', updatedAt: now })
+    if (form.groupName) groups.value.find(group => group.name === form.groupName)?.tags.push(form.name.trim())
+    ElMessage.success('标签已创建')
   }
   editorVisible.value = false
+}
+function syncWecomTags() {
+  const now = new Date().toLocaleString('zh-CN', { hour12: false })
+  const candidates: TagRow[] = [
+    { id: Date.now(), name: '企微重点跟进', code: 'wx_tag_8826', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧创建后同步', coverage: 1268, validity: '跟随企微', status: '已同步', description: '由企业微信客户联系标签同步进入。', event: '手动同步企微标签', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: now },
+    { id: Date.now() + 1, name: '企微已加群', code: 'wx_tag_9103', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧创建后同步', coverage: 856, validity: '跟随企微', status: '已同步', description: '由企业微信客户联系标签同步进入。', event: '手动同步企微标签', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: now }
+  ]
+  const additions = candidates.filter(candidate => !tags.value.some(item => item.code === candidate.code || item.name === candidate.name))
+  if (!additions.length) return ElMessage.info('企业微信标签已是最新')
+  tags.value.unshift(...additions)
+  ElMessage.success(`已同步 ${additions.length} 个企业微信标签`)
+}
+const groupTagOptions = computed(() => tags.value.filter(item => item.object === groupForm.object).map(item => item.name))
+function openGroupEditor(group?: typeof groups.value[number]) {
+  groupEditingId.value = group?.id || null
+  Object.assign(groupForm, group ? { name: group.name, object: group.object as TagObject, tags: [...group.tags], owner: group.owner, status: group.status as '启用' | '停用' } : { name: '', object: '客户', tags: [], owner: '', status: '启用' })
+  groupEditorVisible.value = true
+}
+function saveGroup() {
+  const name = groupForm.name.trim()
+  if (!name) return ElMessage.warning('请输入标签组名称')
+  if (groups.value.some(item => item.id !== groupEditingId.value && item.name.trim().toLowerCase() === name.toLowerCase())) return ElMessage.warning('标签组名称已存在')
+  if (!groupForm.tags.length) return ElMessage.warning('请至少选择一个标签')
+  const updatedAt = new Date().toLocaleString('zh-CN', { hour12: false })
+  if (groupEditingId.value) Object.assign(groups.value.find(item => item.id === groupEditingId.value)!, groupForm, { name, tags: [...groupForm.tags], updatedAt })
+  else groups.value.unshift({ id: Date.now(), ...groupForm, name, tags: [...groupForm.tags], updatedAt })
+  groupEditorVisible.value = false
+  ElMessage.success(groupEditingId.value ? '标签组已更新' : '标签组已创建')
 }
 async function toggleTag(tag: TagRow) {
   if (!editable(tag)) return ElMessage.info('系统和外部来源标签只读，请在来源系统或映射中处理')
@@ -142,15 +158,6 @@ async function toggleTag(tag: TagRow) {
   tag.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false })
   ElMessage.success(`标签已${next}`)
 }
-function openMapping() { Object.assign(mappingForm, { source: '企业微信', externalName: '', externalCode: '', bossTagId: undefined }); mappingVisible.value = true }
-function saveMapping() {
-  if (!mappingForm.externalName.trim() || !mappingForm.externalCode.trim() || !mappingForm.bossTagId) return ElMessage.warning('请完整填写外部标签和目标BOSS标签')
-  const target = tags.value.find(item => item.id === mappingForm.bossTagId)!
-  mappings.value.unshift({ id: Date.now(), source: mappingForm.source, externalName: mappingForm.externalName.trim(), externalCode: mappingForm.externalCode.trim(), bossTag: target.name, direction: '外部 → BOSS', status: '正常', lastSync: '等待首次同步' })
-  mappingVisible.value = false
-  ElMessage.success('外部标签映射已创建')
-}
-function handleGovernance(row: any) { ElMessage.success(`已创建治理任务：${row.type} · ${row.object}`) }
 </script>
 
 <template>
@@ -170,11 +177,11 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
     </nav>
 
     <section v-if="activeTab === 'library'" class="surface content-card">
-      <header class="section-head">
+      <header class="section-head library-head">
         <div><h2>统一标签库</h2><p>同一页面管理不同来源标签，但编辑权限和生命周期按来源严格隔离。</p></div>
+        <div class="library-actions"><el-button :icon="RefreshRight" @click="syncWecomTags">同步企微</el-button><el-button type="primary" :icon="Plus" @click="openCreate()">新增标签</el-button></div>
         <div class="filters">
           <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索标签名称 / ID / 来源系统" />
-          <el-select v-model="query.object" clearable placeholder="全部对象"><el-option v-for="item in ['客户','线索','订单']" :key="item" :label="item" :value="item" /></el-select>
           <el-select v-model="query.source" clearable placeholder="全部来源"><el-option v-for="item in ['系统','企业微信']" :key="item" :label="item" :value="item" /></el-select>
           <el-select v-model="query.status" clearable placeholder="全部状态"><el-option v-for="item in ['启用','停用','已同步']" :key="item" :label="item" :value="item" /></el-select>
           <el-button :icon="RefreshRight" circle title="重置筛选" @click="resetQuery" />
@@ -182,8 +189,8 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
       </header>
       <el-table :data="filteredTags" row-key="id">
         <el-table-column label="标签名称" min-width="190"><template #default="{ row }"><button class="tag-name" @click="openDetail(row)">{{ row.name }}</button><small class="cell-sub">{{ row.code }}</small></template></el-table-column>
-        <el-table-column prop="object" label="对象" width="90" />
-        <el-table-column prop="category" label="分类" min-width="170" />
+        <el-table-column label="目前覆盖客户数" width="150" align="right"><template #default="{ row }"><el-button class="number-link" link type="primary" @click="openCoverage(row)">{{ row.coverage.toLocaleString() }}</el-button></template></el-table-column>
+        <el-table-column label="标签组" min-width="150"><template #default="{ row }"><template v-if="groupNamesForTag(row.name).length"><el-tag v-for="name in groupNamesForTag(row.name)" :key="name" effect="plain">{{ name }}</el-tag></template><span v-else>—</span></template></el-table-column>
         <el-table-column label="来源" width="125"><template #default="{ row }"><el-tag :type="sourceType(row.source)" effect="light" round>{{ row.source }}</el-tag></template></el-table-column>
         <el-table-column label="状态" width="100"><template #default="{ row }"><span :class="['status-dot', row.status === '停用' ? 'off' : 'on']">{{ row.status }}</span></template></el-table-column>
         <el-table-column label="操作" width="155" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row)">查看</el-button><el-button v-if="editable(row)" link type="primary" @click="openCreate(row)">编辑</el-button><el-button v-if="editable(row)" link :type="row.status === '停用' ? 'success' : 'danger'" @click="toggleTag(row)">{{ row.status === '停用' ? '启用' : '停用' }}</el-button><el-button v-else link disabled>只读</el-button></template></el-table-column>
@@ -192,8 +199,8 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
     </section>
 
     <section v-else-if="activeTab === 'groups'" class="surface content-card">
-      <header class="section-head"><div><h2>标签组</h2><p>标签组用于页面筛选、客户画像分区和批量打标，不改变标签自身来源。</p></div><el-button type="primary" :icon="Plus" @click="ElMessage.info('标签组新建表单已进入下一步配置')">新建标签组</el-button></header>
-      <el-table :data="groups"><el-table-column prop="name" label="标签组名称" min-width="180"/><el-table-column prop="object" label="对象" width="100"/><el-table-column label="包含标签" min-width="320"><template #default="{row}"><el-tag v-for="tag in row.tags" :key="tag" class="group-tag" effect="plain">{{ tag }}</el-tag></template></el-table-column><el-table-column prop="owner" label="维护组织" min-width="160"/><el-table-column prop="status" label="状态" width="100"/><el-table-column prop="updatedAt" label="更新时间" width="165"/><el-table-column label="操作" width="120"><template #default><el-button link type="primary">编辑</el-button><el-button link>排序</el-button></template></el-table-column></el-table>
+      <header class="section-head"><div><h2>标签组</h2><p>标签组用于页面筛选、客户画像分区和批量打标，不改变标签自身来源。</p></div><el-button type="primary" :icon="Plus" @click="openGroupEditor()">新增标签组</el-button></header>
+      <el-table :data="groups"><el-table-column prop="name" label="标签组名称" min-width="180"/><el-table-column label="包含标签" min-width="360"><template #default="{row}"><el-tag v-for="tag in row.tags" :key="tag" class="group-tag" effect="plain">{{ tag }}</el-tag></template></el-table-column><el-table-column prop="status" label="状态" width="100"/><el-table-column prop="updatedAt" label="更新时间" width="165"/><el-table-column label="操作" width="90"><template #default="{ row }"><el-button link type="primary" @click="openGroupEditor(row)">编辑</el-button></template></el-table-column></el-table>
     </section>
 
 
@@ -202,28 +209,31 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
         <el-alert v-if="!editable(activeTag)" :title="activeTag.source === '系统' ? '该标签由业务事件生成，不允许人工修改。' : '该标签来自外部系统，BOSS仅展示和使用，修改请前往来源系统或调整映射。'" type="warning" :closable="false" />
         <div class="detail-grid">
           <label>标签来源<strong>{{ activeTag.source }}</strong></label><label>标签ID<strong>{{ activeTag.code }}</strong></label>
-          <label>标签对象<strong>{{ activeTag.object }}</strong></label><label>标签分类<strong>{{ activeTag.category }}</strong></label>
-          <label>生成事件<strong>{{ activeTag.event }}</strong></label><label>归属依据<strong>{{ activeTag.basis }}</strong></label>
-          <label>历史策略<strong>{{ activeTag.coverage ? '保留历史关系，不物理删除' : '暂无历史关系' }}</strong></label><label>当前覆盖<strong>{{ activeTag.coverage.toLocaleString() }} {{ activeTag.object }}</strong></label>
-          <label class="wide">使用权限<strong>{{ activeTag.permission }}</strong></label><label class="wide">说明<strong>{{ activeTag.description }}</strong></label>
+          <label>当前覆盖<strong>{{ activeTag.coverage.toLocaleString() }} {{ activeTag.object }}</strong></label><label>使用权限<strong>{{ activeTag.permission }}</strong></label>
         </div>
       </template>
       <template #footer><el-button @click="detailVisible=false">关闭</el-button><el-button v-if="activeTag && editable(activeTag)" type="primary" @click="detailVisible=false;openCreate(activeTag)">编辑标签</el-button></template>
     </el-drawer>
 
-    <el-drawer v-model="editorVisible" size="560px" :title="editingId ? '编辑 BOSS 标签' : '新建 BOSS 标签'">
-      <el-alert title="这里只创建BOSS人工、规则或AI标签。系统业务标签由业务事件产生，企微和外部SCRM标签通过映射接入。" type="warning" :closable="false" />
+    <el-drawer v-model="editorVisible" size="560px" :title="editingId ? '编辑标签' : '新增标签'">
+      <el-alert title="新增标签归入系统来源；企业微信侧创建的标签请使用“同步企微”获取。标签名称全局不允许重复。" type="info" :closable="false" />
       <el-form label-position="top" class="tag-form">
         <el-form-item label="标签名称" required><el-input v-model="form.name" maxlength="30" show-word-limit placeholder="例如：价格敏感" /></el-form-item>
-        <el-form-item label="标签对象" required><el-select v-model="form.object"><el-option v-for="item in ['客户','线索','订单']" :key="item" :label="item" :value="item" /></el-select></el-form-item>
-        <el-form-item label="标签来源" required><el-radio-group v-model="form.source"><el-radio-button value="BOSS人工">BOSS人工</el-radio-button><el-radio-button value="规则">规则</el-radio-button><el-radio-button value="AI">AI</el-radio-button></el-radio-group></el-form-item>
-        <el-form-item label="标签分类" required><el-select v-model="form.category" filterable allow-create placeholder="选择或输入分类"><el-option v-for="item in ['销售判断 / 购买阻碍','销售意向','客户阶段','问卷洞察','订单状态','业务归属 / 营期']" :key="item" :label="item" :value="item" /></el-select></el-form-item>
-        <el-form-item label="有效期"><el-select v-model="form.validity"><el-option v-for="item in ['永久','7天','14天','30天','本营期']" :key="item" :label="item" :value="item" /></el-select></el-form-item>
-        <el-form-item label="使用权限"><el-select v-model="form.permission"><el-option v-for="item in ['业务人员可查看和打标','一转可查看和打标','仅管理员维护','规则管理员维护','AI管理员维护']" :key="item" :label="item" :value="item" /></el-select></el-form-item>
+        <el-form-item label="标签来源"><el-input model-value="系统" disabled /></el-form-item>
+        <el-form-item label="标签组（非必填）"><el-select v-model="form.groupName" clearable placeholder="请选择标签组"><el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.name" /></el-select></el-form-item>
         <el-form-item label="说明"><el-input v-model="form.description" type="textarea" :rows="3" maxlength="160" show-word-limit /></el-form-item>
       </el-form>
       <template #footer><el-button @click="editorVisible=false">取消</el-button><el-button type="primary" @click="saveTag">保存标签</el-button></template>
     </el-drawer>
+
+    <el-dialog v-model="groupEditorVisible" :title="groupEditingId ? '编辑标签组' : '新增标签组'" width="620px">
+      <el-form label-position="top" class="tag-form">
+        <el-form-item label="标签组名称" required><el-input v-model="groupForm.name" maxlength="30" placeholder="请输入标签组名称" /></el-form-item>
+        <el-form-item label="包含标签" required><el-select v-model="groupForm.tags" multiple filterable collapse-tags placeholder="请选择标签"><el-option v-for="item in groupTagOptions" :key="item" :label="item" :value="item" /></el-select></el-form-item>
+        <el-form-item label="状态"><el-radio-group v-model="groupForm.status"><el-radio value="启用">启用</el-radio><el-radio value="停用">停用</el-radio></el-radio-group></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="groupEditorVisible=false">取消</el-button><el-button type="primary" @click="saveGroup">保存标签组</el-button></template>
+    </el-dialog>
 
 
     <el-dialog v-model="coverageVisible" :title="`标签覆盖明细 · ${activeTag?.name || ''}`" width="820px">
@@ -235,5 +245,6 @@ function handleGovernance(row: any) { ElMessage.success(`已创建治理任务�
 </template>
 
 <style scoped>
+.library-head{flex-wrap:wrap}.library-actions{display:flex;gap:8px;white-space:nowrap}.library-actions+.filters{flex:1 0 100%;width:100%;min-width:0}
 .tag-page{--tag-violet:#5968ff;--tag-violet-soft:#eef0ff}.metrics-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:20px}.metrics-grid article{padding:18px 20px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(28,55,90,.04)}.metrics-grid span,.metrics-grid strong,.metrics-grid small{display:block}.metrics-grid span{color:var(--secondary);font-size:12px}.metrics-grid strong{margin:10px 0 8px;color:var(--text);font-size:28px;line-height:1;font-variant-numeric:tabular-nums}.metrics-grid small{color:var(--muted);font-size:11px}.metrics-grid .risk-card strong{color:#d58700}.tag-tabs{width:max-content;max-width:100%;display:flex;gap:3px;margin-bottom:18px;padding:5px;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:auto}.tag-tabs button{min-width:108px;padding:10px 14px;border:0;border-radius:9px;background:transparent;color:var(--secondary);text-align:left;cursor:pointer;transition:.18s ease}.tag-tabs button:hover{background:#f5f7fb}.tag-tabs button.active{background:var(--tag-violet-soft);color:var(--tag-violet)}.tag-tabs b,.tag-tabs small{display:block}.tag-tabs b{font-size:13px}.tag-tabs small{display:none;margin-top:3px;font-size:10px}.content-card{overflow:hidden}.section-head{min-height:84px;padding:18px 20px;display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line)}.section-head h2{margin:0 0 5px;font-size:18px}.section-head p{margin:0;color:var(--secondary);font-size:12px}.filters{display:grid;grid-template-columns:minmax(230px,1.5fr) repeat(3,minmax(118px,.75fr)) auto;gap:8px;min-width:min(760px,65vw)}.tag-name{padding:0;border:0;background:transparent;color:var(--text);font:inherit;font-weight:700;cursor:pointer}.tag-name:hover{color:var(--brand)}.cell-sub{display:block;margin-top:5px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.number-link{font-weight:700;font-variant-numeric:tabular-nums}.status-dot{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12px}.status-dot:before{content:"";width:7px;height:7px;border-radius:50%;background:#24bd93;box-shadow:0 0 0 3px #e6f8f2}.status-dot.off{color:var(--muted)}.status-dot.off:before{background:#adb8c7;box-shadow:0 0 0 3px #edf0f4}.table-footer{min-height:64px;padding:12px 20px;display:flex;align-items:center;justify-content:flex-end;gap:18px;border-top:1px solid var(--line);color:var(--secondary);font-size:12px}.group-tag{margin:3px 5px 3px 0}.governance-card .governance-summary{margin:18px 20px;padding:15px 18px;display:flex;align-items:flex-start;gap:12px;border:1px solid #f1d490;border-radius:10px;background:#fff8e8;color:#9a6508}.governance-summary svg{width:20px;margin-top:2px}.governance-summary b,.governance-summary p{display:block;margin:0}.governance-summary p{margin-top:4px;font-size:12px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}.detail-grid label{min-height:78px;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe;color:var(--muted);font-size:11px}.detail-grid label.wide{grid-column:1/-1}.detail-grid strong{display:block;margin-top:9px;color:var(--text);font-size:14px;line-height:1.5}.tag-form,.mapping-form{margin-top:20px}.tag-form :deep(.el-select),.mapping-form :deep(.el-select){width:100%}.coverage-table{margin-top:18px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(3,1fr)}.filters{min-width:0;grid-template-columns:1fr 1fr}.section-head{align-items:flex-start;flex-direction:column}}@media(max-width:720px){.metrics-grid{grid-template-columns:1fr 1fr}.metrics-grid article:last-child{grid-column:1/-1}.tag-tabs{width:100%}.section-head{padding:16px}.filters{width:100%;grid-template-columns:1fr}.detail-grid,.form-grid{grid-template-columns:1fr}.detail-grid label.wide{grid-column:auto}}
 </style>

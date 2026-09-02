@@ -20,3 +20,19 @@ for (const output of outputs) {
   await writeFile(output, html)
   console.log(output)
 }
+
+const previewDir = resolve(root, '../preview')
+const routeLaunchers = {
+  'heshu-boss-leads.html': '/leads/drainage',
+  'heshu-boss-channels.html': '/leads/channels',
+  'heshu-boss-sms-config.html': '/leads/sms-config',
+  'heshu-boss-qr-codes.html': '/leads/qr-codes',
+  'heshu-boss-tags.html': '/customers/tags',
+}
+const shareVersion = Date.now()
+for (const [fileName, route] of Object.entries(routeLaunchers)) {
+  const launcher = `<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>合数BOSS · 页面直达</title></head><body><script>location.replace('./heshu-boss-share.html?v=${shareVersion}#${route}')</script><p><a href="./heshu-boss-share.html?v=${shareVersion}#${route}">打开合数BOSS原型</a></p></body></html>`
+  const output = resolve(previewDir, fileName)
+  await writeFile(output, launcher)
+  console.log(output)
+}

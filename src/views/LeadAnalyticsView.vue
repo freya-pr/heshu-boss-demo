@@ -193,9 +193,6 @@ function exportChannels() {
 function exportIpChannels() {
   downloadCsv(`合数BOSS_${filePeriodLabel.value}_IP渠道分析.csv`, [['IP渠道', '渠道编号', 'IP数', '线索数', '加微数', '成交数', '退款数', '最终转化率', '毛GMV', '净GMV'], ...data.value.ipChannels.map((row: any) => [row.name, row.code, row.ipCount, row.leads, row.wechat, row.deals, row.refunds, `${row.finalConversionRate}%`, row.grossGmv, row.netGmv])])
 }
-function exportProducts() {
-  downloadCsv(`合数BOSS_${filePeriodLabel.value}_商品分析.csv`, [['商品名称', '第三方商品ID', '平台', '店铺', 'IP名称', 'IP渠道', '线索数', '加微数', '成交数', '退款数', '最终转化率', '毛GMV', '净GMV'], ...data.value.products.map((row: any) => [row.name, row.productId, row.platform, row.store, row.ipName, row.ipChannel, row.leads, row.wechat, row.deals, row.refunds, `${row.finalConversionRate}%`, row.grossGmv, row.netGmv])])
-}
 function exportDrilldown() {
   downloadCsv(`${filePeriodLabel.value}_${drilldown.value.label}_明细.csv`, [['订单编号', '客户', '手机号', '来源', '店铺', '商品', 'IP渠道', 'IP名称', '负责人', '负责人组织', '期次', '事件时间', '当前节点'], ...drilldownRows.value.map((row: any) => [row.orderNo, row.customerName, row.mobile, row.source, row.store, row.productName, row.ipChannel, row.ipName, row.ownerName, row.ownerOrganization, row.period, row.eventTime, row.stage])])
 }
@@ -320,21 +317,6 @@ onMounted(async () => {
           <el-table-column label="成交/退款" min-width="112"><template #default="{ row }"><el-button link type="primary" @click="openDrilldown('deal', 'IP渠道成交', row.deals, row.name)">{{ row.deals }}</el-button><span class="split-value">/ {{ row.refunds }}</span></template></el-table-column>
           <el-table-column label="最终转化率" min-width="104"><template #default="{ row }"><b class="rate-cell">{{ row.finalConversionRate }}%</b></template></el-table-column>
           <el-table-column label="净GMV" min-width="110"><template #default="{ row }">{{ money(row.netGmv) }}</template></el-table-column>
-        </el-table>
-      </article>
-
-      <article v-if="false" class="surface dimension-panel product-analysis-panel">
-        <div class="panel-heading"><div><span class="section-kicker">PRODUCT ATTRIBUTION</span><h3>商品分析</h3><p>从商品反查店铺、IP及IP渠道，核对获客规模与成交质量。</p></div><el-button @click="exportProducts">导出商品分析</el-button></div>
-        <el-table :data="data.products" stripe>
-          <el-table-column prop="name" label="商品名称" min-width="220" fixed><template #default="{ row }"><b>{{ row.name }}</b><small class="cell-sub">{{ row.productId }}</small></template></el-table-column>
-          <el-table-column label="平台 / 店铺" min-width="180"><template #default="{ row }"><span>{{ row.platform }}</span><small class="cell-sub">{{ row.store }}</small></template></el-table-column>
-          <el-table-column label="IP归因" min-width="138"><template #default="{ row }"><span>{{ row.ipName }}</span><small class="cell-sub">{{ row.ipChannel }}</small></template></el-table-column>
-          <el-table-column label="线索数" min-width="96"><template #default="{ row }"><el-button link type="primary" @click="openDrilldown('leads', '商品线索', row.leads, row.name)">{{ format(row.leads) }}</el-button></template></el-table-column>
-          <el-table-column label="加微数" min-width="96"><template #default="{ row }"><el-button link type="primary" @click="openDrilldown('wechat', '商品加微', row.wechat, row.name)">{{ format(row.wechat) }}</el-button></template></el-table-column>
-          <el-table-column label="成交数" min-width="92"><template #default="{ row }"><el-button link type="primary" @click="openDrilldown('deal', '商品成交', row.deals, row.name)">{{ row.deals }}</el-button></template></el-table-column>
-          <el-table-column prop="refunds" label="退款数" min-width="84" />
-          <el-table-column label="最终转化率" min-width="104"><template #default="{ row }"><b class="rate-cell">{{ row.finalConversionRate }}%</b></template></el-table-column>
-          <el-table-column label="毛 / 净GMV" min-width="156"><template #default="{ row }"><span>{{ money(row.grossGmv) }}</span><small class="cell-sub">净 {{ money(row.netGmv) }}</small></template></el-table-column>
         </el-table>
       </article>
 

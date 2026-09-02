@@ -669,17 +669,16 @@ function normalizeLeadState(source: any) {
   const row = { ...source }
   const legacyOrderStatusMap: Record<string, string> = {
     NO_ORDER: '',
-    UNPAID: 'PENDING_PAY',
-    REFUNDING: 'AFTER_SALE_PROCESSING'
+    PENDING_PAY: 'UNPAID',
+    PREPARING: 'PAID',
+    SHIPPED: 'PAID',
+    AFTER_SALE_PROCESSING: 'REFUNDING',
+    REFUNDED_BEFORE_SHIP: 'REFUNDED',
+    REFUNDED_AFTER_SHIP: 'REFUNDED',
+    REFUNDED_AFTER_RECEIPT: 'REFUNDED',
+    PARTIAL_REFUNDED: 'REFUNDED'
   }
-  if (row.order_status === 'REFUNDED') {
-    const fulfillment = String(row.fulfillment_status || '').toUpperCase()
-    row.order_status = row.received_at || row.completed_at || ['RECEIVED', 'COMPLETED'].includes(fulfillment)
-      ? 'REFUNDED_AFTER_RECEIPT'
-      : row.shipped_at || ['PARTIALLY_SHIPPED', 'SHIPPED'].includes(fulfillment)
-        ? 'REFUNDED_AFTER_SHIP'
-        : 'REFUNDED_BEFORE_SHIP'
-  } else row.order_status = legacyOrderStatusMap[row.order_status] ?? row.order_status
+  row.order_status = legacyOrderStatusMap[row.order_status] ?? row.order_status
   const fallbackPeriod = periodOptions.value[0]
   row.period_id ||= row.acquisition_period_id || fallbackPeriod?.id
   row.period_name ||= row.acquisition_period_name || fallbackPeriod?.name || '未归属期次'
@@ -764,17 +763,12 @@ const gradeLabels: any = { S: 'S级', A: 'A级', B: 'B级', C: 'C级', UNRATED: 
 const gradeTagTypes: any = { S: 'danger', A: 'warning', B: 'success', C: 'info', UNRATED: 'info' }
 const gradeSourceLabels: any = { QUESTIONNAIRE_AUTO: '问卷自动评级', MANUAL: '人工调整', LEAD_INHERITED: '线索继承' }
 const orderLabels: any = {
-  PENDING_PAY: '待支付',
+  UNPAID: '未支付',
   PAID: '已支付',
-  PREPARING: '备货中',
-  SHIPPED: '已发货',
   CANCELLED: '已取消',
   COMPLETED: '已完成',
-  AFTER_SALE_PROCESSING: '售后处理中',
-  REFUNDED_BEFORE_SHIP: '发货前退款完结',
-  REFUNDED_AFTER_SHIP: '发货后退款完结',
-  REFUNDED_AFTER_RECEIPT: '收货后退款完结',
-  PARTIAL_REFUNDED: '部分退款'
+  REFUNDING: '退款中',
+  REFUNDED: '已退款'
 }
 const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', FOLLOWED: '已跟进' }
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
