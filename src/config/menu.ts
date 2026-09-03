@@ -66,7 +66,7 @@ export const v1Menus: MenuGroup[] = [
     name: '系统管理', code: 'SYSTEM', children: [
       { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
       { name: '员工管理', path: '/system/employees', description: '统一维护员工身份、组织、权限和企业微信绑定，账号与企微身份一对一，同步过程全程可追踪。', features: ['新增员工并开通企微', '账号企微唯一绑定', '换绑历史', '同步记录', '同步至企微', '每日差异扫描', '业务角色绑定', '数据岗位绑定', '启停'] },
-      { name: '岗位管理', path: '/system/positions', description: '配置本人、小组、部门、跨部门及公司级数据可见范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
+      { name: '岗位管理', path: '/system/positions', description: '配置本人、本部门、本部门及下级部门、自定义组织及当前公司数据范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
       { name: '角色管理', path: '/system/roles', description: '按运营、客服、规划师等业务角色配置菜单、操作和字段权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '关联员工', '影响预览'] },
       { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },
       { name: '系统参数', path: '/system/parameters', description: '作为全局设置中心，统一维护影响合数BOSS运行行为的参数、密钥引用和版本记录。', features: ['参数分组', '类型校验', '敏感值保护', '新增', '编辑', '启停', '版本历史', '审计'] },

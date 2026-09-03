@@ -30,8 +30,8 @@ const eligibleEmployeeOrganizations = computed(() => organizations.value.filter(
 const employeeRoleOptions = [{label:'运营',value:'OPERATION'},{label:'客服',value:'CUSTOMER_SERVICE'},{label:'规划师',value:'PLANNER'},{label:'一转老师',value:'FIRST_CONVERSION'},{label:'课程顾问',value:'COURSE_ADVISOR'},{label:'财务专员',value:'FINANCE'},{label:'系统管理员',value:'SYSTEM_ADMIN'}]
 const employeePositionOptions = [
   {label:'本人数据岗',value:'本人数据岗',scope:'本人负责、创建或被明确协作的数据'},
-  {label:'小组管理岗',value:'小组管理岗',scope:'所负责小组及组内员工数据'},
-  {label:'部门管理岗',value:'部门管理岗',scope:'所负责部门及全部下级小组数据'},
+  {label:'小组管理岗',value:'小组管理岗',scope:'员工当前归属部门内的数据'},
+  {label:'部门管理岗',value:'部门管理岗',scope:'员工当前归属部门及全部下级部门数据'},
   {label:'跨部门管理岗',value:'跨部门管理岗',scope:'岗位中明确指定的多个部门或小组数据'},
   {label:'公司数据管理岗',value:'公司数据管理岗',scope:'当前公司全部业务数据'}
 ]
