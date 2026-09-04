@@ -444,9 +444,10 @@ async function markDemandMined(row: any, checked: string | number | boolean) {
 function handleSelectionChange(selection: any[]) { selectedRows.value = selection }
 
 const batchActionLabels: Record<string, string> = {
-  ASSIGN: '批量分配', SYNC_ORDER: '同步订单',
+  ASSIGN: '批量分配', SYNC_ORDER: '同步订单', QUERY_EXCEPTION_ORDERS: '查询异常订单', SYNC_EXCEPTION_ORDERS: '同步异常订单',
   CHANGE_PERIOD: '变更期次', SMS_BROADCAST: '短信群发', IMPORT_DECRYPTED: '导入解密数据', EXPORT_UNDECRYPTED: '导出非解密数据'
 }
+const exceptionSyncTasks = ref<{ platform: string; status: string }[]>([])
 const batchSubtypeOptions = computed(() => ({
   ASSIGN: ['人工指定', '轮询分配']
 }[batchAction.value] || []))
@@ -484,6 +485,7 @@ function openBatchAction(command: string) {
   batchAction.value = command
   batchSubtype.value = command === 'ASSIGN' ? '人工指定' : ''
   selectedSyncPlatforms.value = []
+  exceptionSyncTasks.value = []
   batchPeriodId.value = null
   const now = new Date()
   smsBroadcastOrderDate.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
@@ -573,6 +575,13 @@ function exportUndecryptedData() {
 }
 
 async function confirmBatchAction() {
+  if (['QUERY_EXCEPTION_ORDERS', 'SYNC_EXCEPTION_ORDERS'].includes(batchAction.value)) {
+    if (!selectedSyncPlatforms.value.length) return ElMessage.warning('请至少选择一个平台')
+    // Prototype only: no third-party query or synchronization is performed.
+    exceptionSyncTasks.value = selectedSyncPlatforms.value.map(platform => ({ platform, status: batchAction.value === 'QUERY_EXCEPTION_ORDERS' ? '查询演示任务已创建，不执行同步' : '同步演示任务已创建，待接入第三方补同步' }))
+    ElMessage.success(batchAction.value === 'QUERY_EXCEPTION_ORDERS' ? '查询演示任务已创建，未执行真实查询' : '同步演示任务已创建，未执行真实同步')
+    return
+  }
   const scopeCount = selectedRows.value.length || displayedRows.value.length
   if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定' && !selectedAssigneeId.value) return ElMessage.warning('请从组织架构中选择接收线索的员工')
   if (batchAction.value === 'ASSIGN' && batchSubtype.value === '轮询分配' && !latestPeriodEligibleCount.value) return ElMessage.warning('最新期次暂无可接待人员，请先维护活码人员名单和分配上限')
@@ -811,6 +820,8 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
               <el-dropdown-item command="ASSIGN">分配</el-dropdown-item>
               <el-dropdown-item command="CHANGE_PERIOD">变更期次</el-dropdown-item>
               <el-dropdown-item command="SYNC_ORDER">同步订单</el-dropdown-item>
+              <el-dropdown-item command="QUERY_EXCEPTION_ORDERS">查询异常订单</el-dropdown-item>
+              <el-dropdown-item command="SYNC_EXCEPTION_ORDERS">同步异常订单</el-dropdown-item>
               <el-dropdown-item command="SMS_BROADCAST">短信群发</el-dropdown-item>
               <el-dropdown-item divided command="IMPORT_DECRYPTED">导入解密数据</el-dropdown-item>
               <el-dropdown-item command="EXPORT_UNDECRYPTED">导出非解密数据</el-dropdown-item>
@@ -928,9 +939,9 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <template #footer><el-button type="primary" @click="leadTagDialogVisible = false">完成</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : batchAction === 'SYNC_ORDER' ? '720px' : batchAction === 'SMS_BROADCAST' ? '760px' : '560px'" class="batch-dialog">
+    <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : ['SYNC_ORDER','QUERY_EXCEPTION_ORDERS','SYNC_EXCEPTION_ORDERS'].includes(batchAction) ? '720px' : batchAction === 'SMS_BROADCAST' ? '760px' : '560px'" class="batch-dialog">
       <div class="batch-dialog-content">
-        <el-alert v-if="!['SYNC_ORDER','SMS_BROADCAST','IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
+        <el-alert v-if="!['SYNC_ORDER','QUERY_EXCEPTION_ORDERS','SYNC_EXCEPTION_ORDERS','SMS_BROADCAST','IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
         <el-form v-if="batchSubtypeOptions.length" label-position="top">
           <el-form-item label="操作类型" required>
             <el-radio-group v-model="batchSubtype" class="batch-subtype-list">
@@ -961,9 +972,10 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <div class="assignment-change-item"><el-select v-model="batchPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
           <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志记录期次变更前后值、操作人、操作时间和影响线索数量。"/>
         </section>
-        <section v-if="batchAction === 'SYNC_ORDER'" class="sync-platform-panel">
-          <el-alert class="sync-global-alert" type="info" :closable="false" show-icon title="同步订单无需勾选线索" description="该操作按所选平台发起全局订单同步任务，不读取、也不限制于当前列表勾选结果。" />
-          <div class="panel-heading"><div><b>选择同步平台</b><span>按点击勾选的先后顺序执行，每个平台创建一个独立后台任务。</span></div><em>已选 {{ selectedSyncPlatforms.length }} 个</em></div>
+        <section v-if="['SYNC_ORDER', 'QUERY_EXCEPTION_ORDERS', 'SYNC_EXCEPTION_ORDERS'].includes(batchAction)" class="sync-platform-panel">
+          <el-alert v-if="['QUERY_EXCEPTION_ORDERS', 'SYNC_EXCEPTION_ORDERS'].includes(batchAction)" class="sync-global-alert" type="warning" :closable="false" show-icon :title="batchActionLabels[batchAction] + ' · 原型演示'" :description="batchAction === 'QUERY_EXCEPTION_ORDERS' ? '无需勾选线索，按所选平台查询异常订单，不触发同步。本原型仅演示查询任务创建，不执行真实第三方查询。' : '无需勾选线索，按所选平台发起异常订单补同步。本原型仅演示同步任务创建，不执行真实第三方同步。'" />
+          <el-alert v-else class="sync-global-alert" type="info" :closable="false" show-icon title="同步订单无需勾选线索" description="该操作按所选平台发起全局订单同步任务，不读取、也不限制于当前列表勾选结果。" />
+          <div class="panel-heading"><div><b>{{ batchAction === 'QUERY_EXCEPTION_ORDERS' ? '选择查询平台' : '选择同步平台' }}</b><span>按点击勾选的先后顺序执行，每个平台创建一个独立后台任务。</span></div><em>已选 {{ selectedSyncPlatforms.length }} 个</em></div>
           <div class="platform-order-grid">
             <button v-for="platform in syncPlatformOptions" :key="platform" type="button" :class="{ selected: selectedSyncPlatforms.includes(platform) }" @click="toggleSyncPlatform(platform, !selectedSyncPlatforms.includes(platform))">
               <i>{{ selectedSyncPlatforms.indexOf(platform) + 1 || '' }}</i><span>{{ platform }}</span><small>{{ selectedSyncPlatforms.includes(platform) ? '已加入执行队列' : '点击选择' }}</small>
@@ -971,6 +983,11 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           </div>
           <div class="task-order-preview"><b>任务执行顺序</b><span v-if="selectedSyncPlatforms.length"><template v-for="(platform, index) in selectedSyncPlatforms" :key="platform"><em>{{ index + 1 }}. {{ platform }}</em><i v-if="index < selectedSyncPlatforms.length - 1">→</i></template></span><span v-else class="empty-order">尚未选择平台</span></div>
           <el-alert type="info" :closable="false" show-icon title="平台任务独立留痕" description="任务记录保存平台、执行顺序、进度、成功数、失败数和失败原因；单个平台失败不阻断后续平台，可对失败任务单独重试。" />
+          <el-table v-if="['QUERY_EXCEPTION_ORDERS', 'SYNC_EXCEPTION_ORDERS'].includes(batchAction) && exceptionSyncTasks.length" :data="exceptionSyncTasks">
+            <el-table-column type="index" label="顺序" width="60" />
+            <el-table-column prop="platform" label="平台" />
+            <el-table-column prop="status" label="演示结果" min-width="230" />
+          </el-table>
         </section>
         <section v-if="batchAction === 'SMS_BROADCAST'" class="sms-broadcast-panel">
           <el-form label-width="112px" class="sms-broadcast-form">
