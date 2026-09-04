@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { Plus, RefreshRight, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
@@ -27,7 +27,16 @@ type TagRow = {
   updatedAt: string
 }
 
+type TagGroup = {
+  id: number
+  name: string
+  tags: string[]
+  status: '启用' | '停用'
+  updatedAt: string
+}
+
 const STORAGE_KEY = 'heshu_boss_tag_center_v1'
+const GROUP_STORAGE_KEY = 'heshu_boss_tag_groups_v1'
 const tabs: Array<{ key: TabKey; label: string; note: string }> = [
   { key: 'library', label: '标签库', note: '统一查看全部来源标签' },
   { key: 'groups', label: '标签组', note: '按业务主题组织标签' }
@@ -36,12 +45,8 @@ const tabs: Array<{ key: TabKey; label: string; note: string }> = [
 const seedTags: TagRow[] = [
   { id: 1, name: '0824数学营', code: 'TAG-SYS-0824', object: '客户', category: '业务归属 / 营期', source: '系统', generation: '营期关系自动生成', coverage: 8642, validity: '历史保留', status: '启用', description: '客户与0824数学营建立归属关系后自动生成。', event: '客户加微识别成功', basis: '活码绑定营期 = 0824数学营', permission: '系统只读', updatedAt: '2026-08-24 02:10' },
   { id: 2, name: '正式课客户', code: 'TAG-SYS-ORDER-01', object: '客户', category: '客户阶段', source: '系统', generation: '正式课订单支付成功', coverage: 32103, validity: '动态', status: '启用', description: '用于标记已支付正式课程的客户。', event: '订单支付成功', basis: '商品类型 = 正式课', permission: '系统只读', updatedAt: '2026-08-25 01:08' },
-  { id: 3, name: '价格敏感', code: 'TAG-MAN-023', object: '客户', category: '销售判断 / 阻碍', source: 'BOSS人工', generation: '销售手工打标', coverage: 5210, validity: '30天', status: '启用', description: '客户明确表达价格顾虑时由销售标记。', event: '人工操作', basis: '业务判断', permission: '一转可查看和打标', updatedAt: '2026-08-24 16:32' },
   { id: 4, name: '重点客户', code: 'wx_tag_6519', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧人工打标', coverage: 4328, validity: '跟随企微', status: '已同步', description: '企业微信客户联系标签，同步后在BOSS只读展示。', event: '企微标签变更回调', basis: 'CorpID + external_userid', permission: '外部来源只读', updatedAt: '2026-08-25 08:16' },
-  { id: 5, name: '试听已沟通', code: 'ext_tag_339', object: '客户', category: '私域运营', source: '外部SCRM', generation: 'SOP自动打标', coverage: 7065, validity: '跟随来源', status: '已同步', description: '外部SCRM完成试听沟通SOP后同步。', event: '外部标签同步', basis: 'external_tag_id = 339', permission: '映射后使用', updatedAt: '2026-08-24 23:45' },
-  { id: 6, name: '高意向', code: 'TAG-RULE-018', object: '客户', category: '销售意向', source: '规则', generation: '近7天行为满足≥3项', coverage: 8923, validity: '14天', status: '启用', description: '综合问卷、预约、到课和主动咨询行为动态计算。', event: '客户行为变化', basis: '近7天命中行为数 ≥ 3', permission: '规则管理员维护', updatedAt: '2026-08-25 03:00' },
-  { id: 7, name: '问卷高匹配', code: 'TAG-AI-011', object: '线索', category: '问卷洞察', source: 'AI', generation: '问卷语义模型识别', coverage: 3651, validity: '本营期', status: '启用', description: '根据问卷开放题内容识别需求匹配度。', event: '问卷提交', basis: '模型版本 QN-LABEL-1.2', permission: 'AI管理员维护', updatedAt: '2026-08-24 21:18' },
-  { id: 8, name: '退款订单', code: 'TAG-SYS-REFUND', object: '订单', category: '订单状态', source: '系统', generation: '退款成功自动生成', coverage: 987, validity: '永久', status: '启用', description: '订单完成退款后生成的事实标签。', event: '退款成功', basis: 'refund_status = SUCCESS', permission: '系统只读', updatedAt: '2026-08-25 05:30' }
+  { id: 8, name: '退款客户', code: 'TAG-SYS-REFUND', object: '客户', category: '订单事实', source: '系统', generation: '客户订单退款成功自动生成', coverage: 987, validity: '永久', status: '启用', description: '客户存在退款完成订单后生成的事实标签。', event: '退款成功', basis: 'refund_status = SUCCESS', permission: '系统只读', updatedAt: '2026-08-25 05:30' }
 ]
 
 const saved = localStorage.getItem(STORAGE_KEY)
@@ -50,20 +55,21 @@ const allowedSources: TagSource[] = ['系统', '企业微信']
 const activeTab = ref<TabKey>('library')
 const query = reactive({ keyword: '', source: '' as '' | TagSource, status: '' as '' | TagStatus })
 const detailVisible = ref(false)
-const editorVisible = ref(false)
 const coverageVisible = ref(false)
 const activeTag = ref<TagRow | null>(null)
-const editingId = ref<number | null>(null)
-const form = reactive({ name: '', object: '客户' as TagObject, source: '系统' as TagSource, category: '未分类', validity: '永久', permission: '业务人员可查看和打标', groupName: '', description: '' })
 const groupEditorVisible = ref(false)
 const groupEditingId = ref<number | null>(null)
-const groupForm = reactive({ name: '', object: '客户' as TagObject, tags: [] as string[], owner: '', status: '启用' as '启用' | '停用' })
+const groupForm = reactive({ name: '', tags: [] as string[], status: '启用' as '启用' | '停用' })
 
-const groups = ref([
-  { id: 1, name: '客户阶段', object: '客户', tags: ['正式课客户', '高意向'], owner: '客户运营部', status: '启用', updatedAt: '2026-08-24 18:20' },
-  { id: 2, name: '销售判断', object: '客户', tags: ['价格敏感', '重点客户'], owner: '一转事业部', status: '启用', updatedAt: '2026-08-23 15:42' },
-  { id: 3, name: '问卷洞察', object: '线索', tags: ['问卷高匹配'], owner: '产品中心', status: '启用', updatedAt: '2026-08-22 11:06' }
-])
+const seedGroups: TagGroup[] = [
+  { id: 1, name: '客户阶段', tags: ['正式课客户'], status: '启用' as const, updatedAt: '2026-08-24 18:20' },
+  { id: 2, name: '重点跟进', tags: ['重点客户'], status: '启用' as const, updatedAt: '2026-08-23 15:42' },
+  { id: 3, name: '业务归属', tags: ['0824数学营'], status: '启用' as const, updatedAt: '2026-08-22 11:06' }
+]
+const savedGroups = localStorage.getItem(GROUP_STORAGE_KEY)
+const validTagNames = new Set(tags.value.map(item => item.name))
+const parsedGroups: TagGroup[] = savedGroups ? JSON.parse(savedGroups) : seedGroups
+const groups = ref<TagGroup[]>(parsedGroups.map(group => ({ ...group, tags: group.tags.filter(name => validTagNames.has(name)) })))
 const coverageSamples = computed(() => {
   if (!activeTag.value) return []
   if (activeTag.value.object === '客户') return [
@@ -79,6 +85,7 @@ const coverageSamples = computed(() => {
 })
 
 watch(tags, value => localStorage.setItem(STORAGE_KEY, JSON.stringify(value)), { deep: true })
+watch(groups, value => localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(value)), { deep: true })
 
 const filteredTags = computed(() => {
   const keyword = query.keyword.trim().toLowerCase()
@@ -101,27 +108,6 @@ const groupNamesForTag = (tagName: string) => groups.value.filter(group => group
 function resetQuery() { Object.assign(query, { keyword: '', source: '', status: '' }) }
 function openDetail(tag: TagRow) { activeTag.value = tag; detailVisible.value = true }
 function openCoverage(tag: TagRow) { activeTag.value = tag; coverageVisible.value = true }
-function openCreate(tag?: TagRow) {
-  editingId.value = tag?.id || null
-  Object.assign(form, tag ? { name: tag.name, object: tag.object, source: tag.source, category: tag.category, validity: tag.validity, permission: tag.permission, groupName: groupNamesForTag(tag.name)[0] || '', description: tag.description } : { name: '', object: '客户', source: '系统', category: '未分类', validity: '永久', permission: '业务人员可查看和打标', groupName: '', description: '' })
-  editorVisible.value = true
-}
-function saveTag() {
-  if (!form.name.trim()) return ElMessage.warning('请输入标签名称')
-  if (tags.value.some(item => item.id !== editingId.value && item.name.trim().toLowerCase() === form.name.trim().toLowerCase())) return ElMessage.warning('标签名称已存在，不允许重复')
-  const now = new Date().toLocaleString('zh-CN', { hour12: false })
-  if (editingId.value) {
-    const target = tags.value.find(item => item.id === editingId.value)!
-    Object.assign(target, form, { name: form.name.trim(), generation: form.source === 'BOSS人工' ? '业务人员手工打标' : form.source === '规则' ? '规则命中自动生成' : 'AI模型识别', updatedAt: now })
-    ElMessage.success('标签已更新')
-  } else {
-    const suffix = String(Date.now()).slice(-6)
-    tags.value.unshift({ id: Date.now(), ...form, name: form.name.trim(), code: `TAG-SYS-${suffix}`, generation: '系统创建', coverage: 0, status: '启用', event: '人工创建', basis: '标签库配置', updatedAt: now })
-    if (form.groupName) groups.value.find(group => group.name === form.groupName)?.tags.push(form.name.trim())
-    ElMessage.success('标签已创建')
-  }
-  editorVisible.value = false
-}
 function syncWecomTags() {
   const now = new Date().toLocaleString('zh-CN', { hour12: false })
   const candidates: TagRow[] = [
@@ -133,10 +119,10 @@ function syncWecomTags() {
   tags.value.unshift(...additions)
   ElMessage.success(`已同步 ${additions.length} 个企业微信标签`)
 }
-const groupTagOptions = computed(() => tags.value.filter(item => item.object === groupForm.object).map(item => item.name))
+const groupTagOptions = computed(() => tags.value.map(item => item.name))
 function openGroupEditor(group?: typeof groups.value[number]) {
   groupEditingId.value = group?.id || null
-  Object.assign(groupForm, group ? { name: group.name, object: group.object as TagObject, tags: [...group.tags], owner: group.owner, status: group.status as '启用' | '停用' } : { name: '', object: '客户', tags: [], owner: '', status: '启用' })
+  Object.assign(groupForm, group ? { name: group.name, tags: [...group.tags], status: group.status as '启用' | '停用' } : { name: '', tags: [], status: '启用' })
   groupEditorVisible.value = true
 }
 function saveGroup() {
@@ -149,14 +135,6 @@ function saveGroup() {
   else groups.value.unshift({ id: Date.now(), ...groupForm, name, tags: [...groupForm.tags], updatedAt })
   groupEditorVisible.value = false
   ElMessage.success(groupEditingId.value ? '标签组已更新' : '标签组已创建')
-}
-async function toggleTag(tag: TagRow) {
-  if (!editable(tag)) return ElMessage.info('系统和外部来源标签只读，请在来源系统或映射中处理')
-  const next: TagStatus = tag.status === '停用' ? '启用' : '停用'
-  await ElMessageBox.confirm(next === '停用' && tag.coverage > 0 ? `该标签已覆盖 ${tag.coverage.toLocaleString()} 个对象。停用后不再新增关系，历史标签继续保留。` : `确定${next}“${tag.name}”吗？`, `${next}标签`, { type: 'warning' })
-  tag.status = next
-  tag.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false })
-  ElMessage.success(`标签已${next}`)
 }
 </script>
 
@@ -179,7 +157,7 @@ async function toggleTag(tag: TagRow) {
     <section v-if="activeTab === 'library'" class="surface content-card">
       <header class="section-head library-head">
         <div><h2>统一标签库</h2><p>同一页面管理不同来源标签，但编辑权限和生命周期按来源严格隔离。</p></div>
-        <div class="library-actions"><el-button :icon="RefreshRight" @click="syncWecomTags">同步企微</el-button><el-button type="primary" :icon="Plus" @click="openCreate()">新增标签</el-button></div>
+        <div class="library-actions"><el-button type="primary" :icon="RefreshRight" @click="syncWecomTags">同步企微</el-button></div>
         <div class="filters">
           <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索标签名称 / ID / 来源系统" />
           <el-select v-model="query.source" clearable placeholder="全部来源"><el-option v-for="item in ['系统','企业微信']" :key="item" :label="item" :value="item" /></el-select>
@@ -193,7 +171,7 @@ async function toggleTag(tag: TagRow) {
         <el-table-column label="标签组" min-width="150"><template #default="{ row }"><template v-if="groupNamesForTag(row.name).length"><el-tag v-for="name in groupNamesForTag(row.name)" :key="name" effect="plain">{{ name }}</el-tag></template><span v-else>—</span></template></el-table-column>
         <el-table-column label="来源" width="125"><template #default="{ row }"><el-tag :type="sourceType(row.source)" effect="light" round>{{ row.source }}</el-tag></template></el-table-column>
         <el-table-column label="状态" width="100"><template #default="{ row }"><span :class="['status-dot', row.status === '停用' ? 'off' : 'on']">{{ row.status }}</span></template></el-table-column>
-        <el-table-column label="操作" width="155" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row)">查看</el-button><el-button v-if="editable(row)" link type="primary" @click="openCreate(row)">编辑</el-button><el-button v-if="editable(row)" link :type="row.status === '停用' ? 'success' : 'danger'" @click="toggleTag(row)">{{ row.status === '停用' ? '启用' : '停用' }}</el-button><el-button v-else link disabled>只读</el-button></template></el-table-column>
+        <el-table-column label="操作" width="125" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row)">查看</el-button><el-button link disabled>只读</el-button></template></el-table-column>
       </el-table>
       <footer class="table-footer"><span>共 {{ filteredTags.length }} 个标签 · 覆盖关系 {{ summary.coverage.toLocaleString() }} 条</span><el-pagination background layout="prev,pager,next,sizes" :total="filteredTags.length" :page-size="10" /></footer>
     </section>
@@ -212,18 +190,7 @@ async function toggleTag(tag: TagRow) {
           <label>当前覆盖<strong>{{ activeTag.coverage.toLocaleString() }} {{ activeTag.object }}</strong></label><label>使用权限<strong>{{ activeTag.permission }}</strong></label>
         </div>
       </template>
-      <template #footer><el-button @click="detailVisible=false">关闭</el-button><el-button v-if="activeTag && editable(activeTag)" type="primary" @click="detailVisible=false;openCreate(activeTag)">编辑标签</el-button></template>
-    </el-drawer>
-
-    <el-drawer v-model="editorVisible" size="560px" :title="editingId ? '编辑标签' : '新增标签'">
-      <el-alert title="新增标签归入系统来源；企业微信侧创建的标签请使用“同步企微”获取。标签名称全局不允许重复。" type="info" :closable="false" />
-      <el-form label-position="top" class="tag-form">
-        <el-form-item label="标签名称" required><el-input v-model="form.name" maxlength="30" show-word-limit placeholder="例如：价格敏感" /></el-form-item>
-        <el-form-item label="标签来源"><el-input model-value="系统" disabled /></el-form-item>
-        <el-form-item label="标签组（非必填）"><el-select v-model="form.groupName" clearable placeholder="请选择标签组"><el-option v-for="group in groups" :key="group.id" :label="group.name" :value="group.name" /></el-select></el-form-item>
-        <el-form-item label="说明"><el-input v-model="form.description" type="textarea" :rows="3" maxlength="160" show-word-limit /></el-form-item>
-      </el-form>
-      <template #footer><el-button @click="editorVisible=false">取消</el-button><el-button type="primary" @click="saveTag">保存标签</el-button></template>
+      <template #footer><el-button @click="detailVisible=false">关闭</el-button></template>
     </el-drawer>
 
     <el-dialog v-model="groupEditorVisible" :title="groupEditingId ? '编辑标签组' : '新增标签组'" width="620px">

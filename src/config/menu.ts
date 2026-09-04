@@ -20,10 +20,10 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '线索中心', code: 'LEAD', children: [
-      { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，统一处理订单匹配、状态流转、所属期次与批量任务。', features: ['详情', '旅程', '独立变更期次/直播组', '标记', '改派负责人', '批量分配', '批量变更期次/直播组', '短信群发', '按平台顺序同步订单', '导入解密数据', '导出非解密数据'] },
+      { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，统一处理订单匹配、状态流转、所属期次与批量任务。', features: ['详情', '旅程', '变更所属期次', '标记', '改派负责人', '批量分配', '批量变更期次', '短信群发', '按平台顺序同步订单', '导入解密数据', '导出非解密数据'] },
       { name: '引流期次', path: '/leads/periods', description: '维护线索接量、转化和追单的运营期次，支持按固定周期批量生成、启停、引用校验和日志追溯。', features: ['期次列表', '待开始/接量期/转化期/追单期/已停用', '按月批量创建', '按年批量创建', '固定周期天数', '编辑', '启停', '活码引用校验', '业务数据校验', '日志'] },
       { name: '线索配置', path: '/leads/rules', description: '分类管理活码分配、营期名单流转和问卷等级规则，并支持试算、冲突检测和版本发布。', features: ['规则分类', '活码分配规则', '营期名单流转规则', '等级规则', '问卷指标与分数区间', '规则试算', '冲突检测', '发布停用', '版本回退'] },
-      { name: '活码管理', path: '/leads/qr-codes', description: '按分组及可选的引流期次、班级、接量日期管理员工活码、标签与轮询容量。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属期次（选填）', '所属班级（选填）', '接量日期区间（选填）', '员工轮询上限', '启停', '下载'] },
+      { name: '活码管理', path: '/leads/qr-codes', description: '按分组及可选的引流期次、班级管理员工活码、标签与轮询权重。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属期次（选填）', '所属班级（选填）', '员工接量权重', '启停', '下载'] },
       { name: '渠道管理', path: '/leads/channels', description: '通过渠道列表和数据分析两个页签，统一管理渠道主数据、归因规则及转化效果。', features: ['渠道列表', '数据分析', '新增', '编辑', '详情', '启停', '渠道/时间/组织筛选', '转化漏斗', '下钻', '导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '按平台类型和第三方店铺ID统一管理店铺、负责人、访问权限及经营归因。', features: ['店铺列表', '平台类型', '店铺名称', '第三方店铺ID', '店铺负责人', '创建/更新/启停日期', '新增', '编辑', '启停', '店铺权限'] },
       { name: 'IP管理', path: '/leads/ip', description: '管理老师IP主档、IP大类与稳定编码、带编号的归因渠道及其关联商品和投放平台。', features: ['IP名称（老师名称）', 'IP大类（字典）', '大类编码', 'IP渠道', '渠道编号', '自增IP编号', '关联商品', '商品列表下钻', '关联平台'] },
@@ -47,9 +47,10 @@ export const v1Menus: MenuGroup[] = [
   {
     name: '业务配置', code: 'BUSINESS_CONFIG', children: [
       { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
-      { name: '短信管理', description: '复用历史短信服务，统一管理短信签名、模板和发送结果。', features: ['签名管理', '短信模板', '发送结果'], children: [
+      { name: '短信管理', description: '复用历史短信服务，统一管理短信签名、模板、发送规则和发送结果。', features: ['签名管理', '短信模板', '短信规则', '发送结果'], children: [
         { name: '签名管理', path: '/system/sms/signatures', description: '管理短信签名。', features: ['新增','审核状态','启停'] },
         { name: '短信模板', path: '/system/sms/templates', description: '管理短信模板。', features: ['新增','变量校验','启停'] },
+        { name: '短信规则', path: '/system/sms/rules', description: '按业务触发场景配置短信发送规则。', features: ['新增','编辑','详情','启停'] },
         { name: '发送结果', path: '/system/sms/results', description: '查询供应商回执和送达结果。', features: ['查询','详情'] }
       ] },
       { name: '应用管理', path: '/system/applications', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] },

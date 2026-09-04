@@ -6,13 +6,15 @@ import PageHeader from '../components/PageHeader.vue'
 
 type Employee = { id: number; name: string; no: string; role: string; limit: number; received: number }
 type IpBinding = { ipNo: string; name: string; category: string; channelCode: string; channelName?: string; status: '启用' | '停用' }
+type ScheduleRule = { id: number; employeeIds: number[]; workDays: number[]; onlineTime: string[] }
 type LiveCode = {
-  id: number; codeNo: string; name: string; type: '多人活码' | '单人活码'; campId?: number; campName?: string;
+  id: number; codeNo: string; name: string; type: '多人活码'; campId?: number; campName?: string;
   corpId: string; corpName: string;
   groupId: number; groupName: string;
   ipNo?: string; ipName?: string; ipChannelCode?: string; ipChannelName?: string;
-  autoAccept: boolean; scheduleType: '全天在线' | '分时段排班'; allocationMode: '轮询' | '顺序' | '随机'; scheduledEmployeeIds: number[]; workDays: number[]; onlineTime: string[]; backupEmployeeIds: number[]; backupEnabled: boolean; sameEmployeeEnabled: boolean;
-  receptionStart: string; receptionEnd: string; status: '启用' | '停用' | '待生效' | '已结束';
+  autoAccept: boolean; scheduleType: '全天在线' | '分时段排班'; allocationMode: '轮询' | '顺序' | '随机'; scheduledEmployeeIds: number[]; workDays: number[]; onlineTime: string[]; scheduleRules?: ScheduleRule[]; fallbackEmployeeIds?: number[]; sameEmployeeEnabled: boolean;
+  backupEmployeeIds?: number[]; backupEnabled?: boolean; receptionStart?: string; receptionEnd?: string;
+  status: '启用' | '停用' | '待生效' | '已结束';
   employees: Employee[]; wecomTags: string[]; internalTags: string[]; scans: number; added: number; creatorName: string; createdAt: string
 }
 
@@ -58,8 +60,15 @@ const rows = ref<LiveCode[]>([
   { id: 1, codeNo: 'QR20260818001', name: '8月第1期 · 抖音一转', type: '多人活码', corpId: wecomCorps[0].corpId, corpName: wecomCorps[0].name, groupId: 2, groupName: '一转活码', ipNo: 'IP000001', ipName: '阿留皮皮', ipChannelCode: 'CH000002', ipChannelName: '阿留专属', campId: 301, campName: '2026年8月第1期', autoAccept: true, scheduleType: '全天在线', allocationMode: '轮询', scheduledEmployeeIds: [], workDays: [1,2,3,4,5,6,7], onlineTime: ['00:00','23:59'], backupEmployeeIds: [5], backupEnabled: true, sameEmployeeEnabled: false, receptionStart: '2026-08-12', receptionEnd: '2026-08-31', status: '启用', employees: employeePool.slice(0, 4).map(item => ({ ...item })), wecomTags: ['8月第1期', '抖音新客'], internalTags: ['一转', '重点跟进'], scans: 2846, added: 1972, creatorName: '张铭钰', createdAt: '2026-08-10 10:20' },
   { id: 2, codeNo: 'QR20260818002', name: '8月第1期 · 有赞承接', type: '多人活码', corpId: wecomCorps[0].corpId, corpName: wecomCorps[0].name, groupId: 2, groupName: '一转活码', ipNo: 'IP000001', ipName: '阿留皮皮', ipChannelCode: 'CH000002', ipChannelName: '阿留专属', campId: 301, campName: '2026年8月第1期', autoAccept: true, scheduleType: '全天在线', allocationMode: '顺序', scheduledEmployeeIds: [], workDays: [1,2,3,4,5,6,7], onlineTime: ['00:00','23:59'], backupEmployeeIds: [], backupEnabled: false, sameEmployeeEnabled: true, receptionStart: '2026-08-15', receptionEnd: '2026-09-05', status: '启用', employees: employeePool.slice(1, 4).map(item => ({ ...item, limit: item.limit + 5 })), wecomTags: ['8月第1期'], internalTags: ['有赞', '一转'], scans: 1638, added: 1024, creatorName: '陈庆焕', createdAt: '2026-08-12 14:08' },
   { id: 3, codeNo: 'QR20260818003', name: '秋季体验营 · 预热', type: '多人活码', corpId: wecomCorps[1].corpId, corpName: wecomCorps[1].name, groupId: 4, groupName: '体验课班主任活码', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 303, campName: '2026 秋季体验营', autoAccept: false, scheduleType: '分时段排班', allocationMode: '随机', scheduledEmployeeIds: [1,2], workDays: [1,2,3,4,5], onlineTime: ['09:00','18:00'], backupEmployeeIds: [3, 4], backupEnabled: true, sameEmployeeEnabled: false, receptionStart: '2026-09-01', receptionEnd: '2026-09-20', status: '待生效', employees: employeePool.slice(0, 2).map(item => ({ ...item, received: 0 })), wecomTags: ['秋季体验营'], internalTags: ['预热', '班主任'], scans: 0, added: 0, creatorName: '张铭钰', createdAt: '2026-08-17 09:30' },
-  { id: 4, codeNo: 'QR20260715001', name: '8月第2期 · 历史承接', type: '单人活码', corpId: wecomCorps[1].corpId, corpName: wecomCorps[1].name, groupId: 1, groupName: '默认分组', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 302, campName: '2026年8月第2期', autoAccept: true, scheduleType: '全天在线', allocationMode: '轮询', scheduledEmployeeIds: [], workDays: [1,2,3,4,5,6,7], onlineTime: ['00:00','23:59'], backupEmployeeIds: [], backupEnabled: false, sameEmployeeEnabled: false, receptionStart: '2026-07-15', receptionEnd: '2026-08-10', status: '已结束', employees: [{ ...employeePool[4], limit: 60, received: 54 }], wecomTags: ['8月第2期'], internalTags: ['历史期次'], scans: 1240, added: 886, creatorName: '系统迁移', createdAt: '2026-07-12 16:45' }
+  { id: 4, codeNo: 'QR20260715001', name: '8月第2期 · 历史承接', type: '多人活码', corpId: wecomCorps[1].corpId, corpName: wecomCorps[1].name, groupId: 1, groupName: '默认分组', ipNo: 'IP000002', ipName: '周老师', ipChannelCode: 'CH000001', ipChannelName: '店播', campId: 302, campName: '2026年8月第2期', autoAccept: true, scheduleType: '全天在线', allocationMode: '轮询', scheduledEmployeeIds: [], workDays: [1,2,3,4,5,6,7], onlineTime: ['00:00','23:59'], backupEmployeeIds: [], backupEnabled: false, sameEmployeeEnabled: false, receptionStart: '2026-07-15', receptionEnd: '2026-08-10', status: '已结束', employees: [{ ...employeePool[4], limit: 60, received: 54 }], wecomTags: ['8月第2期'], internalTags: ['历史期次'], scans: 1240, added: 886, creatorName: '系统迁移', createdAt: '2026-07-12 16:45' }
 ])
+rows.value.forEach(row => {
+  if (row.status === '待生效' || row.status === '已结束') row.status = '启用'
+  delete row.backupEmployeeIds
+  delete row.backupEnabled
+  delete row.receptionStart
+  delete row.receptionEnd
+})
 
 const query = reactive({ keyword: '', campId: '', status: '' })
 const selectedGroupId = ref<'all' | number>('all')
@@ -67,7 +76,9 @@ const drawerVisible = ref(false)
 const detailVisible = ref(false)
 const editingId = ref<number | null>(null)
 const activeRow = ref<LiveCode | null>(null)
-const form = reactive({ name: '', type: '多人活码' as LiveCode['type'], groupId: 1, ipNo: '' as string, campId: undefined as number | undefined, autoAccept: true, scheduleType: '全天在线' as LiveCode['scheduleType'], allocationMode: '轮询' as LiveCode['allocationMode'], scheduledEmployeeIds: [] as number[], workDays: [1,2,3,4,5,6,7] as number[], onlineTime: ['00:00','23:59'] as string[], backupEmployeeIds: [] as number[], backupEnabled: false, sameEmployeeEnabled: false, receptionRange: [] as string[], employeeIds: [] as number[], wecomTags: [] as string[], internalTags: [] as string[], status: '启用' as LiveCode['status'] })
+let scheduleRuleSequence = 0
+function createScheduleRule(employeeIds: number[] = [], workDays: number[] = [1,2,3,4,5], onlineTime: string[] = ['09:00','18:00']): ScheduleRule { return { id: ++scheduleRuleSequence, employeeIds, workDays, onlineTime } }
+const form = reactive({ name: '', type: '多人活码' as LiveCode['type'], groupId: 1, ipNo: '' as string, campId: undefined as number | undefined, autoAccept: true, scheduleType: '全天在线' as LiveCode['scheduleType'], allocationMode: '轮询' as LiveCode['allocationMode'], scheduledEmployeeIds: [] as number[], workDays: [1,2,3,4,5,6,7] as number[], onlineTime: ['00:00','23:59'] as string[], scheduleRules: [createScheduleRule()] as ScheduleRule[], fallbackEmployeeIds: [] as number[], sameEmployeeEnabled: false, employeeIds: [] as number[], wecomTags: [] as string[], internalTags: [] as string[], status: '启用' as LiveCode['status'] })
 const weekdayOptions = [{ value: 1, label: '周一' }, { value: 2, label: '周二' }, { value: 3, label: '周三' }, { value: 4, label: '周四' }, { value: 5, label: '周五' }, { value: 6, label: '周六' }, { value: 7, label: '周日' }]
 
 function loadIpBindings() {
@@ -93,44 +104,54 @@ const filteredRows = computed(() => scopedRows.value.filter(row => {
 const activeIpOptions = computed(() => ipOptions.value.filter(item => item.status === '启用' || item.ipNo === form.ipNo))
 const selectedIp = computed(() => ipOptions.value.find(item => item.ipNo === form.ipNo))
 const selectedEmployees = computed(() => form.employeeIds.map(id => employeePool.find(item => item.id === id)).filter(Boolean) as Employee[])
-const backupEmployeeOptions = computed(() => employeePool.filter(item => !form.employeeIds.includes(item.id)))
+const employeesByIds = (ids: number[]) => ids.map(id => employeePool.find(item => item.id === id)).filter(Boolean) as Employee[]
 const summary = computed(() => ({
   total: scopedRows.value.length,
-  active: scopedRows.value.filter(item => item.status === '启用').length,
-  capacity: scopedRows.value.filter(item => item.status === '启用').reduce((sum, row) => sum + row.employees.reduce((n, item) => n + item.limit, 0), 0),
-  received: scopedRows.value.reduce((sum, row) => sum + row.employees.reduce((n, item) => n + item.received, 0), 0)
+  active: scopedRows.value.filter(item => item.status === '启用').length
 }))
 
-function resetForm() { Object.assign(form, { name: '', type: '多人活码', groupId: selectedGroupId.value === 'all' ? 1 : selectedGroupId.value, ipNo: '', campId: undefined, autoAccept: true, scheduleType: '全天在线', allocationMode: '轮询', scheduledEmployeeIds: [], workDays: [1,2,3,4,5,6,7], onlineTime: ['00:00','23:59'], backupEmployeeIds: [], backupEnabled: false, sameEmployeeEnabled: false, receptionRange: [], employeeIds: [], wecomTags: [], internalTags: [], status: '启用' }) }
+function resetForm() { Object.assign(form, { name: '', type: '多人活码', groupId: selectedGroupId.value === 'all' ? 1 : selectedGroupId.value, ipNo: '', campId: undefined, autoAccept: true, scheduleType: '全天在线', allocationMode: '轮询', scheduledEmployeeIds: [], workDays: [1,2,3,4,5,6,7], onlineTime: ['00:00','23:59'], scheduleRules: [createScheduleRule()], fallbackEmployeeIds: [], sameEmployeeEnabled: false, employeeIds: [], wecomTags: [], internalTags: [], status: '启用' }) }
 function openCreate() { loadIpBindings(); editingId.value = null; resetForm(); drawerVisible.value = true }
 function openEdit(row: LiveCode) {
   loadIpBindings()
   editingId.value = row.id
-  Object.assign(form, { name: row.name, type: row.type, groupId: row.groupId, ipNo: row.ipNo || '', campId: row.campId, autoAccept: row.autoAccept, scheduleType: row.scheduleType, allocationMode: row.allocationMode, scheduledEmployeeIds: [...row.scheduledEmployeeIds], workDays: [...row.workDays], onlineTime: [...row.onlineTime], backupEmployeeIds: [...row.backupEmployeeIds], backupEnabled: row.backupEnabled, sameEmployeeEnabled: row.sameEmployeeEnabled, receptionRange: [row.receptionStart, row.receptionEnd].filter(Boolean), employeeIds: row.employees.map(item => item.id), wecomTags: [...row.wecomTags], internalTags: [...row.internalTags], status: row.status })
+  const scheduleRules = row.scheduleRules?.length
+    ? row.scheduleRules.map(rule => createScheduleRule([...rule.employeeIds], [...rule.workDays], [...rule.onlineTime]))
+    : [createScheduleRule([...row.scheduledEmployeeIds], [...row.workDays], [...row.onlineTime])]
+  Object.assign(form, { name: row.name, type: row.type, groupId: row.groupId, ipNo: row.ipNo || '', campId: row.campId, autoAccept: row.autoAccept, scheduleType: row.scheduleType, allocationMode: row.allocationMode, scheduledEmployeeIds: [...row.scheduledEmployeeIds], workDays: [...row.workDays], onlineTime: [...row.onlineTime], scheduleRules, fallbackEmployeeIds: row.fallbackEmployeeIds?.length ? [...row.fallbackEmployeeIds] : row.employees.map(item => item.id), sameEmployeeEnabled: row.sameEmployeeEnabled, employeeIds: row.employees.map(item => item.id), wecomTags: [...row.wecomTags], internalTags: [...row.internalTags], status: row.status })
   drawerVisible.value = true
 }
-function updateLimit(employeeId: number, value: number | undefined) { const item = employeePool.find(employee => employee.id === employeeId); if (item) item.limit = Number(value || 0) }
+function syncScheduledEmployees() {
+  const scheduledIds = new Set([...form.fallbackEmployeeIds, ...form.scheduleRules.flatMap(rule => rule.employeeIds)])
+  form.employeeIds = [...scheduledIds]
+}
+function addScheduleRule() { form.scheduleRules.push(createScheduleRule()) }
+function removeScheduleRule(ruleId: number) {
+  if (form.scheduleRules.length === 1) return ElMessage.info('至少保留一条自定义分时段规则')
+  form.scheduleRules = form.scheduleRules.filter(rule => rule.id !== ruleId)
+}
+function updateWeight(employeeId: number, value: number | undefined) { const item = employeePool.find(employee => employee.id === employeeId); if (item) item.limit = Number(value || 0) }
+function download(row: LiveCode) { ElMessage.success(`正在生成“${row.name}”活码文件`) }
 function save() {
   if (!form.name.trim()) return ElMessage.warning('请输入活码名称')
   if (!form.groupId) return ElMessage.warning('请选择活码分组')
   if (!form.employeeIds.length) return ElMessage.warning('请至少选择一名接待员工')
-  if (form.type === '多人活码' && form.scheduleType === '分时段排班' && !form.scheduledEmployeeIds.length) return ElMessage.warning('请选择排班员工')
-  if (form.type === '多人活码' && form.scheduleType === '分时段排班' && !form.workDays.length) return ElMessage.warning('请至少选择一个工作日')
-  if (form.type === '多人活码' && form.backupEnabled && !form.backupEmployeeIds.length) return ElMessage.warning('开启备用员工后，请至少选择一名备用员工')
+  if (form.scheduleType === '分时段排班' && form.scheduleRules.some(rule => !rule.employeeIds.length)) return ElMessage.warning('请为每条分时段规则选择配置人员')
+  if (form.scheduleType === '分时段排班' && form.scheduleRules.some(rule => !rule.workDays.length)) return ElMessage.warning('请为每条分时段规则选择工作周期')
+  if (form.scheduleType === '分时段排班' && !form.fallbackEmployeeIds.length) return ElMessage.warning('请选择全天兜底人员')
   const camp = camps.find(item => item.id === form.campId)
   const group = groups.value.find(item => item.id === form.groupId)!
   const ip = selectedIp.value
   const ipBinding = { ipNo: ip?.ipNo, ipName: ip?.name, ipChannelCode: ip?.channelCode, ipChannelName: ip?.channelName || (ip ? ipChannelNames[ip.channelCode] : undefined) }
   const employees = selectedEmployees.value.map(item => ({ ...item }))
-  const today = new Date().toISOString().slice(0, 10)
-  const hasReceptionRange = form.receptionRange.length === 2
-  const dateStatus: LiveCode['status'] = !hasReceptionRange ? '启用' : form.receptionRange[1] < today ? '已结束' : form.receptionRange[0] > today ? '待生效' : '启用'
+  const firstRule = form.scheduleRules[0]
+  const scheduleConfig = { scheduledEmployeeIds: [...(firstRule?.employeeIds || [])], workDays: [...(firstRule?.workDays || [])], onlineTime: [...(firstRule?.onlineTime || [])], scheduleRules: form.scheduleRules.map(rule => ({ ...rule, employeeIds: [...rule.employeeIds], workDays: [...rule.workDays], onlineTime: [...rule.onlineTime] })), fallbackEmployeeIds: [...form.fallbackEmployeeIds] }
   if (editingId.value) {
     const target = rows.value.find(item => item.id === editingId.value)!
-    Object.assign(target, { ...form, ...ipBinding, status: target.status === '停用' ? '停用' : dateStatus, groupName: group.name, campName: camp?.name, receptionStart: form.receptionRange[0] || '', receptionEnd: form.receptionRange[1] || '', employees })
+    Object.assign(target, { ...form, ...scheduleConfig, ...ipBinding, status: target.status === '停用' ? '停用' : '启用', groupName: group.name, campName: camp?.name, employees })
     ElMessage.success('活码配置已更新')
   } else {
-    rows.value.unshift({ id: Date.now(), codeNo: `QR${Date.now().toString().slice(-11)}`, name: form.name, type: form.type, corpId: selectedCorp.value.corpId, corpName: selectedCorp.value.name, groupId: group.id, groupName: group.name, ...ipBinding, campId: camp?.id, campName: camp?.name, autoAccept: form.autoAccept, scheduleType: form.scheduleType, allocationMode: form.allocationMode, scheduledEmployeeIds: [...form.scheduledEmployeeIds], workDays: [...form.workDays], onlineTime: [...form.onlineTime], backupEmployeeIds: [...form.backupEmployeeIds], backupEnabled: form.backupEnabled, sameEmployeeEnabled: form.sameEmployeeEnabled, receptionStart: form.receptionRange[0] || '', receptionEnd: form.receptionRange[1] || '', status: dateStatus, employees, wecomTags: [...form.wecomTags], internalTags: [...form.internalTags], scans: 0, added: 0, creatorName: '林校长', createdAt: new Date().toLocaleString('zh-CN', { hour12: false }) })
+    rows.value.unshift({ id: Date.now(), codeNo: `QR${Date.now().toString().slice(-11)}`, name: form.name, type: form.type, corpId: selectedCorp.value.corpId, corpName: selectedCorp.value.name, groupId: group.id, groupName: group.name, ...ipBinding, campId: camp?.id, campName: camp?.name, autoAccept: form.autoAccept, scheduleType: form.scheduleType, allocationMode: form.allocationMode, ...scheduleConfig, sameEmployeeEnabled: form.sameEmployeeEnabled, status: '启用', employees, wecomTags: [...form.wecomTags], internalTags: [...form.internalTags], scans: 0, added: 0, creatorName: '林校长', createdAt: new Date().toLocaleString('zh-CN', { hour12: false }) })
     ElMessage.success('活码已创建')
   }
   drawerVisible.value = false
@@ -138,15 +159,12 @@ function save() {
 function showDetail(row: LiveCode) { activeRow.value = row; detailVisible.value = true }
 function resetQuery() { Object.assign(query, { keyword: '', campId: '', status: '' }) }
 async function toggleStatus(row: LiveCode) {
-  if (row.status === '已结束') return ElMessage.info('接量日期已结束，不可重新启用')
   const next = row.status === '启用' ? '停用' : '启用'
   await ElMessageBox.confirm(`确定${next}“${row.name}”吗？`, `${next}活码`, { type: 'warning' })
   row.status = next
   ElMessage.success(`活码已${next}`)
 }
-function download(row: LiveCode) { ElMessage.success(`正在生成“${row.name}”二维码文件`) }
 function statusType(status: string) { return status === '启用' ? 'success' : status === '待生效' ? 'warning' : status === '停用' ? 'danger' : 'info' }
-function capacityRate(row: LiveCode) { const limit = row.employees.reduce((sum, item) => sum + item.limit, 0); const received = row.employees.reduce((sum, item) => sum + item.received, 0); return limit ? Math.min(100, Math.round(received / limit * 100)) : 0 }
 function groupCount(groupId: number) { return scopedRows.value.filter(item => item.groupId === groupId).length }
 function switchWecomCorp() {
   selectedGroupId.value = 'all'
@@ -190,7 +208,7 @@ async function deleteGroup(group: LiveCodeGroup) {
 
 <template>
   <section class="page qr-page">
-    <PageHeader title="活码管理" description="统一控制轮询名单、员工容量，以及 IP 与渠道维度的扫码加微归因。">
+    <PageHeader title="活码管理" description="统一控制接待员工、轮询权重，以及 IP 与渠道维度的扫码加微归因。">
       <el-button :icon="Download">导出接量情况</el-button><el-button type="primary" :icon="Plus" @click="openCreate">新建活码</el-button>
     </PageHeader>
 
@@ -201,14 +219,13 @@ async function deleteGroup(group: LiveCodeGroup) {
 
     <div class="summary-strip surface">
       <div><span>活码总数</span><b>{{ summary.total }}</b></div><div><span>启用中</span><b>{{ summary.active }}</b></div>
-      <div><span>轮询容量</span><b>{{ summary.capacity }}</b><small>仅约束自动轮询</small></div><div><span>当前已接量</span><b>{{ summary.received }}</b><small>未转化线索</small></div>
-      <p><i></i><span>人工指定不受期次名单和接量上限限制；接量上限仅用于轮询资格判断。</span></p>
+      <p><i></i><span>接量权重越高，员工在轮询中获得客户的比例越高。</span></p>
     </div>
 
     <div class="filter-bar surface">
       <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索活码、IP、渠道或员工" />
       <el-select v-model="query.campId" clearable filterable placeholder="所属期次"><el-option v-for="item in camps" :key="item.id" :label="item.name" :value="item.id"><span>{{ item.name }}</span><small class="option-status">{{ item.status }}</small></el-option></el-select>
-      <el-select v-model="query.status" clearable placeholder="活码状态"><el-option v-for="item in ['启用','待生效','停用','已结束']" :key="item" :label="item" :value="item" /></el-select>
+      <el-select v-model="query.status" clearable placeholder="活码状态"><el-option v-for="item in ['启用','停用']" :key="item" :label="item" :value="item" /></el-select>
       <el-button type="primary">查询</el-button><el-button @click="resetQuery">重置</el-button>
     </div>
 
@@ -236,12 +253,10 @@ async function deleteGroup(group: LiveCodeGroup) {
     <article class="code-list surface">
       <header><div><h3>活码列表</h3><span>共 {{ filteredRows.length }} 条</span></div></header>
       <el-table :data="filteredRows" row-key="id">
-        <el-table-column label="活码" width="94"><template #default="{ row }"><div class="qr-thumb"><i></i><em>{{ row.type === '多人活码' ? '多' : '单' }}</em></div></template></el-table-column>
-        <el-table-column label="活码信息" min-width="220"><template #default="{ row }"><div class="code-name"><b>{{ row.name }}</b><span>{{ row.codeNo }} · {{ row.type }}</span><small><el-tag size="small" effect="plain">{{ row.groupName }}</el-tag></small></div></template></el-table-column>
+        <el-table-column label="活码信息" min-width="220"><template #default="{ row }"><div class="code-name"><b>{{ row.name }}</b><span>{{ row.codeNo }}</span><small><el-tag size="small" effect="plain">{{ row.groupName }}</el-tag></small></div></template></el-table-column>
         <el-table-column label="关联IP / IP渠道" min-width="190"><template #default="{ row }"><div class="ip-binding-cell"><b>{{ row.ipName || '未关联IP' }}</b><code v-if="row.ipNo">{{ row.ipNo }}</code><span>{{ row.ipChannelName || '未自动带出渠道' }}<template v-if="row.ipChannelCode"> · {{ row.ipChannelCode }}</template></span></div></template></el-table-column>
         <el-table-column label="所属期次" min-width="190"><template #default="{ row }"><div class="camp-cell"><b>{{ row.campName || '通用活码' }}</b></div></template></el-table-column>
-        <el-table-column label="接量日期区间" width="190"><template #default="{ row }"><div v-if="row.receptionStart && row.receptionEnd" class="date-cell"><b>{{ row.receptionStart }}</b><i></i><b>{{ row.receptionEnd }}</b></div><span v-else class="long-term">长期有效</span></template></el-table-column>
-        <el-table-column label="接待员工 / 容量" min-width="230"><template #default="{ row }"><div class="capacity-cell"><div><span>{{ row.employees.slice(0, 3).map((item: Employee) => item.name).join('、') }}<template v-if="row.employees.length > 3"> 等{{ row.employees.length }}人</template></span><b>{{ row.employees.reduce((n: number, item: Employee) => n + item.received, 0) }} / {{ row.employees.reduce((n: number, item: Employee) => n + item.limit, 0) }}</b></div><el-progress :percentage="capacityRate(row)" :show-text="false" :stroke-width="6" /></div></template></el-table-column>
+        <el-table-column label="接待员工" min-width="230"><template #default="{ row }"><div class="capacity-cell"><div><span>{{ row.employees.slice(0, 3).map((item: Employee) => item.name).join('、') }}<template v-if="row.employees.length > 3"> 等{{ row.employees.length }}人</template></span><b>共 {{ row.employees.length }} 人</b></div></div></template></el-table-column>
         <el-table-column label="活码标签" min-width="230"><template #default="{ row }"><div class="tag-cell"><div><span>企微</span><p><el-tag v-for="tag in row.wecomTags" :key="`wecom-${tag}`" size="small" type="success" effect="light">{{ tag }}</el-tag><em v-if="!row.wecomTags.length">未配置</em></p></div><div><span>内部</span><p><el-tag v-for="tag in row.internalTags" :key="`internal-${tag}`" size="small" effect="plain">{{ tag }}</el-tag><em v-if="!row.internalTags.length">未配置</em></p></div></div></template></el-table-column>
         <el-table-column label="创建人" width="115"><template #default="{ row }"><div class="creator-cell"><b>{{ row.creatorName }}</b><span>{{ row.createdAt.slice(0, 10) }}</span></div></template></el-table-column>
         <el-table-column label="扫码 / 加微" width="125"><template #default="{ row }"><div class="result-cell"><b>{{ row.scans.toLocaleString() }}</b><span>{{ row.added.toLocaleString() }}</span></div></template></el-table-column>
@@ -253,42 +268,48 @@ async function deleteGroup(group: LiveCodeGroup) {
     </div>
 
     <el-drawer v-model="drawerVisible" :title="editingId ? '编辑活码' : '新建活码'" size="760px" class="qr-config-drawer">
-      <div class="drawer-lead"><b>活码接量配置 · {{ selectedCorp.name }}</b><span>当前企微ID：{{ selectedCorp.corpId }}。新建活码将归属当前主体；期次和接量日期可按实际场景选填。</span></div>
+      <div class="drawer-lead"><b>活码接量配置 · {{ selectedCorp.name }}</b><span>当前企微ID：{{ selectedCorp.corpId }}。新建活码将归属当前主体，所属期次可按实际场景选填。</span></div>
       <el-form label-position="top" class="qr-form">
         <div class="form-section"><h4>基础信息</h4><div class="form-grid">
           <el-form-item label="活码名称" required><el-input v-model="form.name" maxlength="30" show-word-limit placeholder="例如：暑期三营 · 抖音一转" /></el-form-item>
-          <el-form-item label="活码类型" required><el-radio-group v-model="form.type"><el-radio-button value="多人活码">多人活码</el-radio-button><el-radio-button value="单人活码">单人活码</el-radio-button></el-radio-group></el-form-item>
           <el-form-item label="活码分组" required><el-select v-model="form.groupId" placeholder="选择活码分组"><el-option v-for="item in groups" :key="item.id" :label="item.name" :value="item.id" /></el-select></el-form-item>
           <el-form-item label="自动通过好友"><div class="switch-field"><el-switch v-model="form.autoAccept" /><span>{{ form.autoAccept ? '已开启' : '已关闭' }}</span></div><small>开启后，客户添加该企业微信时无需好友验证，将自动添加成功。</small></el-form-item>
           <el-form-item><template #label>关联IP <em class="optional">选填</em></template><el-select v-model="form.ipNo" clearable filterable placeholder="搜索IP名称或IP编号"><el-option v-for="item in activeIpOptions" :key="item.ipNo" :label="`${item.name} · ${item.ipNo}`" :value="item.ipNo"><span>{{ item.name }}</span><small class="option-status">{{ item.ipNo }}</small></el-option></el-select><small>数据来源：线索中心－IP列表－IP配置；未关联时按通用活码保存。</small></el-form-item>
           <el-form-item label="IP渠道"><el-input :model-value="selectedIp ? `${selectedIp.channelName || ipChannelNames[selectedIp.channelCode] || '未配置渠道'} · ${selectedIp.channelCode}` : ''" readonly placeholder="选择关联IP后自动带出" /><small>由IP配置自动带出，活码内不可单独修改，避免归因口径不一致。</small></el-form-item>
           <el-form-item><template #label>所属期次 <em class="optional">选填</em></template><el-select v-model="form.campId" clearable filterable placeholder="从引流期次库选择"><el-option v-for="item in camps" :key="item.id" :label="item.name" :value="item.id" /></el-select><small>不选择时按通用活码保存；期次来源于线索中心—引流期次。</small></el-form-item>
-          <el-form-item class="span-2"><template #label>接量日期区间 <em class="optional">选填</em></template><el-date-picker v-model="form.receptionRange" clearable type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始接量日期" end-placeholder="结束接量日期" /><small>不设置时长期有效；设置后仅在该区间内参与轮询，结束后自动标记“已结束”。</small></el-form-item>
         </div></div>
-        <div class="form-section"><h4>接待员工与轮询容量</h4><el-form-item label="接待员工" required><el-select v-model="form.employeeIds" multiple filterable collapse-tags :max-collapse-tags="3" placeholder="搜索员工姓名或员工编号"><el-option v-for="item in employeePool" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id" /></el-select></el-form-item>
-          <div class="employee-config-list"><div v-for="item in selectedEmployees" :key="item.id" class="employee-config"><i>{{ item.name.slice(0,1) }}</i><span><b>{{ item.name }}</b><small>{{ item.no }} · {{ item.role }}</small></span><label>轮询接量上限<el-input-number :model-value="item.limit" :min="1" :max="999" controls-position="right" @change="(value: number | undefined) => updateLimit(item.id, value)" /></label><em>当前 {{ item.received }}</em></div><el-empty v-if="!selectedEmployees.length" :image-size="58" description="选择员工后可配置每人的轮询接量上限" /></div>
-          <el-alert :closable="false" type="info" show-icon title="容量规则" description="达到接量上限的员工自动退出本期次轮询；管理员人工指定仍可选择该员工。" />
-        </div>
-        <div class="form-section"><h4>排班与备用员工</h4>
-          <template v-if="form.type === '多人活码'"><div class="form-grid">
+        <div class="form-section"><h4>排班设置</h4>
+          <div class="form-grid">
             <el-form-item label="排班类型" required><el-radio-group v-model="form.scheduleType"><el-radio value="全天在线">全天在线</el-radio><el-radio value="分时段排班">分时段排班</el-radio></el-radio-group><small>全天在线时随时参与分配；分时段排班按员工排班时段参与。</small></el-form-item>
             <el-form-item label="排班方式" required><el-radio-group v-model="form.allocationMode"><el-radio value="轮询">轮询</el-radio><el-radio value="顺序">顺序</el-radio><el-radio value="随机">随机</el-radio></el-radio-group></el-form-item>
             <div v-if="form.scheduleType === '分时段排班'" class="schedule-editor span-2">
-              <el-alert class="schedule-fallback-tip" type="info" show-icon :closable="false" title="系统将先创建一条全天在线兜底规则" description="该规则覆盖周一至周日 00:00–23:59 且不可删除；自定义时段未命中时，系统按兜底规则继续分配，保证始终有员工可承接客户。" />
-              <div class="fallback-schedule">
-                <header><b>全天在线兜底</b><el-tag size="small" type="success" effect="light">系统默认 · 不可删除</el-tag></header>
-                <dl><div><dt>兜底员工</dt><dd>{{ selectedEmployees.map(item => item.name).join('、') || '请先选择接待员工' }}</dd></div><div><dt>工作周期</dt><dd>周一至周日</dd></div><div><dt>在线时间</dt><dd>00:00 至 23:59</dd></div></dl>
+              <el-alert class="schedule-rule-note" type="info" show-icon :closable="false" title="自定义分时段规则说明" description="选择分时段排班时，默认需要一条全天在线规则且不可删除，保证有员工全天在线。" />
+              <div class="schedule-rule-heading"><div><h5>自定义分时段规则</h5><small>按人员分别配置参与接待的工作周期和在线时间。</small></div><el-button type="primary" plain :icon="Plus" @click="addScheduleRule">添加规则</el-button></div>
+              <div v-for="(rule, index) in form.scheduleRules" :key="rule.id" class="custom-schedule-rule">
+                <header><b>规则 {{ index + 1 }}</b><el-button v-if="form.scheduleRules.length > 1" link type="danger" @click="removeScheduleRule(rule.id)">删除</el-button></header>
+                <el-form-item label="配置人员" required><el-select v-model="rule.employeeIds" multiple filterable collapse-tags :max-collapse-tags="3" placeholder="选择参与该时段的人员" @change="syncScheduledEmployees"><el-option v-for="item in employeePool" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id" /></el-select></el-form-item>
+                <el-form-item label="工作周期" required><el-checkbox-group v-model="rule.workDays" class="weekday-selector"><el-checkbox v-for="item in weekdayOptions" :key="item.value" :value="item.value">{{ item.label }}</el-checkbox></el-checkbox-group></el-form-item>
+                <el-form-item label="在线时间" required><el-time-picker v-model="rule.onlineTime" is-range range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" format="HH:mm" value-format="HH:mm" /></el-form-item>
+                <el-table v-if="rule.employeeIds.length" :data="employeesByIds(rule.employeeIds)" class="schedule-weight-table" row-key="id"><el-table-column label="配置人员" min-width="210"><template #default="{ row }"><div class="employee-identity"><i>{{ row.name.slice(0,1) }}</i><span><b>{{ row.name }}</b><small>{{ row.no }} · {{ row.role }}</small></span></div></template></el-table-column><el-table-column label="接量权重" width="160" align="center"><template #default="{ row }"><el-input-number :model-value="row.limit" :min="1" :max="999" controls-position="right" @change="(value: number | undefined) => updateWeight(row.id, value)" /></template></el-table-column><el-table-column prop="received" label="当前接量" width="120" align="center" /></el-table>
               </div>
-              <h5>自定义分时段规则</h5>
-              <el-form-item label="排班员工" required><el-select v-model="form.scheduledEmployeeIds" multiple filterable collapse-tags :max-collapse-tags="3" placeholder="选择员工"><el-option v-for="item in selectedEmployees" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id" /></el-select><small>仅可选择已加入当前活码的接待员工。</small></el-form-item>
-              <el-form-item label="工作周期" required><el-checkbox-group v-model="form.workDays" class="weekday-selector"><el-checkbox v-for="item in weekdayOptions" :key="item.value" :value="item.value">{{ item.label }}</el-checkbox></el-checkbox-group></el-form-item>
-              <el-form-item label="在线时间" required><el-time-picker v-model="form.onlineTime" is-range range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" format="HH:mm" value-format="HH:mm" /></el-form-item>
+              <div class="fallback-schedule">
+                <header><span><b>全天在线兜底</b><el-tag size="small" type="success" effect="light">系统默认 · 不可删除</el-tag></span><small>自定义时段未命中时，由兜底人员继续接待。</small></header>
+                <el-form-item label="兜底人员" required><el-select v-model="form.fallbackEmployeeIds" multiple filterable collapse-tags :max-collapse-tags="3" placeholder="直接选择或修改兜底人员" @change="syncScheduledEmployees"><el-option v-for="item in employeePool" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id" /></el-select></el-form-item>
+                <dl><div><dt>工作周期</dt><dd>周一至周日</dd></div><div><dt>在线时间</dt><dd>00:00 至 23:59</dd></div></dl>
+                <el-table v-if="form.fallbackEmployeeIds.length" :data="employeesByIds(form.fallbackEmployeeIds)" class="schedule-weight-table fallback-weight-table" row-key="id"><el-table-column label="兜底人员" min-width="210"><template #default="{ row }"><div class="employee-identity"><i>{{ row.name.slice(0,1) }}</i><span><b>{{ row.name }}</b><small>{{ row.no }} · {{ row.role }}</small></span></div></template></el-table-column><el-table-column label="接量权重" width="160" align="center"><template #default="{ row }"><el-input-number :model-value="row.limit" :min="1" :max="999" controls-position="right" @change="(value: number | undefined) => updateWeight(row.id, value)" /></template></el-table-column><el-table-column prop="received" label="当前接量" width="120" align="center" /></el-table>
+              </div>
             </div>
-            <el-form-item class="span-2" label="备用员工"><el-select v-model="form.backupEmployeeIds" multiple filterable collapse-tags :max-collapse-tags="3" placeholder="选择备用员工"><el-option v-for="item in backupEmployeeOptions" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id" /></el-select></el-form-item>
-            <el-form-item label="开启备用员工"><div class="switch-field"><el-switch v-model="form.backupEnabled" /><span>{{ form.backupEnabled ? '已开启' : '已关闭' }}</span></div><small>主接待员工当日接量达到上限后，客户将添加至备用员工。</small></el-form-item>
             <el-form-item label="添加同一员工"><div class="switch-field"><el-switch v-model="form.sameEmployeeEnabled" /><span>{{ form.sameEmployeeEnabled ? '已开启' : '已关闭' }}</span></div><small>开启后，相同客户再次扫码时优先添加至同一员工。</small></el-form-item>
-          </div></template>
-          <el-alert v-else :closable="false" type="info" show-icon title="单人活码不支持排班" description="单人活码固定由所选接待员工承接，无需设置排班方式和备用员工。" />
+          </div>
+        </div>
+        <div v-if="form.scheduleType === '全天在线'" class="form-section"><h4>接待员工</h4><el-form-item label="接待员工" required><el-select v-model="form.employeeIds" multiple filterable collapse-tags :max-collapse-tags="3" placeholder="搜索员工姓名或员工编号"><el-option v-for="item in employeePool" :key="item.id" :label="`${item.name} · ${item.no}`" :value="item.id" /></el-select></el-form-item>
+          <el-table v-if="selectedEmployees.length" :data="selectedEmployees" class="employee-config-table" row-key="id">
+            <el-table-column label="姓名" min-width="220"><template #default="{ row }"><div class="employee-identity"><i>{{ row.name.slice(0,1) }}</i><span><b>{{ row.name }}</b><small>{{ row.no }} · {{ row.role }}</small></span></div></template></el-table-column>
+            <el-table-column label="接量权重" min-width="180" align="center"><template #default="{ row }"><el-input-number :model-value="row.limit" :min="1" :max="999" controls-position="right" @change="(value: number | undefined) => updateWeight(row.id, value)" /></template></el-table-column>
+            <el-table-column prop="received" label="当前接量" min-width="140" align="center" />
+          </el-table>
+          <el-empty v-else :image-size="58" description="选择员工后可配置每人的接量权重" />
+          <el-alert :closable="false" type="info" show-icon title="权重规则" description="系统按接量权重比例分配客户；权重越高，员工获得客户的比例越高。" />
         </div>
         <div class="form-section"><h4>客户标记</h4><div class="form-grid"><el-form-item label="企微标签"><el-select v-model="form.wecomTags" multiple allow-create filterable default-first-option placeholder="选择或输入企微标签"><el-option v-for="item in ['暑期三期','秋季体验期','抖音新客','已加微']" :key="item" :label="item" :value="item" /></el-select><small>客户扫码添加成功后同步写入企业微信。</small></el-form-item><el-form-item label="内部标签"><el-select v-model="form.internalTags" multiple allow-create filterable default-first-option placeholder="选择或输入内部标签"><el-option v-for="item in ['一转','重点跟进','有赞','班主任','历史期次']" :key="item" :label="item" :value="item" /></el-select><small>仅在合数 BOSS 内用于筛选、运营与数据分析。</small></el-form-item></div></div>
       </el-form>
@@ -296,9 +317,9 @@ async function deleteGroup(group: LiveCodeGroup) {
     </el-drawer>
 
     <el-drawer v-model="detailVisible" title="活码详情" size="680px">
-      <template v-if="activeRow"><div class="detail-hero"><div class="qr-large"><i></i><em>合</em></div><div><el-tag :type="statusType(activeRow.status)">{{ activeRow.status }}</el-tag><h2>{{ activeRow.name }}</h2><p>{{ activeRow.codeNo }} · {{ activeRow.type }}</p><el-button type="primary" :icon="Download" @click="download(activeRow)">下载活码</el-button></div></div>
-      <el-descriptions :column="2" border><el-descriptions-item label="企业微信主体">{{ activeRow.corpName }}</el-descriptions-item><el-descriptions-item label="企微ID">{{ activeRow.corpId }}</el-descriptions-item><el-descriptions-item label="活码分组">{{ activeRow.groupName }}</el-descriptions-item><el-descriptions-item label="创建人">{{ activeRow.creatorName }}</el-descriptions-item><el-descriptions-item label="关联IP">{{ activeRow.ipName ? `${activeRow.ipName} · ${activeRow.ipNo}` : '未关联' }}</el-descriptions-item><el-descriptions-item label="IP渠道">{{ activeRow.ipChannelName ? `${activeRow.ipChannelName} · ${activeRow.ipChannelCode}` : '未配置' }}</el-descriptions-item><el-descriptions-item label="所属期次">{{ activeRow.campName || '未关联（通用活码）' }}</el-descriptions-item><el-descriptions-item label="自动通过好友">{{ activeRow.autoAccept ? '开启' : '关闭' }}</el-descriptions-item><el-descriptions-item label="排班设置">{{ activeRow.type === '单人活码' ? '不适用' : `${activeRow.scheduleType} · ${activeRow.allocationMode}` }}</el-descriptions-item><el-descriptions-item v-if="activeRow.scheduleType === '分时段排班'" label="排班周期与时间">{{ activeRow.workDays.map(day => weekdayOptions.find(item => item.value === day)?.label).join('、') }} · {{ activeRow.onlineTime.join(' 至 ') }}</el-descriptions-item><el-descriptions-item label="备用员工">{{ activeRow.backupEnabled ? activeRow.backupEmployeeIds.map(id => employeePool.find(item => item.id === id)?.name).filter(Boolean).join('、') || '未选择' : '未开启' }}</el-descriptions-item><el-descriptions-item label="添加同一员工">{{ activeRow.sameEmployeeEnabled ? '开启' : '关闭' }}</el-descriptions-item><el-descriptions-item label="接量开始">{{ activeRow.receptionStart || '长期有效' }}</el-descriptions-item><el-descriptions-item label="接量结束">{{ activeRow.receptionEnd || '长期有效' }}</el-descriptions-item><el-descriptions-item label="企微标签">{{ activeRow.wecomTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="内部标签">{{ activeRow.internalTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="扫码数">{{ activeRow.scans.toLocaleString() }}</el-descriptions-item><el-descriptions-item label="加微数">{{ activeRow.added.toLocaleString() }}</el-descriptions-item></el-descriptions>
-      <h3 class="detail-title">接待员工</h3><el-table :data="activeRow.employees"><el-table-column prop="name" label="姓名"/><el-table-column prop="no" label="员工编号"/><el-table-column prop="role" label="岗位"/><el-table-column prop="received" label="已接量"/><el-table-column prop="limit" label="轮询上限"/></el-table></template>
+      <template v-if="activeRow"><div class="detail-hero"><div><el-tag :type="statusType(activeRow.status)">{{ activeRow.status }}</el-tag><h2>{{ activeRow.name }}</h2><p>{{ activeRow.codeNo }}</p></div></div>
+      <el-descriptions :column="2" border><el-descriptions-item label="企业微信主体">{{ activeRow.corpName }}</el-descriptions-item><el-descriptions-item label="企微ID">{{ activeRow.corpId }}</el-descriptions-item><el-descriptions-item label="活码分组">{{ activeRow.groupName }}</el-descriptions-item><el-descriptions-item label="创建人">{{ activeRow.creatorName }}</el-descriptions-item><el-descriptions-item label="关联IP">{{ activeRow.ipName ? `${activeRow.ipName} · ${activeRow.ipNo}` : '未关联' }}</el-descriptions-item><el-descriptions-item label="IP渠道">{{ activeRow.ipChannelName ? `${activeRow.ipChannelName} · ${activeRow.ipChannelCode}` : '未配置' }}</el-descriptions-item><el-descriptions-item label="所属期次">{{ activeRow.campName || '未关联（通用活码）' }}</el-descriptions-item><el-descriptions-item label="自动通过好友">{{ activeRow.autoAccept ? '开启' : '关闭' }}</el-descriptions-item><el-descriptions-item label="排班设置">{{ activeRow.scheduleType }} · {{ activeRow.allocationMode }}</el-descriptions-item><el-descriptions-item v-if="activeRow.scheduleType === '分时段排班'" label="排班周期与时间">{{ activeRow.workDays.map(day => weekdayOptions.find(item => item.value === day)?.label).join('、') }} · {{ activeRow.onlineTime.join(' 至 ') }}</el-descriptions-item><el-descriptions-item label="添加同一员工">{{ activeRow.sameEmployeeEnabled ? '开启' : '关闭' }}</el-descriptions-item><el-descriptions-item label="企微标签">{{ activeRow.wecomTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="内部标签">{{ activeRow.internalTags.join('、') || '未配置' }}</el-descriptions-item><el-descriptions-item label="扫码数">{{ activeRow.scans.toLocaleString() }}</el-descriptions-item><el-descriptions-item label="加微数">{{ activeRow.added.toLocaleString() }}</el-descriptions-item></el-descriptions>
+      <h3 class="detail-title">接待员工</h3><el-table :data="activeRow.employees"><el-table-column prop="name" label="姓名"/><el-table-column prop="no" label="员工编号"/><el-table-column prop="role" label="岗位"/><el-table-column prop="received" label="当前接量"/><el-table-column prop="limit" label="接量权重"/></el-table></template>
     </el-drawer>
   </section>
 </template>
@@ -310,4 +331,9 @@ async function deleteGroup(group: LiveCodeGroup) {
 .ip-binding-cell b,.ip-binding-cell code,.ip-binding-cell span{display:block}.ip-binding-cell b{color:var(--qr-ink)}.ip-binding-cell code{width:max-content;margin-top:4px;padding:2px 6px;border-radius:4px;background:#edf3fc;color:#57708f;font-size:9px}.ip-binding-cell span{margin-top:6px;color:var(--qr-blue);font-size:10px}
 .switch-field{display:flex;align-items:center;gap:10px}.switch-field span{color:#61738c;font-size:12px}
 .schedule-editor{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;padding:16px;margin:2px 0 18px;border:1px solid #dbe7f5;border-radius:9px;background:#f8fbff}.schedule-fallback-tip,.fallback-schedule,.schedule-editor h5,.schedule-editor .el-form-item:first-of-type{grid-column:1/-1}.schedule-fallback-tip{margin-bottom:12px}.fallback-schedule{padding:14px;margin-bottom:15px;border:1px solid #cfe4dc;border-radius:8px;background:#f4fbf8}.fallback-schedule header{display:flex;align-items:center;gap:9px;margin-bottom:12px}.fallback-schedule header b{color:#244c42}.fallback-schedule dl{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px;margin:0}.fallback-schedule dl div{padding:9px 10px;border-radius:7px;background:#fff}.fallback-schedule dt{margin-bottom:5px;color:#8a9b97;font-size:10px}.fallback-schedule dd{margin:0;color:#34584f;font-size:12px}.schedule-editor h5{margin:0 0 13px;color:#334a68;font-size:13px}.weekday-selector{display:flex;flex-wrap:wrap;gap:8px 14px}.weekday-selector :deep(.el-checkbox){margin-right:0}.schedule-editor :deep(.el-date-editor){width:100%}
+.summary-strip{grid-template-columns:repeat(2,150px) 1fr}
+.employee-config-table{margin-bottom:12px;border:1px solid #e3eaf3;border-radius:10px;overflow:hidden}.employee-config-table :deep(th.el-table__cell){height:50px;background:#f6f8fb;color:#283b55;font-weight:700}.employee-config-table :deep(td.el-table__cell){height:70px}.employee-identity{display:flex;align-items:center;gap:12px}.employee-identity>i{width:36px;height:36px;display:grid;place-items:center;border-radius:8px;background:#eaf2ff;color:var(--qr-blue);font-style:normal;font-weight:700}.employee-identity span b,.employee-identity span small{display:block}.employee-identity span small{margin-top:4px;color:#8a99ac;font-size:10px}.employee-config-table :deep(.el-input-number){width:108px}
+.schedule-rule-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.schedule-rule-heading h5{margin:0 0 4px}.schedule-rule-heading small{color:#8b99ab}.custom-schedule-rule{grid-column:1/-1;display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:0 16px;padding:14px 16px;margin-bottom:12px;border:1px solid #dce6f3;border-radius:9px;background:#fff}.custom-schedule-rule>header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;color:#263b58}.custom-schedule-rule :deep(.el-select),.custom-schedule-rule :deep(.el-date-editor),.fallback-schedule :deep(.el-select){width:100%}.fallback-schedule{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:0 14px}.fallback-schedule>header{grid-column:1/-1;display:flex;align-items:flex-start;justify-content:space-between}.fallback-schedule>header span{display:flex;align-items:center;gap:9px}.fallback-schedule>header small{color:#6f8982}.fallback-schedule>.el-form-item{margin-bottom:0}.fallback-schedule dl{display:contents}.fallback-schedule dl div{align-self:end;margin-bottom:0}@media(max-width:980px){.custom-schedule-rule,.fallback-schedule{grid-template-columns:1fr}.custom-schedule-rule>* ,.fallback-schedule>*{grid-column:1!important}.fallback-schedule dl{display:grid;grid-template-columns:1fr 1fr;gap:10px}}
+.schedule-rule-note{grid-column:1/-1;margin-bottom:14px}
+.schedule-weight-table{grid-column:1/-1;margin-top:2px;border:1px solid #e3eaf3;border-radius:8px;overflow:hidden}.schedule-weight-table :deep(th.el-table__cell){height:42px;background:#f6f8fb;color:#34475f}.schedule-weight-table :deep(td.el-table__cell){height:62px}.schedule-weight-table :deep(.el-input-number){width:106px}.fallback-weight-table{margin-top:14px}
 </style>

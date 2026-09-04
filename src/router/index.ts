@@ -30,6 +30,7 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/sms': () => import('../views/SystemToolsView.vue'),
   '/system/sms/signatures': () => import('../views/SystemToolsView.vue'),
   '/system/sms/templates': () => import('../views/SystemToolsView.vue'),
+  '/system/sms/rules': () => import('../views/SystemToolsView.vue'),
   '/system/sms/results': () => import('../views/SystemToolsView.vue'),
   '/system/configurations': () => import('../views/SystemToolsView.vue'),
   '/system/configurations/wecom': () => import('../views/SystemToolsView.vue'),

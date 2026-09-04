@@ -38,7 +38,6 @@ const sourceFilter = ref('')
 const orderStatusFilter = ref('')
 const entryMethodFilter = ref('')
 const wechatFilter = ref('')
-const campFilter = ref('')
 const periodFilter = ref('')
 const shopFilter = ref('')
 const dateField = ref('created_at')
@@ -81,21 +80,9 @@ const periodChangeVisible = ref(false)
 const periodChangeTargetId = ref<number | null>(null)
 const selectedPeriodId = ref<string | null>(null)
 const batchPeriodId = ref<string | null>(null)
-const changePeriodEnabled = ref(true)
-const changeCampEnabled = ref(false)
-const selectedCampName = ref('')
-const batchChangePeriodEnabled = ref(true)
-const batchChangeCampEnabled = ref(false)
-const batchCampName = ref('')
 const syncPlatformOptions = ['抖店', '百家号', '有赞', '小鹅通', '小红书', '快手', '视频号']
 const selectedSyncPlatforms = ref<string[]>([])
-const smsBroadcastTemplate = ref('')
-const smsBroadcastContent = ref('')
-const smsTemplateOptions = [
-  { label: '未加微提醒', value: 'WECHAT_PENDING', content: '您提交的课程咨询已受理，请及时添加专属老师微信。' },
-  { label: '直播预约提醒', value: 'LIVE_BOOKING', content: '您的专属直播课程已开放预约，请及时完成预约。' },
-  { label: '问卷填写提醒', value: 'QUESTIONNAIRE_PENDING', content: '请完成学习需求问卷，以便老师为您提供更准确的规划建议。' }
-]
+const smsBroadcastOrderDate = ref('')
 const decryptImportFileName = ref('')
 const decryptImportRows = ref<Array<{ orderNo: string; mobile: string }>>([])
 const decryptImportErrors = ref<string[]>([])
@@ -111,13 +98,13 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','camp_name','period_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
   { value: 'original_mobile', label: '解密前手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
   { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'ip_category', label: 'IP大类' }, { value: 'lead_grade', label: '线索等级' }, { value: 'lead_tags', label: '线索标签' }, { value: 'demand_mined', label: '是否挖需' },
-  { value: 'first_product_name', label: '首单商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
+  { value: 'first_product_name', label: '商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
   { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
   { value: 'wechat_status', label: '加微状态' }, { value: 'questionnaire_status', label: '问卷状态' }, { value: 'assessment_status', label: '测评状态' },
@@ -126,7 +113,7 @@ const columnOptions = [
   { value: 'wechat_added_at', label: '加微时间' }, { value: 'decrypted_at', label: '解密时间' }, { value: 'questionnaire_at', label: '问卷填写时间' },
   { value: 'assessment_at', label: '测评时间' }, { value: 'customer_linked_at', label: '客户建档时间' }, { value: 'converted_at', label: '转化时间' },
   { value: 'after_sale_at', label: '售后时间' }, { value: 'entry_method', label: '添加方式' }, { value: 'wechat_method', label: '加微方式' },
-  { value: 'camp_name', label: '所属直播组' }, { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
+  { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
 const columnStorageKey = 'heshu_boss_lead_table_columns_v10'
@@ -235,7 +222,6 @@ function resetFilters() {
   entryMethodFilter.value = ''
   wechatFilter.value = ''
   scopeFilters.value = { viewScope: auth.user?.role === 'ADMIN' ? 'AUTHORIZED' : 'SELF', organizationId: null, ownerId: null }
-  campFilter.value = ''
   periodFilter.value = ''
   shopFilter.value = ''
   dateField.value = 'created_at'
@@ -412,9 +398,6 @@ function openPeriodChange(row: any) {
   activeLead.value = row
   periodChangeTargetId.value = Number(row.id)
   selectedPeriodId.value = row.period_id ? String(row.period_id) : null
-  selectedCampName.value = String(row.camp_name || '')
-  changePeriodEnabled.value = true
-  changeCampEnabled.value = false
   periodChangeVisible.value = true
 }
 
@@ -428,26 +411,16 @@ function applyPeriodChange(targetRows: any[], periodId: string) {
   return true
 }
 
-function applyCampChange(targetRows: any[], campName: string) {
-  const normalized = campName.trim()
-  if (!normalized) return false
-  targetRows.forEach(row => { row.camp_name = normalized })
-  return true
-}
-
 async function submitPeriodChange() {
-  if (!changePeriodEnabled.value && !changeCampEnabled.value) return ElMessage.warning('请至少选择一项需要变更的内容')
-  if (changePeriodEnabled.value && !selectedPeriodId.value) return ElMessage.warning('请选择目标期次')
-  if (changeCampEnabled.value && !selectedCampName.value.trim()) return ElMessage.warning('请选择目标直播组')
+  if (!selectedPeriodId.value) return ElMessage.warning('请选择目标期次')
   const target = rows.value.filter(row => Number(row.id) === Number(periodChangeTargetId.value))
-  if (changePeriodEnabled.value && !applyPeriodChange(target, selectedPeriodId.value!)) return ElMessage.warning('所选期次不可用，请重新选择')
-  if (changeCampEnabled.value && !applyCampChange(target, selectedCampName.value)) return ElMessage.warning('所选直播组不可用，请重新选择')
+  if (!applyPeriodChange(target, selectedPeriodId.value)) return ElMessage.warning('所选期次不可用，请重新选择')
   if (!isDemoMode) {
-    try { await http.post(`/leads/${periodChangeTargetId.value}/change-period`, { changePeriod: changePeriodEnabled.value, periodId: changePeriodEnabled.value ? Number(selectedPeriodId.value) : null, changeLiveGroup: changeCampEnabled.value, liveGroupName: changeCampEnabled.value ? selectedCampName.value.trim() : null }); await load() }
-    catch (error: any) { ElMessage.error(error.message || '期次/直播组变更失败'); return }
+    try { await http.post(`/leads/${periodChangeTargetId.value}/change-period`, { changePeriod: true, periodId: Number(selectedPeriodId.value) }); await load() }
+    catch (error: any) { ElMessage.error(error.message || '期次变更失败'); return }
   }
   periodChangeVisible.value = false
-  ElMessage.success(`${changePeriodEnabled.value ? '期次' : ''}${changePeriodEnabled.value && changeCampEnabled.value ? '和' : ''}${changeCampEnabled.value ? '直播组' : ''}已变更，并记录到线索旅程`)
+  ElMessage.success('所属期次已变更，并记录到线索旅程')
 }
 
 async function markDemandMined(row: any, checked: string | number | boolean) {
@@ -498,8 +471,8 @@ const visibleAssignees = computed(() => {
     return String(item.name || '').toLowerCase().includes(query) || String(item.employee_no || '').toLowerCase().includes(query)
   })
 })
-const latestCampName = computed(() => assignees.value.find(item => item.qr_camp_name)?.qr_camp_name || '最新期次')
-const latestCampEligibleCount = computed(() => assignees.value.filter(item => item.qr_camp_name === latestCampName.value && Number(item.load || 0) < Number(item.assignment_limit || 0)).length)
+const latestPeriodName = computed(() => assignees.value.find(item => item.qr_camp_name)?.qr_camp_name || '最新期次')
+const latestPeriodEligibleCount = computed(() => assignees.value.filter(item => item.qr_camp_name === latestPeriodName.value && Number(item.load || 0) < Number(item.assignment_limit || 0)).length)
 function selectOrganization(node: any) { selectedOrganizationId.value = node.id; selectedAssigneeId.value = null }
 function chooseAssignee(item: any) {
   selectedAssigneeId.value = item.id
@@ -512,11 +485,8 @@ function openBatchAction(command: string) {
   batchSubtype.value = command === 'ASSIGN' ? '人工指定' : ''
   selectedSyncPlatforms.value = []
   batchPeriodId.value = null
-  batchChangePeriodEnabled.value = true
-  batchChangeCampEnabled.value = false
-  batchCampName.value = ''
-  smsBroadcastTemplate.value = ''
-  smsBroadcastContent.value = ''
+  const now = new Date()
+  smsBroadcastOrderDate.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   selectedOrganizationId.value = null
   selectedAssigneeId.value = null
   assigneeKeyword.value = ''
@@ -529,11 +499,6 @@ function openBatchAction(command: string) {
 function toggleSyncPlatform(platform: string, checked: boolean) {
   if (checked && !selectedSyncPlatforms.value.includes(platform)) selectedSyncPlatforms.value.push(platform)
   if (!checked) selectedSyncPlatforms.value = selectedSyncPlatforms.value.filter(item => item !== platform)
-}
-
-function applySmsTemplate(value: string) {
-  smsBroadcastTemplate.value = value
-  smsBroadcastContent.value = smsTemplateOptions.find(item => item.value === value)?.content || ''
 }
 
 function csvCell(value: unknown) {
@@ -610,7 +575,7 @@ function exportUndecryptedData() {
 async function confirmBatchAction() {
   const scopeCount = selectedRows.value.length || displayedRows.value.length
   if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定' && !selectedAssigneeId.value) return ElMessage.warning('请从组织架构中选择接收线索的员工')
-  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '轮询分配' && !latestCampEligibleCount.value) return ElMessage.warning('最新期次暂无可接待人员，请先维护活码人员名单和分配上限')
+  if (batchAction.value === 'ASSIGN' && batchSubtype.value === '轮询分配' && !latestPeriodEligibleCount.value) return ElMessage.warning('最新期次暂无可接待人员，请先维护活码人员名单和分配上限')
   if (batchAction.value === 'ASSIGN' && batchSubtype.value === '人工指定') {
     await Promise.all(selectedRows.value.map(row => http.post(`/leads/${row.id}/assign`, { employeeId: selectedAssigneeId.value })))
   }
@@ -621,23 +586,19 @@ async function confirmBatchAction() {
     return
   }
   if (batchAction.value === 'CHANGE_PERIOD') {
-    if (!batchChangePeriodEnabled.value && !batchChangeCampEnabled.value) return ElMessage.warning('请至少选择一项需要变更的内容')
-    if (batchChangePeriodEnabled.value && !batchPeriodId.value) return ElMessage.warning('请选择目标期次')
-    if (batchChangeCampEnabled.value && !batchCampName.value.trim()) return ElMessage.warning('请选择目标直播组')
-    if (batchChangePeriodEnabled.value && !applyPeriodChange(selectedRows.value, batchPeriodId.value!)) return ElMessage.warning('所选期次不可用，请重新选择')
-    if (batchChangeCampEnabled.value && !applyCampChange(selectedRows.value, batchCampName.value)) return ElMessage.warning('所选直播组不可用，请重新选择')
+    if (!batchPeriodId.value) return ElMessage.warning('请选择目标期次')
+    if (!applyPeriodChange(selectedRows.value, batchPeriodId.value)) return ElMessage.warning('所选期次不可用，请重新选择')
     if (!isDemoMode) {
-      try { await http.post('/leads/batch-change-period', { leadIds: selectedRows.value.map(row => Number(row.id)), changePeriod: batchChangePeriodEnabled.value, periodId: batchChangePeriodEnabled.value ? Number(batchPeriodId.value) : null, changeLiveGroup: batchChangeCampEnabled.value, liveGroupName: batchChangeCampEnabled.value ? batchCampName.value.trim() : null }); await load() }
-      catch (error: any) { ElMessage.error(error.message || '批量变更期次/直播组失败'); return }
+      try { await http.post('/leads/batch-change-period', { leadIds: selectedRows.value.map(row => Number(row.id)), changePeriod: true, periodId: Number(batchPeriodId.value) }); await load() }
+      catch (error: any) { ElMessage.error(error.message || '批量变更期次失败'); return }
     }
-    ElMessage.success(`已变更 ${selectedRows.value.length} 条线索的${batchChangePeriodEnabled.value ? '所属期次' : ''}${batchChangePeriodEnabled.value && batchChangeCampEnabled.value ? '和' : ''}${batchChangeCampEnabled.value ? '直播组' : ''}，并写入批量任务记录`)
+    ElMessage.success(`已变更 ${selectedRows.value.length} 条线索的所属期次，并写入批量任务记录`)
     batchDialogVisible.value = false
     return
   }
   if (batchAction.value === 'SMS_BROADCAST') {
-    if (!smsBroadcastTemplate.value) return ElMessage.warning('请选择短信模板')
-    if (!smsBroadcastContent.value.trim()) return ElMessage.warning('短信内容不能为空')
-    ElMessage.success(`短信群发任务已创建，共 ${scopeCount} 条线索；发送结果将在任务记录中更新`)
+    if (!smsBroadcastOrderDate.value) return ElMessage.warning('请选择订单日期')
+    ElMessage.success(`短信群发任务已创建，订单日期 ${smsBroadcastOrderDate.value}，共 ${scopeCount} 条线索`)
     batchDialogVisible.value = false
     return
   }
@@ -723,7 +684,6 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesScopeView = canViewAuthorizedScope || row.owner_name === auth.user?.displayName
   const matchesOrganization = !scopeFilters.value.organizationId || organizationScopeIds(scopeFilters.value.organizationId).includes(ownerOrganizationId)
   const matchesOwner = !scopeFilters.value.ownerId || Number(row.owner_id) === Number(scopeFilters.value.ownerId)
-  const matchesCamp = !campFilter.value.trim() || String(row.camp_name || '').toLowerCase().includes(campFilter.value.trim().toLowerCase())
   const matchesPeriod = !periodFilter.value || Number(row.period_id) === Number(periodFilter.value)
   const matchesShop = !shopFilter.value.trim() || String(row.shop_name || '').toLowerCase().includes(shopFilter.value.trim().toLowerCase())
   const selectedDate = String(row[dateField.value] || '').slice(0, 10)
@@ -737,9 +697,8 @@ const displayedRows = computed(() => rows.value.filter(row => {
   const matchesProduct = !productKeyword.value.trim() || String(productValue || '').toLowerCase().includes(productKeyword.value.trim().toLowerCase())
   const rowTagNames = tagsForLead(row).map(tag => tag.name)
   const matchesLeadTags = !selectedLeadTagFilters.value.length || selectedLeadTagFilters.value.some(tag => rowTagNames.includes(tag))
-  return matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesCamp && matchesPeriod && matchesShop && matchesDate && matchesCustomer && matchesOrder && matchesProduct && matchesLeadTags
+  return matchesAssignment && matchesDecrypt && matchesSms && matchesWechatStatus && matchesQuestionnaire && matchesAssessment && matchesMark && matchesGrade && matchesDemandMined && matchesConversion && matchesSource && matchesOrderStatus && matchesEntryMethod && matchesWechat && matchesScopeView && matchesOrganization && matchesOwner && matchesPeriod && matchesShop && matchesDate && matchesCustomer && matchesOrder && matchesProduct && matchesLeadTags
 }))
-const campOptions = computed(() => [...new Set(rows.value.map(row => String(row.camp_name || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN')))
 const currentActionLabels: any = {
   PENDING_ASSIGNMENT: '待分配', PENDING_DECRYPTION: '待解密', PENDING_OUTREACH: '待触达', PENDING_SMS_CLICK: '待客户点击',
   PENDING_WECHAT: '待加微', PENDING_QUESTIONNAIRE: '待填问卷', PENDING_ASSESSMENT: '待测评', NURTURE_COMPLETED: '已完成培育', NO_ACTION: '无需处理'
@@ -832,7 +791,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="orderStatusFilter" placeholder="订单状态（实时第三方回传）" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="wechatFilter" placeholder="加微方式" clearable><el-option label="企业微信" value="WECOM"/><el-option label="个人微信" value="PERSONAL_WECHAT"/></el-select>
-            <el-select v-model="campFilter" placeholder="所属直播组" clearable filterable><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select>
             <el-select v-model="periodFilter" placeholder="所属期次" clearable filterable><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select>
             <el-input v-model="shopFilter" clearable placeholder="店铺名称"/>
             <div class="date-filter"><el-select v-model="dateField" aria-label="日期类型"><el-option v-for="item in dateFieldOptions" :key="item.value" :label="item.label" :value="item.value"/></el-select><el-date-picker v-model="createdRange" type="daterange" value-format="YYYY-MM-DD" start-placeholder="开始日期" end-placeholder="结束日期"/></div>
@@ -896,7 +854,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('wechat_nickname')" prop="wechat_nickname" label="微信昵称" width="130"><template #default="{ row }">{{ textOrDash(row.wechat_nickname) }}</template></el-table-column>
           <el-table-column v-if="showColumn('original_mobile')" label="解密前手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.original_mobile) }}</template></el-table-column>
           <el-table-column v-if="showColumn('decrypted_mobile')" label="解密后手机号" width="128"><template #default="{ row }">{{ maskedMobile(row.decrypted_mobile || row.mobile) }}</template></el-table-column>
-          <el-table-column v-if="showColumn('first_product_name')" prop="first_product_name" label="首单商品名称" width="160"><template #default="{ row }">{{ textOrDash(row.first_product_name) }}</template></el-table-column>
+          <el-table-column v-if="showColumn('first_product_name')" prop="first_product_name" label="商品名称" width="160"><template #default="{ row }">{{ textOrDash(row.first_product_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('product_remark')" prop="product_remark" label="商品名称备注" width="160"><template #default="{ row }">{{ textOrDash(row.product_remark) }}</template></el-table-column>
           <el-table-column v-if="showColumn('shop_name')" prop="shop_name" label="店铺名称" width="160"><template #default="{ row }">{{ textOrDash(row.shop_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('paid_amount')" label="实付金额" width="110"><template #default="{ row }">{{ Number(row.paid_amount || 0) ? `¥${Number(row.paid_amount).toFixed(2)}` : '—' }}</template></el-table-column>
@@ -914,7 +872,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('after_sale_at')" prop="after_sale_at" label="售后时间" width="168"><template #default="{ row }">{{ textOrDash(row.after_sale_at) }}</template></el-table-column>
           <el-table-column v-if="showColumn('entry_method')" label="添加方式" width="120"><template #default="{ row }">{{ entryLabels[row.entry_method] || textOrDash(row.entry_method) }}</template></el-table-column>
           <el-table-column v-if="showColumn('wechat_method')" label="加微方式" width="100"><template #default="{ row }">{{ wechatLabels[row.wechat_method] || textOrDash(row.wechat_method) }}</template></el-table-column>
-          <el-table-column v-if="showColumn('camp_name')" prop="camp_name" label="所属直播组" width="150"><template #default="{ row }">{{ textOrDash(row.camp_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('period_name')" prop="period_name" label="所属期次" width="150"><template #default="{ row }">{{ textOrDash(row.period_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('sms_send_count')" prop="sms_send_count" label="短信发送次数" width="120"/>
           <el-table-column v-if="showColumn('remark')" prop="remark" label="线索备注" width="220" show-overflow-tooltip/>
@@ -971,9 +928,9 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
       <template #footer><el-button type="primary" @click="leadTagDialogVisible = false">完成</el-button></template>
     </el-dialog>
 
-    <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : batchAction === 'SYNC_ORDER' ? '720px' : batchAction === 'SMS_BROADCAST' ? '640px' : '560px'" class="batch-dialog">
+    <el-dialog v-model="batchDialogVisible" :title="batchActionLabels[batchAction]" :width="batchAction === 'ASSIGN' ? '860px' : batchAction === 'SYNC_ORDER' ? '720px' : batchAction === 'SMS_BROADCAST' ? '760px' : '560px'" class="batch-dialog">
       <div class="batch-dialog-content">
-        <el-alert v-if="!['SYNC_ORDER','IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
+        <el-alert v-if="!['SYNC_ORDER','SMS_BROADCAST','IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" :closable="false" type="info" show-icon :title="selectedRows.length ? `将处理已勾选的 ${selectedRows.length} 条线索` : `将处理当前查询结果的 ${displayedRows.length} 条线索`"/>
         <el-form v-if="batchSubtypeOptions.length" label-position="top">
           <el-form-item label="操作类型" required>
             <el-radio-group v-model="batchSubtype" class="batch-subtype-list">
@@ -997,13 +954,12 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-empty v-if="!visibleAssignees.length" :image-size="52" :description="assigneeKeyword ? '未找到匹配的员工，请更换姓名或员工编号' : '当前组织暂无可分配员工'"/>
           </section>
         </div>
-        <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新期次配置的活码人员名单轮询分配" :description="`当前按“${latestCampName}”活码配置执行，共 ${latestCampEligibleCount} 名未达到分配上限的接待人员。`"/>
-        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询上限说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受期次活码人员名单和最大分配人数限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工最大可分配人数在活码配置中维护。达到上限、账号停用或未进入最新期次活码名单的员工，不参与轮询。' }}</span></div>
+        <el-alert v-if="batchAction === 'ASSIGN' && batchSubtype === '轮询分配'" :closable="false" type="info" show-icon title="根据最新期次配置的活码人员名单轮询分配" :description="`当前按“${latestPeriodName}”活码配置执行，共 ${latestPeriodEligibleCount} 名未达到分配上限的接待人员。`"/>
+        <div v-if="batchAction === 'ASSIGN'" class="capacity-note"><b>{{ batchSubtype === '人工指定' ? '人工指定说明' : '轮询权重说明' }}</b><span>{{ batchSubtype === '人工指定' ? '人工指定不受期次活码人员名单和接量权重限制，可选择当前组织范围内任意在职、启用员工。' : '轮询员工的接量权重在活码配置中维护。权重越高，员工获得客户的比例越高；账号停用或未进入最新期次活码名单的员工不参与轮询。' }}</span></div>
         <section v-if="batchAction === 'CHANGE_PERIOD'" class="period-change-panel">
-          <div class="panel-heading"><div><b>选择需要变更的归属</b><span>期次和直播组为两个独立维度，可只变更任意一项，也可同时变更。</span></div></div>
-          <div class="assignment-change-item"><el-checkbox v-model="batchChangePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="batchPeriodId" :disabled="!batchChangePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
-          <div class="assignment-change-item"><el-checkbox v-model="batchChangeCampEnabled"><b>变更所属直播组</b></el-checkbox><el-select v-model="batchCampName" :disabled="!batchChangeCampEnabled" filterable allow-create default-first-option placeholder="搜索或输入目标直播组" style="width:100%"><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select></div>
-          <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志分别记录期次和直播组的变更前后值、操作人、操作时间和影响线索数量。"/>
+          <div class="panel-heading"><div><b>选择目标期次</b><span>仅支持变更所属期次。</span></div></div>
+          <div class="assignment-change-item"><el-select v-model="batchPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
+          <el-alert type="warning" :closable="false" show-icon title="批量变更会写入审计日志" description="日志记录期次变更前后值、操作人、操作时间和影响线索数量。"/>
         </section>
         <section v-if="batchAction === 'SYNC_ORDER'" class="sync-platform-panel">
           <el-alert class="sync-global-alert" type="info" :closable="false" show-icon title="同步订单无需勾选线索" description="该操作按所选平台发起全局订单同步任务，不读取、也不限制于当前列表勾选结果。" />
@@ -1017,12 +973,11 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-alert type="info" :closable="false" show-icon title="平台任务独立留痕" description="任务记录保存平台、执行顺序、进度、成功数、失败数和失败原因；单个平台失败不阻断后续平台，可对失败任务单独重试。" />
         </section>
         <section v-if="batchAction === 'SMS_BROADCAST'" class="sms-broadcast-panel">
-          <div class="panel-heading"><div><b>短信群发设置</b><span>仅向本次已勾选线索发送，发送前校验有效手机号、退订名单和黑名单。</span></div><em>{{ selectedRows.length }} 人</em></div>
-          <el-form label-position="top">
-            <el-form-item label="短信模板" required><el-select :model-value="smsBroadcastTemplate" placeholder="选择已审核且启用的短信模板" style="width:100%" @change="applySmsTemplate"><el-option v-for="item in smsTemplateOptions" :key="item.value" :label="item.label" :value="item.value" /></el-select></el-form-item>
-            <el-form-item label="发送内容预览" required><el-input v-model="smsBroadcastContent" type="textarea" :rows="4" maxlength="300" show-word-limit /></el-form-item>
+          <el-form label-width="112px" class="sms-broadcast-form">
+            <el-form-item label="订单日期" required>
+              <el-date-picker v-model="smsBroadcastOrderDate" type="date" value-format="YYYY-MM-DD" format="YYYY-MM-DD" placeholder="请选择订单日期" :clearable="false" />
+            </el-form-item>
           </el-form>
-          <div class="sms-meta"><span><b>短信签名</b>【合数教育】</span><span><b>发送方式</b>后台异步任务</span><span><b>结果记录</b>成功 / 失败 / 供应商回执</span></div>
         </section>
         <section v-if="batchAction === 'IMPORT_DECRYPTED'" class="decrypt-import-panel">
           <div class="import-rule-head"><div><b>固定模板导入</b><span>只按订单编号匹配已有引流线索，仅覆盖手机号，不创建新线索。</span></div><el-button type="primary" plain @click="downloadDecryptTemplate">下载固定模板</el-button></div>
@@ -1037,18 +992,20 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <div class="export-count"><span>当前列表</span><b>{{ displayedRows.length }}</b><i>条</i><em>→</em><span>可导出的未解密线索订单</span><b>{{ undecryptedExportRows.length }}</b><i>条</i></div>
           <el-alert type="info" :closable="false" show-icon title="导出范围固定为当前列表查询结果" description="系统只导出解密状态为“未解密”且存在订单编号的引流线索；导出文件包含订单编号、来源、店铺、原始脱敏手机号和解密状态。"/>
         </section>
-        <p v-if="!['IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" class="batch-warning">系统将生成可追踪的批量任务，执行进度、成功数量和失败原因会保留在任务记录中。</p>
+        <p v-if="!['SMS_BROADCAST','IMPORT_DECRYPTED','EXPORT_UNDECRYPTED'].includes(batchAction)" class="batch-warning">系统将生成可追踪的批量任务，执行进度、成功数量和失败原因会保留在任务记录中。</p>
       </div>
-      <template #footer><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">{{ batchAction === 'IMPORT_DECRYPTED' ? '确认导入并覆盖' : batchAction === 'EXPORT_UNDECRYPTED' ? '确认导出' : '确认创建任务' }}</el-button></template>
+      <template #footer>
+        <template v-if="batchAction === 'SMS_BROADCAST'"><el-button type="primary" @click="confirmBatchAction">确定</el-button><el-button @click="batchDialogVisible = false">取消</el-button></template>
+        <template v-else><el-button @click="batchDialogVisible = false">取消</el-button><el-button type="primary" @click="confirmBatchAction">{{ batchAction === 'IMPORT_DECRYPTED' ? '确认导入并覆盖' : batchAction === 'EXPORT_UNDECRYPTED' ? '确认导出' : '确认创建任务' }}</el-button></template>
+      </template>
     </el-dialog>
 
-    <el-dialog v-model="periodChangeVisible" title="变更期次 / 直播组" width="620px">
+    <el-dialog v-model="periodChangeVisible" title="变更所属期次" width="620px">
       <div class="period-change-panel">
-        <el-alert v-if="activeLead" type="info" :closable="false" show-icon :title="`当前期次：${activeLead.period_name || '未归属'} · 当前直播组：${activeLead.camp_name || '未归属'}`" description="期次和直播组独立保存；未勾选的维度保持原值不变。"/>
-        <div class="assignment-change-item"><el-checkbox v-model="changePeriodEnabled"><b>变更所属期次</b></el-checkbox><el-select v-model="selectedPeriodId" :disabled="!changePeriodEnabled" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
-        <div class="assignment-change-item"><el-checkbox v-model="changeCampEnabled"><b>变更所属直播组</b></el-checkbox><el-select v-model="selectedCampName" :disabled="!changeCampEnabled" filterable allow-create default-first-option placeholder="搜索或输入目标直播组" style="width:100%"><el-option v-for="item in campOptions" :key="item" :label="item" :value="item"/></el-select></div>
+        <el-alert v-if="activeLead" type="info" :closable="false" show-icon :title="`当前期次：${activeLead.period_name || '未归属'}`" description="选择新的启用期次后保存，变更结果会写入线索旅程。"/>
+        <div class="assignment-change-item"><el-select v-model="selectedPeriodId" filterable placeholder="搜索并选择启用中的期次" style="width:100%"><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select></div>
       </div>
-      <template #footer><el-button @click="periodChangeVisible = false">取消</el-button><el-button type="primary" :disabled="!changePeriodEnabled && !changeCampEnabled" @click="submitPeriodChange">确认变更</el-button></template>
+      <template #footer><el-button @click="periodChangeVisible = false">取消</el-button><el-button type="primary" :disabled="!selectedPeriodId" @click="submitPeriodChange">确认变更</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="mobileChangeVisible" title="变更手机号" width="680px" class="mobile-change-dialog" @closed="mobileValidation = null">
@@ -1107,7 +1064,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
         <el-descriptions-item label="第三方商品ID">{{ textOrDash(activeLead.third_party_product_id) }}</el-descriptions-item>
         <el-descriptions-item label="添加方式">{{ entryLabels[activeLead.entry_method] || textOrDash(activeLead.entry_method) }}</el-descriptions-item>
         <el-descriptions-item label="当前负责人">{{ textOrDash(activeLead.owner_name) }} / {{ textOrDash(activeLead.owner_employee_no) }}</el-descriptions-item>
-        <el-descriptions-item label="所属直播组">{{ textOrDash(activeLead.camp_name) }}</el-descriptions-item>
         <el-descriptions-item label="所属期次">{{ textOrDash(activeLead.period_name) }}</el-descriptions-item>
         <el-descriptions-item label="订单编号">{{ textOrDash(activeLead.order_no) }}</el-descriptions-item>
         <el-descriptions-item label="关联客户">{{ textOrDash(activeLead.customer_name) }} / {{ textOrDash(activeLead.customer_no) }}</el-descriptions-item>
@@ -1287,6 +1243,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 .export-count i { font-style: normal; }
 .export-count em { margin: 0 8px; color: #9db3d1; font-size: 20px; font-style: normal; }
 .sync-platform-panel,.sms-broadcast-panel{display:grid;gap:14px}.panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.panel-heading>div{display:grid;gap:5px}.panel-heading b{color:#24324a}.panel-heading span{color:#718198;font-size:12px}.panel-heading>em{padding:5px 9px;border-radius:999px;background:#edf5ff;color:#2875e6;font-size:11px;font-style:normal;white-space:nowrap}.platform-order-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.platform-order-grid button{display:grid;grid-template-columns:28px 1fr;gap:2px 8px;align-items:center;padding:12px;border:1px solid #dfe8f3;border-radius:9px;background:#fff;color:#24324a;text-align:left;cursor:pointer}.platform-order-grid button:hover{border-color:#9fc2f2;background:#f8fbff}.platform-order-grid button.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.platform-order-grid button i{grid-row:span 2;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:#edf3fb;color:#8192a9;font-style:normal;font-weight:700}.platform-order-grid button.selected i{background:#2875e6;color:#fff}.platform-order-grid button span{font-weight:600}.platform-order-grid button small{color:#8a99ad}.task-order-preview{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:9px;background:#f7f9fc}.task-order-preview>b{color:#475569;font-size:12px;white-space:nowrap}.task-order-preview>span{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.task-order-preview em{padding:4px 7px;border-radius:6px;background:#fff;color:#2875e6;font-size:11px;font-style:normal}.task-order-preview i{color:#a7b6ca;font-style:normal}.task-order-preview .empty-order{color:#94a3b8;font-size:12px}.sms-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.sms-meta span{display:grid;gap:3px;padding:10px;border-radius:8px;background:#f7f9fc;color:#718198;font-size:11px}.sms-meta b{color:#475569;font-size:12px}
+.sms-broadcast-panel{min-height:126px;padding:16px 42px}.sms-broadcast-form{max-width:520px}.sms-broadcast-form :deep(.el-form-item){align-items:center;margin-bottom:0}.sms-broadcast-form :deep(.el-form-item__label){font-size:16px;color:#334155}.sms-broadcast-form :deep(.el-date-editor){width:352px}
 .period-change-panel{display:grid;gap:13px}.assignment-change-item{display:grid;gap:9px;padding:14px;border:1px solid #e1e9f3;border-radius:10px;background:#f8fafc}.assignment-change-item :deep(.el-checkbox__label){color:#334155}.assignment-change-item :deep(.el-select){background:#fff}
 .assignee-picker{display:grid;grid-template-columns:250px 1fr;min-height:286px;border:1px solid #e4ebf4;border-radius:10px;overflow:hidden;background:#fff}.organization-pane{padding:16px;border-right:1px solid #e4ebf4;background:#f8fafc}.employee-pane{padding:16px}.picker-title{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:13px}.picker-title strong{color:#24324a}.picker-title span{color:#94a3b8;font-size:11px}.employee-search{margin-bottom:12px}.employee-search :deep(.el-input__wrapper){border-radius:8px;box-shadow:0 0 0 1px #dbe5f1 inset}.employee-search :deep(.el-input__wrapper.is-focus){box-shadow:0 0 0 1px #2875e6 inset}.organization-pane :deep(.el-tree){background:transparent;color:#53657e}.organization-pane :deep(.el-tree-node__content){height:34px;border-radius:6px}.organization-pane :deep(.el-tree-node__content:hover),.organization-pane :deep(.is-current>.el-tree-node__content){background:#eaf2ff;color:#2875e6}.employee-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;max-height:202px;overflow:auto;padding-right:3px}.employee-card{min-height:86px;padding:11px;border:1px solid #e4ebf4;border-radius:9px;background:#fff;display:grid;grid-template-columns:36px 1fr auto;gap:9px;align-items:start;text-align:left;color:#24324a;cursor:pointer}.employee-card:hover{border-color:#9fc2f2;background:#f8fbff}.employee-card.selected{border-color:#2875e6;background:#eef5ff;box-shadow:0 0 0 1px #2875e6}.employee-card>i{width:36px;height:36px;display:grid;place-items:center;border-radius:9px;background:#eaf2ff;color:#2875e6;font-style:normal;font-weight:700}.employee-card span b,.employee-card span small,.employee-card span em{display:block}.employee-card span small{margin-top:4px;color:#708097;font-size:10px}.employee-card span em{margin-top:8px;color:#5c7190;font-size:10px;font-style:normal}.employee-card u{color:#2875e6;font-size:10px;text-decoration:none}.capacity-note{display:flex;gap:12px;padding:12px 14px;border-radius:8px;background:#fff8ec;color:#79551f;font-size:12px;line-height:1.6}.capacity-note b{white-space:nowrap}.capacity-note span{color:#8b6a36}
 .cell-sub {
