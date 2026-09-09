@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader.vue'
 
 type TagObject = '客户' | '线索' | '订单'
 type TagSource = '系统' | 'BOSS人工' | '企业微信' | '外部SCRM' | '规则' | 'AI'
-type TagStatus = '启用' | '停用' | '已同步'
+type TagStatus = '启用' | '停用'
 type TabKey = 'library' | 'groups'
 
 type TagRow = {
@@ -43,14 +43,20 @@ const tabs: Array<{ key: TabKey; label: string; note: string }> = [
 ]
 
 const seedTags: TagRow[] = [
-  { id: 1, name: '0824数学营', code: 'TAG-SYS-0824', object: '客户', category: '业务归属 / 营期', source: '系统', generation: '营期关系自动生成', coverage: 8642, validity: '历史保留', status: '启用', description: '客户与0824数学营建立归属关系后自动生成。', event: '客户加微识别成功', basis: '活码绑定营期 = 0824数学营', permission: '系统只读', updatedAt: '2026-08-24 02:10' },
-  { id: 2, name: '正式课客户', code: 'TAG-SYS-ORDER-01', object: '客户', category: '客户阶段', source: '系统', generation: '正式课订单支付成功', coverage: 32103, validity: '动态', status: '启用', description: '用于标记已支付正式课程的客户。', event: '订单支付成功', basis: '商品类型 = 正式课', permission: '系统只读', updatedAt: '2026-08-25 01:08' },
-  { id: 4, name: '重点客户', code: 'wx_tag_6519', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧人工打标', coverage: 4328, validity: '跟随企微', status: '已同步', description: '企业微信客户联系标签，同步后在BOSS只读展示。', event: '企微标签变更回调', basis: 'CorpID + external_userid', permission: '外部来源只读', updatedAt: '2026-08-25 08:16' },
-  { id: 8, name: '退款客户', code: 'TAG-SYS-REFUND', object: '客户', category: '订单事实', source: '系统', generation: '客户订单退款成功自动生成', coverage: 987, validity: '永久', status: '启用', description: '客户存在退款完成订单后生成的事实标签。', event: '退款成功', basis: 'refund_status = SUCCESS', permission: '系统只读', updatedAt: '2026-08-25 05:30' }
+  { id: 1, name: '0824数学营', code: 'TAG-SYS-PERIOD-000824', object: '客户', category: '业务归属 / 营期', source: '系统', generation: '营期关系自动生成', coverage: 8642, validity: '历史保留', status: '启用', description: '客户与0824数学营建立归属关系后自动生成。', event: '客户加微识别成功', basis: '活码绑定营期 = 0824数学营', permission: '系统只读', updatedAt: '2026-08-24 02:10' },
+  { id: 2, name: '正式课客户', code: 'TAG-SYS-ORDER-000001', object: '客户', category: '客户阶段', source: '系统', generation: '正式课订单支付成功', coverage: 32103, validity: '动态', status: '启用', description: '用于标记已支付正式课程的客户。', event: '订单支付成功', basis: '商品类型 = 正式课', permission: '系统只读', updatedAt: '2026-08-25 01:08' },
+  { id: 4, name: '重点客户', code: 'TAG-WX-WX001-6519', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧人工打标', coverage: 4328, validity: '跟随企微', status: '启用', description: '企业微信客户联系标签，同步后在BOSS只读展示。', event: '企微标签变更回调', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: '2026-08-25 08:16' },
+  { id: 8, name: '退款客户', code: 'TAG-SYS-REFUND-000001', object: '客户', category: '订单事实', source: '系统', generation: '客户订单退款成功自动生成', coverage: 987, validity: '永久', status: '启用', description: '客户存在退款完成订单后生成的事实标签。', event: '退款成功', basis: 'refund_status = SUCCESS', permission: '系统只读', updatedAt: '2026-08-25 05:30' }
 ]
 
 const saved = localStorage.getItem(STORAGE_KEY)
-const tags = ref<TagRow[]>((saved ? JSON.parse(saved) : seedTags).filter((item: TagRow) => ['系统', '企业微信'].includes(item.source)))
+const tags = ref<TagRow[]>((saved ? JSON.parse(saved) : seedTags)
+  .filter((item: TagRow) => ['系统', '企业微信'].includes(item.source))
+  .map((item: TagRow) => ({
+    ...item,
+    code: item.source === '企业微信' && item.code.startsWith('wx_tag_') ? `TAG-WX-WX001-${item.code.slice(7)}` : item.code,
+    status: item.status === '停用' ? '停用' : '启用'
+  } as TagRow)))
 const allowedSources: TagSource[] = ['系统', '企业微信']
 const activeTab = ref<TabKey>('library')
 const query = reactive({ keyword: '', source: '' as '' | TagSource, status: '' as '' | TagStatus })
@@ -111,15 +117,15 @@ function openCoverage(tag: TagRow) { activeTag.value = tag; coverageVisible.valu
 function syncWecomTags() {
   const now = new Date().toLocaleString('zh-CN', { hour12: false })
   const candidates: TagRow[] = [
-    { id: Date.now(), name: '企微重点跟进', code: 'wx_tag_8826', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧创建后同步', coverage: 1268, validity: '跟随企微', status: '已同步', description: '由企业微信客户联系标签同步进入。', event: '手动同步企微标签', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: now },
-    { id: Date.now() + 1, name: '企微已加群', code: 'wx_tag_9103', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧创建后同步', coverage: 856, validity: '跟随企微', status: '已同步', description: '由企业微信客户联系标签同步进入。', event: '手动同步企微标签', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: now }
+    { id: Date.now(), name: '企微重点跟进', code: 'TAG-WX-WX001-8826', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧创建后同步', coverage: 1268, validity: '跟随企微', status: '启用', description: '由企业微信客户联系标签同步进入。', event: '手动同步企微标签', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: now },
+    { id: Date.now() + 1, name: '企微已加群', code: 'TAG-WX-WX001-9103', object: '客户', category: '企微客户标签', source: '企业微信', generation: '企微侧创建后同步', coverage: 856, validity: '跟随企微', status: '启用', description: '由企业微信客户联系标签同步进入。', event: '手动同步企微标签', basis: 'CorpID + external_tag_id', permission: '外部来源只读', updatedAt: now }
   ]
   const additions = candidates.filter(candidate => !tags.value.some(item => item.code === candidate.code || item.name === candidate.name))
   if (!additions.length) return ElMessage.info('企业微信标签已是最新')
   tags.value.unshift(...additions)
   ElMessage.success(`已同步 ${additions.length} 个企业微信标签`)
 }
-const groupTagOptions = computed(() => tags.value.map(item => item.name))
+const groupTagOptions = computed(() => tags.value.filter(item => item.status === '启用').map(item => item.name))
 function openGroupEditor(group?: typeof groups.value[number]) {
   groupEditingId.value = group?.id || null
   Object.assign(groupForm, group ? { name: group.name, tags: [...group.tags], status: group.status as '启用' | '停用' } : { name: '', tags: [], status: '启用' })
@@ -161,7 +167,7 @@ function saveGroup() {
         <div class="filters">
           <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索标签名称 / ID / 来源系统" />
           <el-select v-model="query.source" clearable placeholder="全部来源"><el-option v-for="item in ['系统','企业微信']" :key="item" :label="item" :value="item" /></el-select>
-          <el-select v-model="query.status" clearable placeholder="全部状态"><el-option v-for="item in ['启用','停用','已同步']" :key="item" :label="item" :value="item" /></el-select>
+          <el-select v-model="query.status" clearable placeholder="全部状态"><el-option v-for="item in ['启用','停用']" :key="item" :label="item" :value="item" /></el-select>
           <el-button :icon="RefreshRight" circle title="重置筛选" @click="resetQuery" />
         </div>
       </header>
