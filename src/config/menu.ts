@@ -45,6 +45,12 @@ export const v1Menus: MenuGroup[] = [
     ]
   },
   {
+    name: '个人中心', code: 'PERSONAL', children: [
+      { name: '用户信息', path: '/personal/profile', description: '查看并维护当前登录用户的个人资料、登录密码和多个外部账号绑定。', features: ['个人资料', '基本设置', '密码设置', '外部绑定', '多个企业微信身份'] },
+      { name: '我的下载', path: '/personal/downloads', description: '按服务人、部门、申请时间和状态查询导出任务，查看申请归属、生成进度及下载记录。', features: ['服务人筛选', '部门筛选', '申请人', '所属部门', '申请时间快捷筛选', '生成状态', '刷新状态', '下载文件', '下载记录'] }
+    ]
+  },
+  {
     name: '业务配置', code: 'BUSINESS_CONFIG', children: [
       { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
       { name: '短信管理', description: '复用历史短信服务，统一管理短信签名、模板、发送规则和发送结果。', features: ['签名管理', '短信模板', '短信规则', '发送结果'], children: [
@@ -66,7 +72,7 @@ export const v1Menus: MenuGroup[] = [
   {
     name: '系统管理', code: 'SYSTEM', children: [
       { name: '组织管理', path: '/system/organizations', description: '管理公司、部门和小组三级组织树。', features: ['查询', '新增下级', '编辑', '移动', '启停', '删除拦截', '导出'] },
-      { name: '员工管理', path: '/system/employees', description: '统一维护员工身份、组织、权限和企业微信绑定，账号与企微身份一对一，同步过程全程可追踪。', features: ['新增员工并开通企微', '账号企微唯一绑定', '换绑历史', '同步记录', '同步至企微', '每日差异扫描', '业务角色绑定', '数据岗位绑定', '启停'] },
+      { name: '员工管理', path: '/system/employees', description: '统一维护员工身份、组织、权限和企业微信绑定，账号可关联多个企微身份且外部身份跨账号唯一，同步过程全程可追踪。', features: ['新增员工并开通企微', '账号多企微绑定', '外部身份唯一校验', '绑定历史', '同步记录', '同步至企微', '每日差异扫描', '业务角色绑定', '数据岗位绑定', '启停'] },
       { name: '岗位管理', path: '/system/positions', description: '配置本人、本部门、本部门及下级部门、自定义组织及当前公司数据范围。', features: ['岗位列表', '数据范围', '指定组织', '员工关联', '影响预览', '启停'] },
       { name: '角色管理', path: '/system/roles', description: '按运营、客服、规划师等业务角色配置菜单、操作和字段权限。', features: ['角色列表', '菜单授权', '操作授权', '字段脱敏', '关联员工', '影响预览'] },
       { name: '菜单管理', path: '/system/menus', description: '配置合数BOSS动态菜单、路由和操作权限。', features: ['目录', '页面', '操作权限', '路由', '排序', '状态'] },

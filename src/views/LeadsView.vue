@@ -98,14 +98,14 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','period_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','owner_department','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
   { value: 'original_mobile', label: '解密前手机号' }, { value: 'decrypted_mobile', label: '解密后手机号' }, { value: 'lead_source', label: '线索来源', mandatory: true },
   { value: 'third_party_product_id', label: '第三方商品ID' }, { value: 'ip_category', label: 'IP大类' }, { value: 'lead_grade', label: '线索等级' }, { value: 'lead_tags', label: '线索标签' }, { value: 'demand_mined', label: '是否挖需' },
   { value: 'first_product_name', label: '商品名称' }, { value: 'product_remark', label: '商品名称备注' }, { value: 'shop_name', label: '店铺名称' },
-  { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' },
+  { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' }, { value: 'owner_department', label: '负责人部门' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
   { value: 'wechat_status', label: '加微状态' }, { value: 'questionnaire_status', label: '问卷状态' }, { value: 'assessment_status', label: '测评状态' },
   { value: 'lead_mark', label: '线索标记' }, { value: 'conversion_status', label: '转化状态' }, { value: 'follow_status', label: '跟进状态' },
@@ -116,7 +116,7 @@ const columnOptions = [
   { value: 'period_name', label: '所属期次' }, { value: 'sms_send_count', label: '短信发送次数' }, { value: 'remark', label: '线索备注' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
-const columnStorageKey = 'heshu_boss_lead_table_columns_v10'
+const columnStorageKey = 'heshu_boss_lead_table_columns_v11'
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
@@ -469,6 +469,14 @@ function organizationScopeIds(id: number | null) {
   for (let index = 0; index < ids.length; index++) organizations.value.filter(item => item.parent_id === ids[index]).forEach(item => ids.push(item.id))
   return ids
 }
+function ownerDepartmentName(row: any) {
+  const employee = assignees.value.find(item => Number(item.id) === Number(row.owner_id))
+  let organization = organizations.value.find(item => Number(item.id) === Number(employee?.organization_id || row.owner_organization_id))
+  while (organization && organization.type !== 'DEPARTMENT') {
+    organization = organizations.value.find(item => Number(item.id) === Number(organization.parent_id))
+  }
+  return organization?.name || row.owner_department_name || '—'
+}
 const visibleAssignees = computed(() => {
   const scope = organizationScopeIds(selectedOrganizationId.value)
   const query = assigneeKeyword.value.trim().toLowerCase()
@@ -661,14 +669,9 @@ function normalizeLeadState(source: any) {
   const row = { ...source }
   const legacyOrderStatusMap: Record<string, string> = {
     NO_ORDER: '',
-    PENDING_PAY: 'UNPAID',
-    PREPARING: 'PAID',
-    SHIPPED: 'PAID',
-    AFTER_SALE_PROCESSING: 'REFUNDING',
-    REFUNDED_BEFORE_SHIP: 'REFUNDED',
-    REFUNDED_AFTER_SHIP: 'REFUNDED',
-    REFUNDED_AFTER_RECEIPT: 'REFUNDED',
-    PARTIAL_REFUNDED: 'REFUNDED'
+    UNPAID: 'PENDING_PAY',
+    REFUNDING: 'AFTER_SALE_PROCESSING',
+    REFUNDED: 'REFUNDED_BEFORE_SHIP'
   }
   row.order_status = legacyOrderStatusMap[row.order_status] ?? row.order_status
   const fallbackPeriod = periodOptions.value[0]
@@ -753,12 +756,17 @@ const gradeLabels: any = { S: 'S级', A: 'A级', B: 'B级', C: 'C级', UNRATED: 
 const gradeTagTypes: any = { S: 'danger', A: 'warning', B: 'success', C: 'info', UNRATED: 'info' }
 const gradeSourceLabels: any = { QUESTIONNAIRE_AUTO: '问卷自动评级', MANUAL: '人工调整', LEAD_INHERITED: '线索继承' }
 const orderLabels: any = {
-  UNPAID: '未支付',
+  PENDING_PAY: '待支付',
   PAID: '已支付',
+  PREPARING: '备货中',
+  SHIPPED: '已发货',
   CANCELLED: '已取消',
   COMPLETED: '已完成',
-  REFUNDING: '退款中',
-  REFUNDED: '已退款'
+  AFTER_SALE_PROCESSING: '退款中',
+  REFUNDED_BEFORE_SHIP: '发货前退款完结',
+  REFUNDED_AFTER_SHIP: '发货后退款完结',
+  REFUNDED_AFTER_RECEIPT: '收货后退款完结',
+  PARTIAL_REFUNDED: '部分退款'
 }
 const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', FOLLOWED: '已跟进' }
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
@@ -819,7 +827,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
             <el-select v-model="leadGradeFilter" placeholder="线索等级" clearable><el-option v-for="(label, value) in gradeLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-if="sourceType === 'DRAINAGE'" v-model="demandMinedFilter" placeholder="是否挖需" clearable><el-option label="是" value="YES"/><el-option label="否" value="NO"/></el-select>
             <el-select v-model="sourceFilter" placeholder="线索来源" clearable filterable><el-option v-for="item in leadSourceOptions" :key="item" :label="item" :value="item"/></el-select>
-            <el-select v-model="orderStatusFilter" placeholder="订单状态（实时第三方回传）" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
+            <el-select v-model="orderStatusFilter" placeholder="订单状态" clearable><el-option v-for="(label, value) in orderLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="entryMethodFilter" placeholder="添加方式" clearable><el-option v-for="(label, value) in entryLabels" :key="value" :label="label" :value="value"/></el-select>
             <el-select v-model="wechatFilter" placeholder="加微方式" clearable><el-option label="企业微信" value="WECOM"/><el-option label="个人微信" value="PERSONAL_WECHAT"/></el-select>
             <el-select v-model="periodFilter" placeholder="所属期次" clearable filterable><el-option v-for="item in periodOptions" :key="item.id" :label="item.name" :value="item.id"/></el-select>
@@ -892,6 +900,7 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('shop_name')" prop="shop_name" label="店铺名称" width="160"><template #default="{ row }">{{ textOrDash(row.shop_name) }}</template></el-table-column>
           <el-table-column v-if="showColumn('paid_amount')" label="实付金额" width="110"><template #default="{ row }">{{ Number(row.paid_amount || 0) ? `¥${Number(row.paid_amount).toFixed(2)}` : '—' }}</template></el-table-column>
           <el-table-column v-if="showColumn('owner')" label="当前线索负责人/员工编号" width="190"><template #default="{ row }"><strong>{{ textOrDash(row.owner_name) }}</strong><small class="cell-sub">{{ textOrDash(row.owner_employee_no) }}</small></template></el-table-column>
+          <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('owner_department')" label="负责人部门" width="150"><template #default="{ row }">{{ ownerDepartmentName(row) }}</template></el-table-column>
           <el-table-column v-if="showColumn('follow_status')" label="跟进状态" width="100"><template #default="{ row }">{{ followLabels[row.follow_status] || textOrDash(row.follow_status) }}</template></el-table-column>
           <el-table-column v-if="showColumn('first_follow_at')" prop="first_follow_at" label="首次跟进时间" width="168"><template #default="{ row }">{{ textOrDash(row.first_follow_at) }}</template></el-table-column>
           <el-table-column v-if="showColumn('created_at')" prop="created_at" label="线索创建时间" width="168"/>

@@ -19,6 +19,8 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/customers/tags': () => import('../views/TagManagementView.vue'),
   '/delivery/periods': () => import('../views/PeriodManagementView.vue'),
   '/questionnaires/list': () => import('../views/QuestionnaireManagementView.vue'),
+  '/personal/profile': () => import('../views/ProfileView.vue'),
+  '/personal/downloads': () => import('../views/MyDownloadsView.vue'),
   '/system/organizations': () => import('../views/SystemView.vue'),
   '/system/employees': () => import('../views/EmployeeManagementView.vue'),
   '/system/positions': () => import('../views/PositionManagementView.vue'),
@@ -49,11 +51,7 @@ const menuRoutes: RouteRecordRaw[] = menuLeaves.map(item => ({
 menuRoutes.push({ path: 'leads/channel-analysis', redirect: '/leads/channels?tab=analysis' })
 menuRoutes.push({ path: 'dashboard', redirect: '/leads/analytics' })
 
-menuRoutes.push({
-  path: 'profile',
-  component: () => import('../views/ProfileView.vue'),
-  meta: { title: '个人中心', groupName: '个人中心', description: '维护个人资料、登录密码和社交账号绑定。' }
-})
+menuRoutes.push({ path: 'profile', redirect: '/personal/profile' })
 
 const router = createRouter({
   history: location.protocol === 'file:' || import.meta.env.VITE_SHARE_MODE === 'true'

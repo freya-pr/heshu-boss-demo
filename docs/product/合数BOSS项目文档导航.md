@@ -39,6 +39,7 @@
 - [合数BOSS完整功能菜单规划](./合数BOSS完整功能菜单规划.md)
 - [合数BOSS V1.0 功能菜单](./合数BOSS V1.0功能菜单.md)
 - [合数BOSS V1.0系统管理与业务配置需求文档](./合数BOSS V1.0系统管理与业务配置需求文档.md)
+- [合数BOSS V1.0客户中心—标签管理需求文档](./合数BOSS V1.0客户中心标签管理需求文档.md)
 - [架构与开发约束](../03-architecture/ARCHITECTURE.md)
 - [迭代验收与回滚](../05-testing/ACCEPTANCE_ROLLBACK.md)
 

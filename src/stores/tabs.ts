@@ -9,7 +9,7 @@ export interface WorkTab {
 }
 
 const HOME_TAB: WorkTab = { path: '/leads/analytics', title: '线索概览', groupName: '首页', closable: false }
-const HIDDEN_PAGE_PATHS = new Set(['/profile'])
+const HIDDEN_PAGE_PATHS = new Set<string>()
 
 function restore(): WorkTab[] {
   try {

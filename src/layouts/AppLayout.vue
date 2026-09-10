@@ -6,7 +6,7 @@ import {
   Connection, DataLine, Document, DocumentChecked, House, Key, Link,
   Location, Menu as MenuIcon, Message, Notebook, OfficeBuilding,
   Platform, Postcard, PriceTag, Promotion, Rank, Refresh, School, Search, Service,
-  SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools,
+  SetUp, Shop, ShoppingBag, Setting, Switch, Tickets, Tools, Download,
   User, Warning
 } from '@element-plus/icons-vue'
 import { useAuthStore, type MenuItem } from '../stores/auth'
@@ -30,6 +30,7 @@ const groupIcons: Record<string, Component> = {
   CUSTOMER: User,
   DELIVERY: School,
   QUESTIONNAIRE: DocumentChecked,
+  PERSONAL: User,
   BUSINESS_CONFIG: Tools,
   SYSTEM: Setting
 }
@@ -54,6 +55,8 @@ const leafIcons: Record<string, Component> = {
   '/customers/grades': Rank,
   '/delivery/periods': Calendar,
   '/questionnaires/list': Notebook,
+  '/personal/profile': Postcard,
+  '/personal/downloads': Download,
   '/system/organizations': OfficeBuilding,
   '/system/employees': Avatar,
   '/system/positions': Postcard,
@@ -81,7 +84,7 @@ function handleGroupClick(group: MenuItem) {
   if (isDirectGroup(group)) openPage(group.children?.[0] || group)
   else toggleGroup(group)
 }
-function goProfile() { profileOpen.value = false; router.push('/profile') }
+function goProfile() { profileOpen.value = false; router.push('/personal/profile') }
 function logout() { profileOpen.value = false; auth.logout() }
 function closeTab(path: string) {
   const wasActive = route.path === path
