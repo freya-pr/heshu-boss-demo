@@ -17,6 +17,14 @@ type DownloadRow = {
   downloads: number
   status: DownloadStatus
 }
+type DownloadRecord = {
+  id: number
+  taskId: number
+  downloadedAt: string
+  fileName: string
+  downloader: string
+  status: '下载成功' | '下载失败'
+}
 
 const auth = useAuthStore()
 const keyword = ref('')
@@ -35,6 +43,11 @@ const rows = ref<DownloadRow[]>([
   { id: 4, requester: '王老师', department: '课程顾问一部', fileName: '活码接量情况_2026-09-09.xlsx', module: '线索中心', requestedAt: '2026-09-09 15:02:11', generatedAt: '', size: '—', downloads: 0, status: 'FAILED' },
   { id: 5, requester: '陈老师', department: '客户运营中心', fileName: '问卷答卷明细_2026-08-30.xlsx', module: '问卷管理', requestedAt: '2026-08-30 11:36:27', generatedAt: '2026-08-30 11:36:52', size: '1.8 MB', downloads: 1, status: 'GENERATED' }
 ])
+const downloadRecords = ref<DownloadRecord[]>([
+  { id: 1, taskId: 3, downloadedAt: '2026-09-10 09:12:36', fileName: '合数BOSS_渠道分析_2026-09-09.csv', downloader: '张峻阁', status: '下载成功' },
+  { id: 2, taskId: 3, downloadedAt: '2026-09-10 09:08:11', fileName: '合数BOSS_渠道分析_2026-09-09.csv', downloader: '张峻阁', status: '下载成功' },
+  { id: 3, taskId: 5, downloadedAt: '2026-08-30 11:42:08', fileName: '问卷答卷明细_2026-08-30.xlsx', downloader: '陈老师', status: '下载成功' }
+])
 
 const people = ['林校长', '张峻阁', '王老师', '陈老师']
 const departments = ['集团管理中心', '博商深圳 / 深圳三部', '课程顾问一部', '客户运营中心']
@@ -51,6 +64,7 @@ const visibleRows = computed(() => rows.value.filter(row => {
   const matchesDate = requestedRange.value.length !== 2 || (date >= requestedRange.value[0] && date <= requestedRange.value[1])
   return matchesKeyword && matchesDate && (!servicePerson.value || row.requester === servicePerson.value) && (!department.value || row.department === department.value) && (!status.value || row.status === status.value)
 }))
+const currentDownloadRecords = computed(() => currentRecord.value ? downloadRecords.value.filter(item => item.taskId === currentRecord.value?.id) : [])
 
 function reset() {
   keyword.value = ''
@@ -106,6 +120,7 @@ function downloadFile(row: DownloadRow) {
   link.click()
   URL.revokeObjectURL(link.href)
   row.downloads += 1
+  downloadRecords.value.unshift({ id: Date.now(), taskId: row.id, downloadedAt: '2026-09-10 10:36:18', fileName: row.fileName, downloader: auth.user?.displayName || row.requester, status: '下载成功' })
   ElMessage.success('文件下载已开始（原型演示）')
 }
 </script>
@@ -146,19 +161,19 @@ function downloadFile(row: DownloadRow) {
       <div class="downloads-footer"><span>共 {{ visibleRows.length }} 条</span><el-pagination background layout="prev, pager, next" :total="visibleRows.length" :page-size="10"/></div>
     </section>
 
-    <el-dialog v-model="recordVisible" title="下载记录" width="560px">
-      <el-descriptions v-if="currentRecord" :column="1" border>
-        <el-descriptions-item label="申请人">{{ currentRecord.requester }}</el-descriptions-item>
-        <el-descriptions-item label="所属部门">{{ currentRecord.department }}</el-descriptions-item>
-        <el-descriptions-item label="文件名称">{{ currentRecord.fileName }}</el-descriptions-item>
-        <el-descriptions-item label="申请时间">{{ currentRecord.requestedAt }}</el-descriptions-item>
-        <el-descriptions-item label="生成时间">{{ currentRecord.generatedAt || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="下载次数">{{ currentRecord.downloads }}</el-descriptions-item>
-      </el-descriptions>
+    <el-dialog v-model="recordVisible" title="下载记录" width="920px" class="download-record-dialog">
+      <el-table :data="currentDownloadRecords" max-height="480">
+        <el-table-column prop="downloadedAt" label="下载时间" width="190" sortable/>
+        <el-table-column prop="fileName" label="文件内容名称" min-width="330" sortable show-overflow-tooltip/>
+        <el-table-column prop="downloader" label="下载人姓名" width="160" sortable/>
+        <el-table-column label="状态" width="130" sortable><template #default="{ row }"><el-tag :type="row.status === '下载成功' ? 'success' : 'danger'">{{ row.status }}</el-tag></template></el-table-column>
+        <template #empty><el-empty description="暂无下载记录" :image-size="72"/></template>
+      </el-table>
     </el-dialog>
   </section>
 </template>
 
 <style scoped>
 .downloads-page{max-width:1600px;margin:0 auto}.downloads-heading{margin-bottom:18px}.downloads-heading span{color:var(--brand);font-size:11px;letter-spacing:.16em;font-weight:700}.downloads-heading h1{margin:6px 0 7px;font-size:28px}.downloads-heading p{margin:0;color:var(--secondary)}.downloads-surface{overflow:hidden}.scope-filter{display:grid;grid-template-columns:190px 220px minmax(280px,1fr);gap:10px;padding:18px 18px 12px}.scope-filter .el-input{justify-self:end;max-width:460px}.downloads-filter{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:4px 18px 18px;border-bottom:1px solid var(--line)}.downloads-filter>b{margin-right:8px;font-size:14px}.downloads-filter>button{padding:7px 9px;border:0;border-radius:5px;background:transparent;color:#63758d;cursor:pointer}.downloads-filter>button:hover,.downloads-filter>button.active{background:var(--brand);color:#fff}.downloads-filter .el-date-editor{width:285px;margin-left:8px}.downloads-filter .el-select{width:132px}.download-notice{display:flex;gap:10px;align-items:center;margin:12px 18px;padding:12px 14px;border-radius:8px;background:#fff5f4;color:#e43e36}.download-notice>.el-icon{font-size:20px}.download-notice div{display:flex;gap:6px;align-items:center;flex:1}.download-notice span{font-size:13px}.download-file{display:flex;align-items:center;gap:10px}.download-file>i{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:#edf4ff;color:var(--brand);font-style:normal}.download-file span{min-width:0;display:flex;flex-direction:column;gap:3px}.download-file b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.download-file small{color:var(--secondary)}.downloads-footer{display:flex;align-items:center;justify-content:flex-end;gap:16px;padding:16px 18px;color:var(--secondary);font-size:13px}@media(max-width:1100px){.scope-filter{grid-template-columns:1fr 1fr}.scope-filter .el-input{grid-column:1/-1;justify-self:stretch;max-width:none}.downloads-filter .el-date-editor{width:100%;margin-left:0}.download-notice div{align-items:flex-start;flex-direction:column;gap:3px}}
+:global(.download-record-dialog .el-dialog__body){padding:18px 24px 28px}:global(.download-record-dialog .el-table th.el-table__cell){height:52px;background:#f7f9fc;color:#303b4c}
 </style>
