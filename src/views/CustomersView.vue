@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Setting, View } from '@element-plus/icons-vue'
+import { useRoute } from 'vue-router'
 import http from '../api/http'
 import PageHeader from '../components/PageHeader.vue'
 import StatePanel from '../components/StatePanel.vue'
@@ -10,6 +11,7 @@ import { useAuthStore } from '../stores/auth'
 
 type AddMethod = 'LINK' | 'BUSINESS_CARD' | 'QR_CODE'
 const auth = useAuthStore()
+const route = useRoute()
 const rows = ref<any[]>([]), organizations = ref<any[]>([]), employees = ref<any[]>([])
 const loading = ref(false), error = ref(''), grade = ref(''), lifecycle = ref(''), keyword = ref('')
 const addMethod = ref<AddMethod | ''>('')
@@ -30,8 +32,8 @@ const customerStatusLabels: Record<string, string> = { ACTIVE: '正常', PENDING
 const addMethodLabels: Record<AddMethod, string> = { LINK: '通过链接添加', BUSINESS_CARD: '名片', QR_CODE: '扫描二维码' }
 const lifecycleLabels: Record<string, string> = { LEAD: '线索客户', INTENT: '意向客户', DEAL: '成交客户' }
 type CustomerTag={name:string;source:'系统'|'企业微信'}
-const customerTags=ref<Record<number,CustomerTag[]>>({1:[{name:'重点客户',source:'企业微信'},{name:'暑期三期',source:'企业微信'},{name:'高意向',source:'系统'}],2:[{name:'有赞新客',source:'企业微信'},{name:'待跟进',source:'系统'}],3:[{name:'已成交',source:'系统'},{name:'VIP客户',source:'系统'},{name:'抖音新客',source:'企业微信'},{name:'复购潜力',source:'系统'}]})
-const tagCatalog=computed(()=>{const base:CustomerTag[]=[{name:'重点客户',source:'企业微信'},{name:'暑期三期',source:'企业微信'},{name:'有赞新客',source:'企业微信'},{name:'抖音新客',source:'企业微信'},{name:'待跟进',source:'系统'},{name:'VIP客户',source:'系统'},{name:'高意向',source:'系统'},{name:'已成交',source:'系统'},{name:'复购潜力',source:'系统'}];return base.filter(tag=>!tagSearch.value||tag.name.includes(tagSearch.value))})
+const customerTags=ref<Record<number,CustomerTag[]>>({1:[{name:'重点客户',source:'企业微信'},{name:'高购买意向',source:'企业微信'},{name:'试听已预约',source:'企业微信'}],2:[{name:'正式课已支付',source:'企业微信'},{name:'价格敏感',source:'企业微信'}],3:[{name:'续费待跟进',source:'企业微信'},{name:'重点客户',source:'企业微信'}]})
+const tagCatalog=computed(()=>{const base:CustomerTag[]=[{name:'重点客户',source:'企业微信'},{name:'高购买意向',source:'企业微信'},{name:'试听已预约',source:'企业微信'},{name:'正式课已支付',source:'企业微信'},{name:'价格敏感',source:'企业微信'},{name:'续费待跟进',source:'企业微信'}];return base.filter(tag=>!tagSearch.value||tag.name.includes(tagSearch.value))})
 const tagsBySource=computed(()=>['系统','企业微信'].map(source=>({source,tags:tagCatalog.value.filter(tag=>tag.source===source)})).filter(group=>group.tags.length))
 const customerProfile=computed(()=>({
   nickname: activeCustomer.value?.wechat_nickname || ['Kiyomi😊','糖糖妈妈','星辰爸'][Number(activeCustomer.value?.id || 1) % 3],
@@ -114,17 +116,12 @@ function runCustomerSync(){customerSyncing.value=true;customerSyncFinished.value
 function resetFilters(){grade.value='';lifecycle.value='';addMethod.value='';keyword.value='';selectedTagFilters.value=[];scopeFilters.value={viewScope:auth.user?.role==='ADMIN'?'AUTHORIZED':'SELF',organizationId:null,ownerId:null}}
 function maskMobile(value?:string){return value?.replace(/(\d{3})\d{4}(\d{4})/,'$1****$2')||'—'}
 watch(visibleColumns,value=>localStorage.setItem(columnStorageKey,JSON.stringify([...new Set([...value,...mandatoryColumns])])),{deep:true})
-onMounted(load)
+onMounted(()=>{ const tagName=typeof route.query.tagName==='string'?route.query.tagName.trim():''; if(tagName) selectedTagFilters.value=[tagName]; load() })
 </script>
 
 <template>
   <section class="page customer-list-page">
     <PageHeader eyebrow="CUSTOMER MASTER · UNIQUE PROFILE" title="客户列表" description="以家长客户为唯一经营主体，统一查看身份、添加方式、等级、归属和完整业务档案。"><el-button type="primary" @click="dialog=true">新建客户</el-button></PageHeader>
-    <div class="customer-definition surface">
-      <div><span>唯一身份</span><b>一个主手机号 / 一个 UnionID</b><small>任一有效即可建档，均为单值身份</small></div><i></i>
-      <div><span>客户来源</span><b>客户从哪里来</b><small>渠道、店铺、商品与IP归因</small></div><i></i>
-      <div class="accent"><span>添加方式</span><b>客户如何进入</b><small>链接 / 名片 / 二维码</small></div>
-    </div>
     <div class="surface table-shell">
       <div class="customer-search-panel">
         <BusinessScopeFilter v-model="scopeFilters" :organizations="organizations" :employees="employees" owner-label="客户负责人" :permission-label="permissionLabel" :role="auth.user?.role" />
@@ -202,12 +199,11 @@ onMounted(load)
 </template>
 
 <style scoped>
-.customer-definition{display:flex;align-items:center;margin-bottom:16px;padding:16px 22px}.customer-definition>div{min-width:210px}.customer-definition span,.customer-definition small{display:block;color:var(--muted);font-size:12px}.customer-definition b{display:block;margin:4px 0;color:var(--text);font-size:15px}.customer-definition i{width:36px;height:1px;margin:0 18px;background:var(--line)}.customer-definition .accent b{color:var(--primary)}
 .customer-search-panel{padding:16px;border-bottom:1px solid var(--line)}.customer-basic-filters{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}.customer-basic-filters .el-input{width:300px}.customer-basic-filters .el-select{width:142px}.customer-basic-filters>span{margin-left:auto;color:var(--muted);font-size:12px}.cell-sub{display:block;margin-top:3px;color:var(--muted);font-size:11px;font-weight:400}.method-pill{display:inline-flex;padding:5px 9px;border-radius:8px;background:#edf5ff;color:#2874de;font-size:12px}.customer-link{padding:0;border:0;background:none;color:var(--primary);font-weight:700;cursor:pointer}.grade-editor-form{margin-top:18px}.dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-help{display:block;margin-top:7px;color:var(--muted)}
 .customer-table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}.customer-table-toolbar>span{color:var(--text);font-weight:700}.customer-table-actions{display:flex;align-items:center;gap:10px}.customer-table-actions>small{color:var(--muted);font-size:11px}.column-setting-head{display:flex;align-items:center;justify-content:space-between}.column-setting-tip{margin:8px 0 14px;color:var(--muted);font-size:12px;line-height:1.6}.column-setting-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px}
 .customer-sync-modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}.customer-sync-modes button{padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;cursor:pointer}.customer-sync-modes button.active{border-color:var(--primary);background:#f3f8ff;box-shadow:0 0 0 2px rgba(45,121,235,.1)}.customer-sync-modes b,.customer-sync-modes span{display:block}.customer-sync-modes span{margin-top:7px;color:var(--muted);font-size:12px;line-height:1.6}.customer-sync-flow{display:flex;align-items:center;gap:8px;padding:14px;border-radius:10px;background:#f7f9fc;overflow:auto}.customer-sync-flow>b{flex:none}.customer-sync-flow span{flex:none;padding:6px 9px;border-radius:7px;background:#fff;color:var(--secondary);font-size:11px}.customer-sync-flow i{color:var(--muted);font-style:normal}.customer-sync-detail{margin-top:14px}.customer-sync-warning{margin-top:14px}.customer-sync-result{display:grid;gap:5px;margin-top:14px;padding:14px;border:1px solid #a8e2cf;border-radius:10px;background:#f0fbf7}.customer-sync-result.running{border-color:#b9d6ff;background:#f2f7ff}.customer-sync-result span{color:var(--muted);font-size:12px}
 .mobile-cell{display:flex;align-items:center;gap:4px}.customer-tags-cell{display:flex;align-items:center;gap:5px;max-width:100%;padding:0;border:0;background:none;cursor:pointer}.customer-tags-cell span{flex:none;color:var(--primary);font-size:12px}.customer-tags-cell em{color:var(--muted);font-style:normal}.tag-filter-trigger{min-width:120px}.selected-tag-box{padding:14px;border:1px solid var(--line);border-radius:10px;background:#fafcff}.selected-tag-box>b{display:block;margin-bottom:10px}.selected-tag-box>div{display:flex;flex-wrap:wrap;gap:7px;color:var(--muted)}.tag-search{margin:14px 0}.tag-filter-groups{display:grid;gap:14px;max-height:390px;overflow:auto}.tag-filter-groups section,.tag-source-section{padding:14px;border:1px solid var(--line);border-radius:10px}.tag-filter-groups h4,.tag-source-section h4{margin:0 0 12px}.tag-filter-groups .el-checkbox-group,.tag-source-section>div{display:flex;flex-wrap:wrap;gap:8px}.tag-source-section{margin-bottom:10px}.tag-source-section span{color:var(--muted);font-size:12px}.add-tag-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}.mobile-change-form{display:grid;grid-template-columns:1fr 1.35fr;gap:12px;margin-top:16px}.mobile-change-form label{display:grid;align-content:start;gap:7px;padding:14px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}.mobile-change-form label>span,.mobile-change-form label>small{color:var(--muted);font-size:12px}.mobile-change-form label>strong{font-size:20px}.mobile-validation-card{margin-top:14px;padding:15px;border:1px solid #dce7f5;border-radius:10px;background:#f8fbff}.mobile-validation-card header{display:flex;justify-content:space-between;gap:12px}.mobile-validation-card header div{display:grid;gap:5px}.mobile-validation-card header span,.mobile-validation-card p{color:var(--muted);font-size:12px}
 .drawer-title{display:flex;align-items:center;gap:12px}.drawer-title span{color:var(--muted);font-size:12px}.drawer-title h2{margin:0;color:var(--text)}.profile-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.profile-summary>div,.profile-grid>div{padding:14px;border:1px solid var(--line);border-radius:12px;background:#f8fbff}.profile-summary span,.profile-grid span{display:block;color:var(--muted);font-size:12px}.profile-summary b,.profile-grid b{display:block;margin-top:6px;color:var(--text)}.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.profile-grid .wide{grid-column:1/-1}.detail-mobile{display:flex!important;align-items:center;gap:5px}.customer-lead-table{margin-top:4px}.customer-timeline{display:grid;gap:10px}.timeline-card{display:flex;flex-direction:column;gap:6px;padding:18px;border-left:3px solid var(--primary);border-radius:0 12px 12px 0;background:#f7faff}.timeline-card time{color:var(--muted);font-size:11px}.timeline-card span{color:var(--muted);font-size:13px}
 .customer-profile-tabs{min-height:420px}.customer-profile-tabs :deep(.el-tabs__content){padding-top:18px;overflow:visible}
-@media(max-width:900px){.customer-definition{overflow:auto}.profile-summary{grid-template-columns:1fr 1fr}.customer-basic-filters .el-input,.customer-basic-filters .el-select{width:100%}.dialog-grid,.profile-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.profile-summary{grid-template-columns:1fr 1fr}.customer-basic-filters .el-input,.customer-basic-filters .el-select{width:100%}.dialog-grid,.profile-grid{grid-template-columns:1fr}}
 </style>
