@@ -148,7 +148,7 @@ function syncTags(){ ElMessage.success('企微标签同步完成：新增 2 个�
 
 <template>
   <div class="page wecom-tag-page">
-    <PageHeader eyebrow="CUSTOMER · WECOM TAGS" title="企微标签" description="按企业微信标签组维护企业标签与个人标签，页面数据与当前企业主体保持同步。" />
+    <PageHeader eyebrow="CUSTOMER · WECOM TAGS" title="企微标签" description="按企业微信标签组维护企微企业标签，页面数据与当前企业主体保持同步。" />
     <section class="summary-line"><strong>共 {{ totals.groups }} 个标签组，{{ totals.tags }} 个标签</strong><el-button type="primary" :icon="RefreshRight" @click="syncTags">同步企微标签</el-button></section>
     <el-alert title="企业微信是标签主数据源；在本页新增、编辑或删除后会同步至当前企业主体。" type="info" :closable="false" show-icon/>
     <section v-if="!globalSearchMode" class="surface split-workspace">
