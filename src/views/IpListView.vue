@@ -82,7 +82,7 @@ const platformDialogVisible = ref(false)
 const editorVisible = ref(false)
 const activeRow = ref<IpRow | null>(null)
 const editingRow = ref<IpRow | null>(null)
-const form = reactive({ name: '', category: 'EDUCATION_PLANNING', channelCode: 'CH000001', description: '', platforms: [] as string[] })
+const form = reactive({ ipNo: '', name: '', category: 'EDUCATION_PLANNING', channelCode: 'CH000001', description: '', platforms: [] as string[] })
 
 const filteredRows = computed(() => {
   const term = query.keyword.trim().toLowerCase()
@@ -111,16 +111,18 @@ function openPlatforms(row: IpRow) { activeRow.value = row; platformDialogVisibl
 function openProducts(row: IpRow) { router.push({ path: '/leads/products', query: { ipNo: row.ipNo } }) }
 function openEditor(row?: IpRow) {
   loadIpCategories(); editingRow.value = row || null
-  Object.assign(form, row ? { name: row.name, category: row.category, channelCode: row.channelCode, description: row.description, platforms: [...row.platforms] } : { name: '', category: categoryOptions.value[0]?.value || 'EDUCATION_PLANNING', channelCode: ipChannels[0].code, description: '', platforms: [] })
+  Object.assign(form, row ? { ipNo: row.ipNo, name: row.name, category: row.category, channelCode: row.channelCode, description: row.description, platforms: [...row.platforms] } : { ipNo: '', name: '', category: categoryOptions.value[0]?.value || 'EDUCATION_PLANNING', channelCode: ipChannels[0].code, description: '', platforms: [] })
   editorVisible.value = true
 }
 function saveIp() {
   if (!form.category) return ElMessage.warning('请选择IP大类')
   if (!form.channelCode) return ElMessage.warning('请选择IP渠道')
+  const ipNo = form.ipNo.trim()
+  if (!ipNo) return ElMessage.warning('请输入IP编码')
+  if (rows.value.some(row => row.ipNo.toLowerCase() === ipNo.toLowerCase() && row.id !== editingRow.value?.id)) return ElMessage.warning('IP编码已存在，请重新输入')
   if (!form.name.trim()) return ElMessage.warning('请输入IP名称')
-  if (editingRow.value) { Object.assign(editingRow.value, { name: form.name.trim(), category: form.category, channelCode: form.channelCode, description: form.description.trim(), platforms: [...form.platforms] }); persistIpBindings(); editorVisible.value = false; ElMessage.success('IP信息已更新'); return }
-  const sequence = Math.max(0, ...rows.value.map(row => Number(row.ipNo.replace(/\D/g, '')))) + 1
-  rows.value.unshift({ id: Date.now(), ipNo: `IP${String(sequence).padStart(6, '0')}`, name: form.name.trim(), category: form.category, channelCode: form.channelCode, description: form.description.trim(), platforms: [...form.platforms], products: [], creator: '林校长', createdAt: '2026-08-20 10:30', status: '启用' })
+  if (editingRow.value) { Object.assign(editingRow.value, { ipNo, name: form.name.trim(), category: form.category, channelCode: form.channelCode, description: form.description.trim(), platforms: [...form.platforms] }); persistIpBindings(); editorVisible.value = false; ElMessage.success('IP信息已更新'); return }
+  rows.value.unshift({ id: Date.now(), ipNo, name: form.name.trim(), category: form.category, channelCode: form.channelCode, description: form.description.trim(), platforms: [...form.platforms], products: [], creator: '林校长', createdAt: '2026-08-20 10:30', status: '启用' })
   persistIpBindings()
   editorVisible.value = false
   ElMessage.success('IP主档已创建')
@@ -144,9 +146,9 @@ function meta(name: string) { return platformMeta[name] || { code: name.slice(0,
     </div>
 
     <article class="ip-ledger surface">
-      <header><div><h3>IP主档</h3><span>共 {{ filteredRows.length }} 条</span></div><p>IP编号创建后保持不变，名称调整不影响历史关联</p></header>
+      <header><div><h3>IP主档</h3><span>共 {{ filteredRows.length }} 条</span></div><p>IP编码在保存时校验唯一，名称调整不影响历史关联</p></header>
       <el-table :data="filteredRows" row-key="id">
-        <el-table-column label="IP大类" width="205"><template #default="{ row }"><div class="category-cell"><el-tag type="primary" effect="plain">{{ categoryLabel(row.category) }}</el-tag><code>{{ row.category }}</code></div></template></el-table-column>
+        <el-table-column label="IP大类" width="205"><template #default="{ row }"><div class="category-cell"><el-tag type="primary" effect="plain">{{ categoryLabel(row.category) }}</el-tag></div></template></el-table-column>
         <el-table-column label="IP渠道" width="145"><template #default="{ row }"><div class="channel-cell"><b>{{ channelInfo(row.channelCode).name }}</b><code>{{ channelInfo(row.channelCode).code }}</code></div></template></el-table-column>
         <el-table-column label="IP名称" min-width="250"><template #default="{ row }"><div class="ip-name"><b>{{ row.name }}</b><code>{{ row.ipNo }}</code><small>{{ row.description }}</small></div></template></el-table-column>
         <el-table-column prop="creator" label="创建人" width="100" />
@@ -156,12 +158,12 @@ function meta(name: string) { return platformMeta[name] || { code: name.slice(0,
       </el-table>
     </article>
     <el-drawer v-model="editorVisible" :title="editingRow ? '编辑IP' : '新增IP'" size="600px">
-      <div class="editor-note"><b>IP编号将自动生成</b><span>保存后系统按当前最大编号顺序生成，编号不可修改。</span></div>
+      <div class="editor-note"><b>IP编码由用户维护</b><span>创建或编辑保存时校验编码唯一，不允许与已有IP编码重复。</span></div>
       <el-form label-position="top">
         <el-form-item label="IP大类" required><el-select v-model="form.category" filterable placeholder="请选择IP大类"><el-option v-for="item in categoryOptions" :key="item.value" :label="`${item.label} · ${item.value}`" :value="item.value" /></el-select><small>选项来自系统管理—字典管理—IP大类。</small></el-form-item>
         <el-form-item label="IP渠道" required><el-select v-model="form.channelCode" filterable placeholder="请选择渠道名称或编号"><el-option v-for="item in ipChannels" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" /></el-select><small>渠道编号用于稳定归因，渠道更名不影响历史数据。</small></el-form-item>
+        <el-form-item label="IP编码" required><el-input v-model="form.ipNo" maxlength="30" show-word-limit placeholder="例如：IP000004" /><small>请输入唯一IP编码，保存时将校验是否与已有编码重复。</small></el-form-item>
         <el-form-item label="IP名称" required><el-input v-model="form.name" maxlength="40" show-word-limit placeholder="例如：阿留皮皮" /><small>IP名称使用老师对外名称或老师姓名。</small></el-form-item>
-        <el-form-item label="大类编码"><el-input :model-value="form.category" readonly placeholder="选择IP大类后自动带出" /><small>取自IP大类字典项值，作为接口、筛选和历史归因的稳定编码，不允许在此处单独修改。</small></el-form-item>
         <el-form-item label="IP说明"><el-input v-model="form.description" type="textarea" :rows="3" maxlength="120" show-word-limit placeholder="简要说明该IP的定位和内容方向" /></el-form-item>
       </el-form>
       <template #footer><el-button @click="editorVisible = false">取消</el-button><el-button type="primary" @click="saveIp">{{ editingRow ? '保存修改' : '创建IP' }}</el-button></template>
