@@ -52,21 +52,21 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '业务配置', code: 'BUSINESS_CONFIG', children: [
-      { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
-      { name: '短信管理', description: '复用历史短信服务，统一管理短信签名、模板、发送规则和发送结果。', features: ['签名管理', '短信模板', '短信规则', '发送结果'], children: [
+      { name: '短信管理', description: '复用历史短信服务，统一管理运营商、短信签名、模板、发送规则和发送结果。', features: ['运营商管理', '签名管理', '短信模板', '短信规则', '发送结果'], children: [
+        { name: '运营商管理', path: '/system/sms/providers', description: '管理短信服务运营商、接入方式与启停状态。', features: ['新增','编辑','连接校验','启停'] },
         { name: '签名管理', path: '/system/sms/signatures', description: '管理短信签名。', features: ['新增','审核状态','启停'] },
         { name: '短信模板', path: '/system/sms/templates', description: '管理短信模板。', features: ['新增','变量校验','启停'] },
         { name: '短信规则', path: '/system/sms/rules', description: '按业务触发场景配置短信发送规则。', features: ['新增','编辑','详情','启停'] },
         { name: '发送结果', path: '/system/sms/results', description: '查询供应商回执和送达结果。', features: ['查询','详情'] }
       ] },
-      { name: '应用管理', path: '/system/applications', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] },
-      { name: '配置管理', description: '管理企微、小程序、店铺和落地页配置。', features: ['新增', '编辑', '校验', '发布', '启停', '版本回退'], children: [
+      { name: '企微管理', description: '统一管理企微应用及企微、小程序、店铺和落地页接入配置。', features: ['新增', '编辑', '校验', '发布', '启停', '版本回退'], children: [
+        { name: '应用管理', path: '/system/applications', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] },
         { name: '企微配置', path: '/system/configurations/wecom', description: '维护企业微信接入配置。', features: ['校验','发布','轮换'] },
         { name: '小程序配置', path: '/system/configurations/mini', description: '维护小程序接入配置。', features: ['校验','发布','轮换'] },
         { name: '店铺配置', path: '/system/configurations/stores', description: '维护店铺和组织关联。', features: ['新增','编辑','启停'] },
-        { name: '落地页配置', path: '/system/configurations/landing', description: '维护已有落地页的跳转方式、兜底策略和状态。', features: ['编辑','预览','启停','停用后删除'] }
-      ] },
-      { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] }
+        { name: '落地页配置', path: '/system/configurations/landing', description: '维护已有落地页的跳转方式、兜底策略和状态。', features: ['编辑','预览','启停','停用后删除'] },
+        { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] }
+      ] }
     ]
   },
   {
@@ -80,6 +80,11 @@ export const v1Menus: MenuGroup[] = [
       { name: '字典管理', path: '/system/dictionaries', description: '统一管理业务枚举类型与字典项，保证页面展示、接口值和历史数据口径一致。', features: ['字典类型', '字典项', '排序', '显示标签', '新增', '编辑', '启停', '历史兼容'] },
       { name: '日志查询', path: '/system/logs', description: '查询登录、操作、权限、配置和接口日志。', features: ['查询', '详情', '审批导出', '归档'] },
       { name: '地区管理', path: '/system/regions', description: '管理国家、省、市、区县标准地区树。', features: ['导入', '新增', '编辑', '启停', '差异更新'] }
+    ]
+  },
+  {
+    name: '审计管理', code: 'AUDIT', children: [
+      { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] }
     ]
   }
 ]

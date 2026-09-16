@@ -32,7 +32,8 @@ const groupIcons: Record<string, Component> = {
   QUESTIONNAIRE: DocumentChecked,
   PERSONAL: User,
   BUSINESS_CONFIG: Tools,
-  SYSTEM: Setting
+  SYSTEM: Setting,
+  AUDIT: DocumentChecked
 }
 
 const leafIcons: Record<string, Component> = {

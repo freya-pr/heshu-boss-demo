@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="480" viewBox="0 0 1920 480">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0L10 5 0 10Z" fill="#7698ca"/></marker>
+    <style>.t{font:700 21px PingFang SC,Microsoft YaHei,sans-serif;fill:#172b4d}.d{font:16px PingFang SC,Microsoft YaHei,sans-serif;fill:#607490}.n{font:700 20px PingFang SC,Microsoft YaHei,sans-serif;fill:#2873e8}.s{font:15px PingFang SC,Microsoft YaHei,sans-serif;fill:#7487a3}</style>
+  </defs>
+  <rect width="1920" height="480" fill="#f5f8fd"/>
+  <text x="48" y="55" class="t" font-size="30">线索中心·对外讲解版六段式流程</text>
+  <g stroke="#83acec" stroke-width="2" fill="#fff">
+    <rect x="40" y="112" width="270" height="190" rx="14"/><rect x="350" y="112" width="270" height="190" rx="14"/><rect x="660" y="112" width="270" height="190" rx="14"/><rect x="970" y="112" width="270" height="190" rx="14"/><rect x="1280" y="112" width="270" height="190" rx="14"/><rect x="1590" y="112" width="290" height="190" rx="14" fill="#edf4ff" stroke="#2873e8"/>
+  </g>
+  <g>
+    <text x="62" y="155" class="n">1</text><text x="92" y="155" class="t">多源线索接入</text><text x="62" y="199" class="d">API / Webhook</text><text x="62" y="230" class="d">文件导入 / 手工导入</text><text x="62" y="271" class="s">接入任务·幂等键·原始快照</text>
+    <text x="372" y="155" class="n">2</text><text x="402" y="155" class="t">治理与线索建档</text><text x="372" y="199" class="d">校验 / 标准化 / 幂等去重</text><text x="372" y="230" class="d">有效性与重复判断</text><text x="372" y="271" class="s">线索编号·标准主档·异常</text>
+    <text x="682" y="155" class="n">3</text><text x="712" y="155" class="t">归因与负责人分配</text><text x="682" y="199" class="d">平台·店铺·商品·IP·期次</text><text x="682" y="230" class="d">活码·排班·权重·负责人</text><text x="682" y="271" class="s">归因快照·分配历史</text>
+    <text x="992" y="155" class="n">4</text><text x="1022" y="155" class="t">触达与客户连接</text><text x="992" y="199" class="d">身份解密 / 短信 / 加微</text><text x="992" y="230" class="d">唯一客户建档</text><text x="992" y="271" class="s">触达状态·客户编号·服务关系</text>
+    <text x="1302" y="155" class="n">5</text><text x="1332" y="155" class="t">培育与业务转化</text><text x="1302" y="199" class="d">问卷·测评 / 预约·直播</text><text x="1302" y="230" class="d">下单·支付·退款</text><text x="1302" y="271" class="s">等级·交易事实·转化状态</text>
+    <text x="1612" y="155" class="n">6</text><text x="1642" y="155" class="t">分析与持续优化</text><text x="1612" y="199" class="d">处理效率 / 转化漏斗</text><text x="1612" y="230" class="d">归因经营 / 异常补偿</text><text x="1612" y="271" class="s">规则与运营优化输入</text>
+  </g>
+  <g stroke="#7698ca" stroke-width="3" marker-end="url(#a)"><path d="M310 207h28"/><path d="M620 207h28"/><path d="M930 207h28"/><path d="M1240 207h28"/><path d="M1550 207h28"/></g>
+  <path d="M1735 320c0 92-850 92-940 8" fill="none" stroke="#2873e8" stroke-width="2.5" stroke-dasharray="9 7" marker-end="url(#a)"/>
+  <rect x="665" y="367" width="760" height="52" rx="26" fill="#e7f0ff"/>
+  <text x="1045" y="400" text-anchor="middle" class="d" fill="#2d63a8">分析结果反向优化归因、分配、排班、短信和运营策略</text>
+  <text x="48" y="455" class="s">说明：六段用于业务讲解；线索建档后，分配、身份处理与订单同步可并行，任一阶段失败均进入可修复、可重试的异常任务。</text>
+</svg>

@@ -30,6 +30,7 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/dictionaries': () => import('../views/DictionaryManagementView.vue'),
   '/system/exceptions': () => import('../views/AdminConfigView.vue'),
   '/system/sms': () => import('../views/SystemToolsView.vue'),
+  '/system/sms/providers': () => import('../views/SystemToolsView.vue'),
   '/system/sms/signatures': () => import('../views/SystemToolsView.vue'),
   '/system/sms/templates': () => import('../views/SystemToolsView.vue'),
   '/system/sms/rules': () => import('../views/SystemToolsView.vue'),
