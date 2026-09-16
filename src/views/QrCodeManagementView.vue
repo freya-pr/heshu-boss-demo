@@ -134,6 +134,7 @@ function updateWeight(employeeId: number, value: number | undefined) { const ite
 function save() {
   if (!form.name.trim()) return ElMessage.warning('请输入活码名称')
   if (!form.groupId) return ElMessage.warning('请选择活码分组')
+  if (!form.ipNo) return ElMessage.warning('请选择关联IP')
   if (!form.employeeIds.length) return ElMessage.warning('请至少选择一名接待员工')
   if (form.scheduleType === '分时段排班' && form.scheduleRules.some(rule => !rule.employeeIds.length)) return ElMessage.warning('请为每条分时段规则选择配置人员')
   if (form.scheduleType === '分时段排班' && form.scheduleRules.some(rule => !rule.workDays.length)) return ElMessage.warning('请为每条分时段规则选择工作周期')
@@ -273,7 +274,7 @@ async function deleteGroup(group: LiveCodeGroup) {
           <el-form-item label="活码名称" required><el-input v-model="form.name" maxlength="30" show-word-limit placeholder="例如：暑期三营 · 抖音一转" /></el-form-item>
           <el-form-item label="活码分组" required><el-select v-model="form.groupId" placeholder="选择活码分组"><el-option v-for="item in groups" :key="item.id" :label="item.name" :value="item.id" /></el-select></el-form-item>
           <el-form-item label="自动通过好友"><div class="switch-field"><el-switch v-model="form.autoAccept" /><span>{{ form.autoAccept ? '已开启' : '已关闭' }}</span></div><small>开启后，客户添加该企业微信时无需好友验证，将自动添加成功。</small></el-form-item>
-          <el-form-item><template #label>关联IP <em class="optional">选填</em></template><el-select v-model="form.ipNo" clearable filterable placeholder="搜索IP名称或IP编号"><el-option v-for="item in activeIpOptions" :key="item.ipNo" :label="`${item.name} · ${item.ipNo}`" :value="item.ipNo"><span>{{ item.name }}</span><small class="option-status">{{ item.ipNo }}</small></el-option></el-select><small>数据来源：线索中心－IP列表－IP配置；未关联时按通用活码保存。</small></el-form-item>
+          <el-form-item label="关联IP" required><el-select v-model="form.ipNo" filterable placeholder="搜索IP名称或IP编码"><el-option v-for="item in activeIpOptions" :key="item.ipNo" :label="`${item.name} · ${item.ipNo}`" :value="item.ipNo"><span>{{ item.name }}</span><small class="option-status">{{ item.ipNo }}</small></el-option></el-select><small>数据来源：线索中心－IP管理；新增或编辑活码时必须选择关联IP。</small></el-form-item>
           <el-form-item label="IP渠道"><el-input :model-value="selectedIp ? `${selectedIp.channelName || ipChannelNames[selectedIp.channelCode] || '未配置渠道'} · ${selectedIp.channelCode}` : ''" readonly placeholder="选择关联IP后自动带出" /><small>由IP配置自动带出，活码内不可单独修改，避免归因口径不一致。</small></el-form-item>
           <el-form-item><template #label>所属期次 <em class="optional">选填</em></template><el-select v-model="form.campId" clearable filterable placeholder="从引流期次库选择"><el-option v-for="item in camps" :key="item.id" :label="item.name" :value="item.id" /></el-select><small>不选择时按通用活码保存；期次来源于线索中心—引流期次。</small></el-form-item>
         </div></div>

@@ -23,7 +23,7 @@ export const v1Menus: MenuGroup[] = [
       { name: '引流线索', path: '/leads/drainage', description: '引流业务线索列表，统一处理订单匹配、状态流转、所属期次与批量任务。', features: ['详情', '旅程', '变更所属期次', '标记', '改派负责人', '批量分配', '批量变更期次', '查询异常订单', '同步异常订单', '短信群发', '按平台顺序同步订单', '导入解密数据', '导出非解密数据'] },
       { name: '引流期次', path: '/leads/periods', description: '维护线索接量、转化和追单的运营期次，支持按固定周期批量生成、启停、引用校验和日志追溯。', features: ['期次列表', '待开始/接量期/转化期/追单期/已停用', '按月批量创建', '按年批量创建', '固定周期天数', '编辑', '启停', '活码引用校验', '业务数据校验', '日志'] },
       { name: '线索配置', path: '/leads/rules', description: '分类管理活码分配、营期名单流转和问卷等级规则，并支持试算、冲突检测和版本发布。', features: ['规则分类', '活码分配规则', '营期名单流转规则', '等级规则', '问卷指标与分数区间', '规则试算', '冲突检测', '发布停用', '版本回退'] },
-      { name: '活码管理', path: '/leads/qr-codes', description: '按企业微信主体、分组及可选引流期次管理员工活码、标签和接待权重。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '企微标签', '内部标签', '所属期次（选填）', '员工接量权重', '全天/分时段排班', '全天兜底', '启停'] },
+      { name: '活码管理', path: '/leads/qr-codes', description: '按企业微信主体、分组、关联IP及可选引流期次管理员工活码、标签和接待权重。', features: ['活码分组', '列表', '新增', '编辑', '详情', '创建人', '关联IP（必填）', '企微标签', '内部标签', '所属期次（选填）', '员工接量权重', '全天/分时段排班', '全天兜底', '启停'] },
       { name: '渠道管理', path: '/leads/channels', description: '通过渠道列表和数据分析两个页签，查看渠道主数据及转化效果。', features: ['渠道列表', '数据分析', '平台渠道/IP渠道', '启停', '渠道/时间/组织筛选', '转化漏斗', '下钻', '导出'] },
       { name: '店铺管理', path: '/leads/stores', description: '按平台类型和第三方店铺ID管理店铺身份及线索归因。', features: ['店铺列表', '平台类型', '店铺名称', '第三方店铺ID', 'KEY与秘钥', '短信账号', '新增', '编辑', '启停'] },
       { name: 'IP管理', path: '/leads/ip', description: '管理IP大类、IP渠道、IP编码及IP名称。', features: ['IP大类（字典）', 'IP渠道', 'IP编码', 'IP名称', '编码唯一性校验', '新增', '编辑', '启停', '筛选'] },
@@ -52,12 +52,11 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '业务配置', code: 'BUSINESS_CONFIG', children: [
-      { name: '短信管理', description: '复用历史短信服务，统一管理运营商、短信签名、模板、发送规则和发送结果。', features: ['运营商管理', '签名管理', '短信模板', '短信规则', '发送结果'], children: [
+      { name: '短信管理', description: '复用历史短信服务，统一管理运营商、短信签名、模板和发送规则。', features: ['运营商管理', '签名管理', '短信模板', '短信规则'], children: [
         { name: '运营商管理', path: '/system/sms/providers', description: '管理短信服务运营商、接入方式与启停状态。', features: ['新增','编辑','连接校验','启停'] },
         { name: '签名管理', path: '/system/sms/signatures', description: '管理短信签名。', features: ['新增','审核状态','启停'] },
         { name: '短信模板', path: '/system/sms/templates', description: '管理短信模板。', features: ['新增','变量校验','启停'] },
-        { name: '短信规则', path: '/system/sms/rules', description: '按业务触发场景配置短信发送规则。', features: ['新增','编辑','详情','启停'] },
-        { name: '发送结果', path: '/system/sms/results', description: '查询供应商回执和送达结果。', features: ['查询','详情'] }
+        { name: '短信规则', path: '/system/sms/rules', description: '按业务触发场景配置短信发送规则。', features: ['新增','编辑','详情','启停'] }
       ] },
       { name: '企微管理', description: '统一管理企微应用及企微、小程序、店铺和落地页接入配置。', features: ['新增', '编辑', '校验', '发布', '启停', '版本回退'], children: [
         { name: '应用管理', path: '/system/applications', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] },
@@ -83,7 +82,8 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '审计管理', code: 'AUDIT', children: [
-      { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] }
+      { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
+      { name: '发送结果', path: '/system/sms/results', description: '查询短信供应商回执和送达结果。', features: ['查询','详情'] }
     ]
   }
 ]
