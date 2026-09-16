@@ -38,7 +38,6 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/configurations': () => import('../views/SystemToolsView.vue'),
   '/system/configurations/wecom': () => import('../views/SystemToolsView.vue'),
   '/system/configurations/mini': () => import('../views/SystemToolsView.vue'),
-  '/system/configurations/stores': () => import('../views/SystemToolsView.vue'),
   '/system/configurations/landing': () => import('../views/SystemToolsView.vue'),
   '/system/regions': () => import('../views/SystemToolsView.vue')
 }

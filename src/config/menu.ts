@@ -63,7 +63,6 @@ export const v1Menus: MenuGroup[] = [
         { name: '应用管理', path: '/system/applications', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] },
         { name: '企微配置', path: '/system/configurations/wecom', description: '维护企业微信接入配置。', features: ['校验','发布','轮换'] },
         { name: '小程序配置', path: '/system/configurations/mini', description: '维护小程序接入配置。', features: ['校验','发布','轮换'] },
-        { name: '店铺配置', path: '/system/configurations/stores', description: '维护店铺和组织关联。', features: ['新增','编辑','启停'] },
         { name: '落地页配置', path: '/system/configurations/landing', description: '维护已有落地页的跳转方式、兜底策略和状态。', features: ['编辑','预览','启停','停用后删除'] },
         { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] }
       ] }
