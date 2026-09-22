@@ -62,7 +62,7 @@ export const v1Menus: MenuGroup[] = [
         { name: '企微配置', path: '/system/configurations/wecom', description: '维护企业微信接入配置。', features: ['校验','发布','轮换'] },
         { name: '小程序配置', path: '/system/configurations/mini', description: '维护小程序接入配置。', features: ['校验','发布','轮换'] },
         { name: '落地页配置', path: '/system/configurations/landing', description: '维护已有落地页的跳转方式、兜底策略和状态。', features: ['编辑','预览','启停','停用后删除'] },
-        { name: '微信客服管理', path: '/system/wecom-customer-service', description: '管理企业微信客服接入。', features: ['客服列表', '客服事件消息', '客服消息'] }
+        { name: '微信客服管理', path: '/system/wecom-customer-service', description: '按企业微信主体管理客服账号、事件消息和服务记录。', features: ['企微主体切换', '客服列表', '客服事件消息', '客服消息'] }
       ] }
     ]
   },
