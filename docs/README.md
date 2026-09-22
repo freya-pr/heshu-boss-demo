@@ -13,9 +13,12 @@
 - [客户 360 档案与生命周期需求](product/合数BOSS客户360档案与生命周期需求文档.md)
 - [V1.0 问卷管理需求](product/合数BOSS%20V1.0问卷管理需求文档.md)
 - [V1.0 个人中心需求](product/合数BOSS%20V1.0个人中心需求文档.md)
+- [V1.0 企微标签需求](product/合数BOSS%20V1.0客户中心标签管理需求文档.md)
 - [V1.0 系统管理与业务配置需求](product/合数BOSS%20V1.0系统管理与业务配置需求文档.md)
 - [V1.0 整体业务流程与关键规则](product/合数BOSS%20V1.0整体业务流程与关键规则.md)
 - [V2.0 交付中心需求](product/合数BOSS%20V2.0交付中心需求文档.md)
+- [API 规格](data-api/API_SPEC.md)
+- [数据字典](data-api/DATA_DICTIONARY.md)
 
 ## 项目与交付
 

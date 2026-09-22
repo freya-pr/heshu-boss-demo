@@ -4,9 +4,9 @@ flowchart TB
         WECOM["企业微信<br/>初始化组织通讯录<br/>CorpID + UserID、激活及接待状态"]
         SWITCH{"自有系统主控开关"}
         STAGE["基线暂存与差异处理<br/>校验、匹配、冲突、人工确认"]
-        BOSS["合数BOSS<br/>组织员工正式主数据<br/>生成 B + 5位员工编号"]
+        BOSS["合数BOSS<br/>组织员工正式主数据<br/>录入6位员工编号并查重"]
         OUTBOX["Outbox与同步适配器<br/>幂等、顺序、重试"]
-        PROVISION["开通企微成员<br/>查重、创建、绑定、发送邀请"]
+        PROVISION["开通企微成员<br/>账号查重并作为 UserID<br/>创建、绑定、发送邀请"]
         ACTIVE{"成员是否已激活"}
         CONFLICT["身份冲突队列<br/>暂停覆盖并转人工"]
         AUDIT["同步任务与审计<br/>批次、结果、错误、补偿"]
