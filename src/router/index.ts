@@ -29,6 +29,7 @@ const specificComponents: Record<string, () => Promise<any>> = {
   '/system/parameters': () => import('../views/SystemParameterView.vue'),
   '/system/dictionaries': () => import('../views/DictionaryManagementView.vue'),
   '/system/exceptions': () => import('../views/AdminConfigView.vue'),
+  '/system/wecom-exceptions': () => import('../views/AdminConfigView.vue'),
   '/system/sms': () => import('../views/SystemToolsView.vue'),
   '/system/sms/providers': () => import('../views/SystemToolsView.vue'),
   '/system/sms/signatures': () => import('../views/SystemToolsView.vue'),

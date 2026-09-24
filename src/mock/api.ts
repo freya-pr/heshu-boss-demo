@@ -604,7 +604,7 @@ export const demoHttp = {
       if (!body.confirmed) return fail('请确认身份、订单和服务记录均已核验')
       const mobileCustomer = db.customers.find(item => item.id === collision.mobile_customer_id)
       const unionCustomer = db.customers.find(item => item.id === collision.union_customer_id)
-      if (!mobileCustomer || !unionCustomer) return fail('候选客户档案缺失，请转异常中心')
+      if (!mobileCustomer || !unionCustomer) return fail('候选客户档案缺失，请转业务异常')
       const beforeSnapshot = { mobile_customer: customerSnapshot(mobileCustomer), union_customer: customerSnapshot(unionCustomer) }
       let target: Row | null = null
       if (resolutionType === 'MERGE_TO_MOBILE') {

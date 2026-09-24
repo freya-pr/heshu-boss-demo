@@ -81,8 +81,9 @@ export const v1Menus: MenuGroup[] = [
   },
   {
     name: '审计管理', code: 'AUDIT', children: [
-      { name: '异常中心', path: '/system/exceptions', description: '统一展示企微回调、数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
-      { name: '发送结果', path: '/system/sms/results', description: '查询短信供应商回执和送达结果。', features: ['查询','详情'] }
+      { name: '业务异常', path: '/system/exceptions', description: '统一展示数据同步和核心业务异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
+      { name: '企微异常', path: '/system/wecom-exceptions', description: '统一展示企微接口、回调和同步异常。', features: ['查询', '详情', '重试', '忽略', '转人工', '关闭'] },
+      { name: '短信日志', path: '/system/sms/results', description: '查询短信供应商回执和送达日志。', features: ['查询','详情'] }
     ]
   }
 ]

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ChatDotRound, Connection, Plus, Search } from '@element-plus/icons-vue'
+import { ChatDotRound, Plus, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
 type Corp = { id: string; name: string; status: '已授权' | '待续期' }
@@ -43,10 +43,7 @@ function createAccount() {
 
 <template>
   <section class="page service-page">
-    <PageHeader eyebrow="HESHU BOSS · WECOM SERVICE" title="微信客服管理" description="按企业微信主体管理客服账号、事件消息和服务记录。">
-      <el-button :icon="Connection">同步企微客服</el-button>
-      <el-button type="primary" :icon="Plus" :disabled="selectedCorp.status !== '已授权'" @click="createAccount">新增客服</el-button>
-    </PageHeader>
+    <PageHeader eyebrow="HESHU BOSS · WECOM SERVICE" title="微信客服管理" description="按企业微信主体管理客服账号、事件消息和服务记录。" />
 
     <div class="surface corp-switcher">
       <div class="switcher-mark"><ChatDotRound /></div>
@@ -65,6 +62,7 @@ function createAccount() {
       <span><i></i>{{ selectedCorp.name }}</span>
       <small>{{ selectedCorp.id }}</small>
       <el-tag :type="selectedCorp.status === '已授权' ? 'success' : 'warning'">{{ selectedCorp.status }}</el-tag>
+      <el-button class="create-service" type="primary" :icon="Plus" :disabled="selectedCorp.status !== '已授权'" @click="createAccount">新增客服</el-button>
     </div>
 
     <div class="surface service-panel">
@@ -88,5 +86,5 @@ function createAccount() {
 </template>
 
 <style scoped>
-.service-page{display:flex;flex-direction:column;gap:18px}.corp-switcher{display:grid;grid-template-columns:52px minmax(280px,1fr) minmax(520px,720px);align-items:center;gap:20px;padding:22px 26px;border:1px solid #dfe8f5}.switcher-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(145deg,#e7f1ff,#f4f8ff);color:#2878ed;display:grid;place-items:center;font-size:24px}.switcher-copy{display:flex;flex-direction:column;gap:7px}.switcher-copy b{font-size:17px;color:#1f3555}.switcher-copy span{font-size:13px;color:#8494ab;line-height:1.55}.switcher-control{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:14px}.switcher-control label{font-size:16px;font-weight:700;color:#3c5272}.corp-select{width:100%}.corp-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px}.corp-option span{display:flex;flex-direction:column;gap:2px}.corp-option small{color:#91a0b5}.scope-summary{display:flex;align-items:center;gap:10px;padding:0 6px;color:#435976}.scope-summary span{font-weight:700}.scope-summary i{display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:#28be8b;box-shadow:0 0 0 4px #e6f8f2}.scope-summary small{color:#91a0b5}.service-panel{padding:0 24px 24px}.service-tabs :deep(.el-tabs__header){margin:0}.service-tabs :deep(.el-tabs__item){height:64px;font-weight:650}.service-tabs em{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;margin-left:6px;padding:0 7px;border-radius:12px;background:#eef4ff;color:#3179e8;font-size:12px;font-style:normal}.toolbar{display:flex;gap:10px;padding:20px 0}.toolbar .el-input{max-width:390px}.name-cell{display:flex;flex-direction:column;gap:4px}.name-cell b{color:#243a59}.name-cell small{color:#91a0b5}.el-table a{color:#2d7cf0;font-weight:700}@media(max-width:1000px){.corp-switcher{grid-template-columns:48px 1fr}.switcher-control{grid-column:1/-1}.switcher-control{grid-template-columns:70px 1fr}}@media(max-width:640px){.corp-switcher{grid-template-columns:1fr;padding:18px}.switcher-mark{display:none}.switcher-control{grid-template-columns:1fr}.scope-summary{flex-wrap:wrap}.toolbar{flex-wrap:wrap}.toolbar .el-input{max-width:none;width:100%}}
+.service-page{display:flex;flex-direction:column;gap:18px}.corp-switcher{display:grid;grid-template-columns:52px minmax(280px,1fr) minmax(520px,720px);align-items:center;gap:20px;padding:22px 26px;border:1px solid #dfe8f5}.switcher-mark{width:48px;height:48px;border-radius:14px;background:linear-gradient(145deg,#e7f1ff,#f4f8ff);color:#2878ed;display:grid;place-items:center;font-size:24px}.switcher-copy{display:flex;flex-direction:column;gap:7px}.switcher-copy b{font-size:17px;color:#1f3555}.switcher-copy span{font-size:13px;color:#8494ab;line-height:1.55}.switcher-control{display:grid;grid-template-columns:72px 1fr;align-items:center;gap:14px}.switcher-control label{font-size:16px;font-weight:700;color:#3c5272}.corp-select{width:100%}.corp-option{width:100%;display:flex;align-items:center;justify-content:space-between;gap:18px}.corp-option span{display:flex;flex-direction:column;gap:2px}.corp-option small{color:#91a0b5}.scope-summary{display:flex;align-items:center;gap:10px;padding:0 6px;color:#435976}.scope-summary span{font-weight:700}.scope-summary i{display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:#28be8b;box-shadow:0 0 0 4px #e6f8f2}.scope-summary small{color:#91a0b5}.create-service{margin-left:auto}.service-panel{padding:0 24px 24px}.service-tabs :deep(.el-tabs__header){margin:0}.service-tabs :deep(.el-tabs__item){height:64px;font-weight:650}.service-tabs em{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;margin-left:6px;padding:0 7px;border-radius:12px;background:#eef4ff;color:#3179e8;font-size:12px;font-style:normal}.toolbar{display:flex;gap:10px;padding:20px 0}.toolbar .el-input{max-width:390px}.name-cell{display:flex;flex-direction:column;gap:4px}.name-cell b{color:#243a59}.name-cell small{color:#91a0b5}.el-table a{color:#2d7cf0;font-weight:700}@media(max-width:1000px){.corp-switcher{grid-template-columns:48px 1fr}.switcher-control{grid-column:1/-1}.switcher-control{grid-template-columns:70px 1fr}}@media(max-width:640px){.corp-switcher{grid-template-columns:1fr;padding:18px}.switcher-mark{display:none}.switcher-control{grid-template-columns:1fr}.scope-summary{flex-wrap:wrap}.create-service{width:100%;margin-left:0}.toolbar{flex-wrap:wrap}.toolbar .el-input{max-width:none;width:100%}}
 </style>
