@@ -7,6 +7,16 @@ import '../styles/system-tools.css'
 import '../styles/system-tools-overrides.css'
 
 const route=useRoute(), router=useRouter(), keyword=ref(''), status=ref(''), activeTab=ref(''), dialog=ref(false), drawer=ref(false), current=ref<any>({}), form=reactive<any>({})
+const disableConfirmVisible=ref(false),pendingDisableSave=ref(false)
+const relatedSmsRules=ref([
+  {no:'RULE001',name:'用户下单提醒'},
+  {no:'RULE002',name:'用户授权提醒'},
+  {no:'RULE003',name:'未加微用户提醒'},
+  {no:'RULE004',name:'订单支付成功提醒'},
+  {no:'RULE005',name:'课程开课提醒'},
+])
+const visibleRelatedSmsRules=computed(()=>relatedSmsRules.value.slice(0,5))
+const disableTargetLabel=computed(()=>activeTab.value==='providers'?'运营商':'短信签名')
 const landingEditorVisible=ref(false),editingLanding=ref<any>(null),landingPreviewVisible=ref(false),previewLanding=ref<any>(null)
 const redirectModeOptions=['获客助手','小程序','微信客服']
 const landingForm=reactive({name:'',h5Url:'',redirectMode:'获客助手',fallbackModes:[] as string[]})
@@ -31,7 +41,7 @@ const landingRows=computed(()=>configRows.landing.filter(row=>(!keyword.value.tr
 function init(){const segment=route.path.split('/').pop()||'';activeTab.value=tabs.value.some(item=>item[0]===segment)?segment:tabs.value[0]?.[0]||'';keyword.value='';status.value=''}watch(()=>route.path,init,{immediate:true})
 function reset(){keyword.value='';status.value=''}
 function openForm(row?:any){current.value=row||{};Object.keys(form).forEach(k=>delete form[k]);Object.assign(form,row||{});dialog.value=true}
-function saveForm(){
+function commitFormSave(){
   if(!form.name?.trim())return ElMessage.warning('请输入名称')
   if(activeTab.value==='rules'&&(!form.scene||!form.scope||!form.sign||!form.template))return ElMessage.warning('请完整填写类型、关联抖店、签名和模板')
   if(activeTab.value==='rules')form.retryPolicy=form.scene==='用户下单后'?'未加微：支付后3分钟、下单后8分钟':'—'
@@ -42,6 +52,21 @@ function saveForm(){
   }
   dialog.value=false
   ElMessage.success(current.value.no?'已保存修改':'已新增配置')
+}
+function saveForm(){
+  const isDisablingExisting=['providers','signatures'].includes(activeTab.value)&&current.value.no&&current.value.status==='ACTIVE'&&form.status==='INACTIVE'
+  if(isDisablingExisting){
+    pendingDisableSave.value=true
+    disableConfirmVisible.value=true
+    return
+  }
+  commitFormSave()
+}
+function confirmDisable(){
+  if(!pendingDisableSave.value)return
+  disableConfirmVisible.value=false
+  pendingDisableSave.value=false
+  commitFormSave()
 }
 function showDetail(row:any){current.value=row;drawer.value=true}
 function openLandingEditor(row:any){
@@ -110,6 +135,17 @@ async function deleteLanding(row:any){
   <el-form v-else label-position="top"><div class="form-grid"><el-form-item label="名称" required><el-input v-model="form.name" placeholder="请输入名称"/></el-form-item><el-form-item label="编码/应用标识"><el-input v-model="form.app" placeholder="由对应服务校验唯一性"/></el-form-item><el-form-item label="状态"><el-select v-model="form.status" style="width:100%"><el-option label="启用" value="ACTIVE"/><el-option label="停用" value="INACTIVE"/></el-select></el-form-item><el-form-item label="备注"><el-input v-model="form.remark"/></el-form-item></div></el-form>
   <template #footer><el-button type="primary" @click="saveForm">保存</el-button><el-button @click="dialog=false">取消</el-button></template>
 </el-dialog><el-drawer v-model="drawer" title="详情" size="520px"><el-descriptions :column="1" border><el-descriptions-item v-for="(value,key) in current" :key="key" :label="String(key)">{{ value }}</el-descriptions-item></el-descriptions></el-drawer>
+<el-dialog v-model="disableConfirmVisible" width="560px" class="sms-disable-confirm" :show-close="false" @closed="pendingDisableSave=false">
+  <div class="disable-confirm-head"><span>!</span><div><h3>确认停用{{ disableTargetLabel }}？</h3><p>停用后，关联的短信规则（{{ relatedSmsRules.length }}个）也将同步停用。</p></div></div>
+  <div class="related-rule-panel">
+    <strong>以下为关联名单</strong>
+    <div class="related-rule-head"><span>短信规则编码</span><span>短信规则名称</span></div>
+    <div v-for="item in visibleRelatedSmsRules" :key="item.no" class="related-rule-row"><code>{{ item.no }}</code><span>{{ item.name }}</span></div>
+    <div v-if="relatedSmsRules.length>5" class="related-rule-more">……</div>
+  </div>
+  <el-alert title="确认后，当前配置及以上关联短信规则将立即停用；历史发送记录不受影响。" type="warning" :closable="false" show-icon/>
+  <template #footer><el-button @click="disableConfirmVisible=false">取消</el-button><el-button type="danger" @click="confirmDisable">确认停用</el-button></template>
+</el-dialog>
 </section></template>
 
 <style scoped>
@@ -117,4 +153,5 @@ async function deleteLanding(row:any){
 .landing-code{padding:3px 7px;border:1px solid #d8e5f5;border-radius:5px;background:#f5f9ff;color:#356aa6}.h5-url{color:#55708f}.phone-preview{position:relative;width:360px;height:650px;margin:0 auto 12px;overflow:hidden;border:1px solid #b7c4d2;border-radius:34px;background:#f7f9fc;box-shadow:0 10px 28px rgba(24,45,76,.14)}.phone-speaker{position:absolute;z-index:2;top:16px;left:50%;width:90px;height:9px;transform:translateX(-50%);border-radius:10px;background:#68788c}.preview-hero{padding:70px 32px 26px;background:linear-gradient(145deg,#1978f3,#2548da);color:#fff}.preview-hero small{opacity:.88}.preview-hero h2{margin:12px 0 0;font-size:25px}.preview-body{padding:28px 24px;text-align:center}.preview-offer{display:grid;gap:10px;padding:30px 20px 22px;border:1px solid #dce4ee;border-radius:14px;background:#fff}.preview-offer strong{color:#2475ed;font-size:42px}.preview-offer span{color:#66758a;font-size:18px}.preview-offer button{margin-top:8px;padding:13px;border:0;border-radius:7px;background:#2475ed;color:#fff;font-size:19px;cursor:default}.preview-body p{margin:24px 0 8px;color:#65758a}.preview-body>small{color:#95a1b1}
 .sms-retry-policy{width:100%;display:grid;gap:10px}.sms-retry-policy>div{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid #d9e6f5;border-radius:9px;background:#f8fbff}.sms-retry-policy i{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#2875e6;color:#fff;font-style:normal;font-weight:700}.sms-retry-policy span{display:grid;gap:3px;color:#263b56}.sms-retry-policy small{color:#8190a5}.sms-retry-policy :deep(.el-alert){margin-top:2px}
 :global(.sms-rule-dialog){border-radius:20px}:global(.sms-rule-dialog .el-dialog__header){padding:28px 34px 12px}:global(.sms-rule-dialog .el-dialog__title){font-size:23px;font-weight:700}:global(.sms-rule-dialog .el-dialog__body){padding:18px 48px 10px 28px}:global(.sms-rule-dialog .el-dialog__footer){padding:16px 48px 30px}:global(.sms-rule-dialog .el-dialog__footer .el-button){min-width:88px}.sms-rule-form :deep(.el-form-item){margin-bottom:22px}.sms-rule-form :deep(.el-form-item__label){font-size:16px;color:#4d5562}.sms-rule-form :deep(.el-input__wrapper),.sms-rule-form :deep(.el-select__wrapper){min-height:46px}
+:global(.sms-disable-confirm){border-radius:16px}:global(.sms-disable-confirm .el-dialog__header){display:none}:global(.sms-disable-confirm .el-dialog__body){padding:30px 32px 18px}:global(.sms-disable-confirm .el-dialog__footer){padding:4px 32px 28px}:global(.sms-disable-confirm .el-dialog__footer .el-button){min-width:96px}.disable-confirm-head{display:flex;gap:14px;align-items:flex-start}.disable-confirm-head>span{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:50%;background:#fff2e8;color:#f07820;font-size:25px;font-weight:700}.disable-confirm-head h3{margin:2px 0 8px;color:#1c2d45;font-size:22px}.disable-confirm-head p{margin:0;color:#5d6b7d;line-height:1.7}.related-rule-panel{margin:22px 0 16px;overflow:hidden;border:1px solid #e2e8f0;border-radius:10px}.related-rule-panel>strong{display:block;padding:14px 16px;color:#263a55}.related-rule-head,.related-rule-row{display:grid;grid-template-columns:180px 1fr;padding:11px 16px;border-top:1px solid #edf0f5}.related-rule-head{background:#f6f8fb;color:#79879a;font-size:13px}.related-rule-row{color:#33465e}.related-rule-row code{color:#3c70b7;font-family:inherit}.related-rule-more{padding:7px 16px 12px;text-align:center;color:#98a4b3;font-size:19px}.sms-disable-confirm :deep(.el-alert){align-items:flex-start}
 </style>

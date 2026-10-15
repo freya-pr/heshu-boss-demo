@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Aim, Connection, CopyDocument, DataAnalysis, Plus, Search, SetUp, Tickets, VideoPlay } from '@element-plus/icons-vue'
+import { DataAnalysis, Search, SetUp, Tickets } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
 type RuleCategory = '活码分配' | '营期名单流转' | '等级规则'
@@ -24,29 +24,12 @@ type Rule = {
 
 const categories = [
   { key: 'all', label: '全部规则', description: '统一查看与检索', icon: Tickets },
-  { key: '活码分配', label: '分配与接待', description: '活码轮询和接量资格', icon: Aim },
-  { key: '营期名单流转', label: '营期名单流转', description: '跨营期员工名单同步', icon: Connection },
   { key: '等级规则', label: '等级规则', description: '问卷自动评定 S/A/B/C', icon: DataAnalysis }
 ] as const
 
 const rules = ref<Rule[]>([
   {
-    id: 1, code: 'RULE-LIVE-001', name: '当前营期活码轮询分配', category: '活码分配',
-    trigger: '客户扫码 / 批量轮询', condition: '活码启用，员工在轮询名单内且未达接量上限',
-    action: '按名单顺序分配接待员工', scope: '全部一转活码', priority: 10, status: '已发布', version: 'V1.3', updatedBy: '张铭钰', updatedAt: '2026-08-19 10:30'
-  },
-  {
-    id: 2, code: 'RULE-CAMP-001', name: '高转化员工同步下一营期', category: '营期名单流转',
-    trigger: '营期结束后每日 02:00', condition: '有效分配≥30条，转化率≥18%，员工在职且启用',
-    action: '加入下一营期活码轮询名单', scope: '一转事业部', priority: 20, status: '已发布', version: 'V1.1', updatedBy: '林校长', updatedAt: '2026-08-18 16:42'
-  },
-  {
-    id: 3, code: 'RULE-CAMP-002', name: '秋季营期名单预演', category: '营期名单流转',
-    trigger: '手动试算', condition: '来源营期=暑期三营，转化率≥20%',
-    action: '生成秋季体验营候选名单', scope: '课程顾问岗位', priority: 30, status: '草稿', version: 'V0.2', updatedBy: '张铭钰', updatedAt: '2026-08-19 14:12'
-  },
-  {
-    id: 4, code: 'RULE-GRADE-001', name: '家庭教育需求问卷 SABC 自动评级', category: '等级规则',
+    id: 4, code: 'RULE-GRADE-001', name: '家庭教育需求问卷规则', category: '等级规则',
     trigger: '有效问卷提交 / 重新解析', condition: '总分≥90为S，75—89为A，60—74为B，低于60为C',
     action: '生成线索等级并写入评级历史', scope: '一转业务有效问卷', priority: 5, status: '已发布', version: 'V1.0', updatedBy: '张铭钰', updatedAt: '2026-08-19 16:20'
   }
@@ -56,12 +39,11 @@ const query = reactive({ keyword: '', category: '', status: '', trigger: '' })
 const selectedCategory = ref<'all' | RuleCategory>('all')
 const drawerVisible = ref(false)
 const detailVisible = ref(false)
-const simulateVisible = ref(false)
 const activeRule = ref<Rule | null>(null)
 const editingId = ref<number | null>(null)
 const currentStep = ref(0)
 const form = reactive({
-  name: '', category: '活码分配' as RuleCategory, description: '', scope: '全部一转活码', priority: 10,
+  name: '家庭教育需求问卷规则', category: '等级规则' as RuleCategory, description: '', scope: '一转业务有效问卷', priority: 5,
   triggerMode: '事件触发', triggerEvent: '客户扫码', sourceCamp: '2026 暑期第 3 营', targetCamp: '2026 秋季体验营',
   minLeads: 30, conversionRate: 18, employeeStatus: true, liveCodeStatus: true, underLimit: true,
   questionnaireTemplate: '家庭教育需求问卷', sMin: 90, aMin: 75, bMin: 60,
@@ -85,19 +67,12 @@ function categoryCount(key: 'all' | RuleCategory) {
 }
 function resetForm() {
   Object.assign(form, {
-    name: '', category: selectedCategory.value === 'all' ? '活码分配' : selectedCategory.value, description: '', scope: '全部一转活码', priority: 10,
+    name: '家庭教育需求问卷规则', category: '等级规则', description: '', scope: '一转业务有效问卷', priority: 5,
     triggerMode: '事件触发', triggerEvent: '客户扫码', sourceCamp: '2026 暑期第 3 营', targetCamp: '2026 秋季体验营',
     minLeads: 30, conversionRate: 18, employeeStatus: true, liveCodeStatus: true, underLimit: true,
     questionnaireTemplate: '家庭教育需求问卷', sMin: 90, aMin: 75, bMin: 60,
     allocationMode: '轮询分配', conflictStrategy: '命中后停止', failureStrategy: '进入异常中心', effectiveAt: '', versionNote: ''
   })
-}
-function openCreate(category?: RuleCategory) {
-  editingId.value = null
-  resetForm()
-  if (category) form.category = category
-  currentStep.value = 0
-  drawerVisible.value = true
 }
 function openEdit(rule: Rule) {
   editingId.value = rule.id
@@ -141,7 +116,6 @@ function saveDraft(publish = false) {
   ElMessage.success(publish ? '规则已发布并进入生效队列' : '规则草稿已保存')
 }
 function showDetail(rule: Rule) { activeRule.value = rule; detailVisible.value = true }
-function simulate(rule: Rule) { activeRule.value = rule; simulateVisible.value = true }
 async function toggleRule(rule: Rule) {
   if (rule.status === '草稿') return ElMessage.warning('草稿需要发布后才能启用或停用')
   const next: RuleStatus = rule.status === '已发布' ? '已停用' : '已发布'
@@ -149,19 +123,14 @@ async function toggleRule(rule: Rule) {
   rule.status = next
   ElMessage.success(`规则已${next === '已发布' ? '启用' : '停用'}`)
 }
-function copyRule(rule: Rule) {
-  rules.value.unshift({ ...rule, id: Date.now(), code: `${rule.code}-COPY`, name: `${rule.name}（副本）`, status: '草稿', version: 'V0.1', updatedAt: new Date().toLocaleString('zh-CN', { hour12: false }) })
-  ElMessage.success('已复制为草稿，可继续编辑')
-}
 function resetQuery() { Object.assign(query, { keyword: '', category: '', status: '', trigger: '' }) }
 function statusType(status: RuleStatus) { return status === '已发布' ? 'success' : status === '草稿' ? 'warning' : 'info' }
 </script>
 
 <template>
   <section class="page rule-page">
-    <PageHeader title="线索规则中心" description="按规则域管理触发条件和业务动作，支持试算、版本发布与冲突控制。">
+    <PageHeader title="线索规则中心" description="管理家庭教育需求问卷的线索等级规则、版本发布与冲突控制。">
       <el-button :icon="DataAnalysis" @click="ElMessage.success('检测完成：当前规则无阻断冲突')">冲突检测</el-button>
-      <el-button type="primary" :icon="Plus" @click="openCreate()">新建规则</el-button>
     </PageHeader>
 
     <div class="rule-summary surface">
@@ -179,20 +148,20 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
             <el-icon><component :is="item.icon" /></el-icon><span><b>{{ item.label }}</b><small>{{ item.description }}</small></span><em>{{ categoryCount(item.key) }}</em>
           </button>
         </nav>
-        <div class="growth-note"><b>可持续扩展</b><p>后续清洗、标签、回收等规则按业务域注册，无需新增一张独立页面。</p></div>
+        <div class="growth-note"><b>固定规则范围</b><p>当前仅维护家庭教育需求问卷规则，不开放其他规则类型和新增入口。</p></div>
       </aside>
 
       <main class="rule-main">
         <div class="filter-bar surface">
           <el-input v-model="query.keyword" clearable :prefix-icon="Search" placeholder="搜索规则名称、编号、条件或动作" />
-          <el-select v-if="selectedCategory === 'all'" v-model="query.category" clearable placeholder="规则分类"><el-option label="活码分配" value="活码分配"/><el-option label="营期名单流转" value="营期名单流转"/><el-option label="等级规则" value="等级规则"/></el-select>
+          <el-select v-if="selectedCategory === 'all'" v-model="query.category" clearable placeholder="规则分类"><el-option label="等级规则" value="等级规则"/></el-select>
           <el-select v-model="query.status" clearable placeholder="规则状态"><el-option v-for="item in ['草稿','已发布','已停用']" :key="item" :label="item" :value="item"/></el-select>
-          <el-select v-model="query.trigger" clearable placeholder="触发方式"><el-option label="事件触发" value="扫码"/><el-option label="定时触发" value="02:00"/><el-option label="手动触发" value="手动"/></el-select>
+          <el-select v-model="query.trigger" clearable placeholder="触发方式"><el-option label="问卷事件触发" value="问卷"/></el-select>
           <el-button type="primary">查询</el-button><el-button @click="resetQuery">重置</el-button>
         </div>
 
         <article class="rule-list surface">
-          <header><div><h3>{{ selectedCategory === 'all' ? '全部规则' : categories.find(item => item.key === selectedCategory)?.label }}</h3><span>共 {{ filteredRules.length }} 条</span></div><el-button v-if="selectedCategory !== 'all'" link type="primary" :icon="Plus" @click="openCreate(selectedCategory)">新增此类规则</el-button></header>
+          <header><div><h3>{{ selectedCategory === 'all' ? '全部规则' : categories.find(item => item.key === selectedCategory)?.label }}</h3><span>共 {{ filteredRules.length }} 条</span></div></header>
           <el-table :data="filteredRules" row-key="id">
             <el-table-column label="规则" min-width="210"><template #default="{ row }"><div class="rule-name"><b>{{ row.name }}</b><span>{{ row.code }} · {{ row.version }}</span><small>{{ row.category }}</small></div></template></el-table-column>
             <el-table-column label="规则链" min-width="500"><template #default="{ row }"><div class="rule-chain"><div><small>触发</small><b>{{ row.trigger }}</b></div><i>→</i><div class="condition"><small>判断条件</small><b>{{ row.condition }}</b></div><i>→</i><div><small>执行动作</small><b>{{ row.action }}</b></div></div></template></el-table-column>
@@ -200,7 +169,7 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
             <el-table-column label="优先级" width="82"><template #default="{ row }"><span class="priority">P{{ row.priority }}</span></template></el-table-column>
             <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="light">{{ row.status }}</el-tag></template></el-table-column>
             <el-table-column label="最后更新" width="145"><template #default="{ row }"><div class="update-cell"><b>{{ row.updatedBy }}</b><span>{{ row.updatedAt }}</span></div></template></el-table-column>
-            <el-table-column label="操作" width="245" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="showDetail(row)">详情</el-button><el-button link type="primary" :icon="VideoPlay" @click="simulate(row)">试算</el-button><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item :icon="CopyDocument" @click="copyRule(row)">复制为草稿</el-dropdown-item><el-dropdown-item @click="ElMessage.info(`${row.name} 当前版本：${row.version}`)">版本记录</el-dropdown-item><el-dropdown-item divided @click="toggleRule(row)">{{ row.status === '已发布' ? '停用规则' : '启用规则' }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
+            <el-table-column label="操作" width="205" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="showDetail(row)">详情</el-button><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="ElMessage.info(`${row.name} 当前版本：${row.version}`)">版本记录</el-dropdown-item><el-dropdown-item divided @click="toggleRule(row)">{{ row.status === '已发布' ? '停用规则' : '启用规则' }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
           </el-table>
           <el-empty v-if="!filteredRules.length" description="暂无符合条件的规则" />
         </article>
@@ -208,29 +177,28 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
     </div>
 
     <el-drawer v-model="drawerVisible" :title="editingId ? '编辑规则并生成新版本' : '新建规则'" size="760px" class="rule-drawer">
-      <el-steps :active="currentStep" finish-status="success" simple><el-step title="基础与触发"/><el-step title="条件与动作"/><el-step title="试算与发布"/></el-steps>
+      <el-steps :active="currentStep" finish-status="success" simple><el-step title="基础与触发"/><el-step title="条件与动作"/><el-step title="确认与发布"/></el-steps>
       <el-form label-position="top" class="rule-form">
         <template v-if="currentStep === 0">
           <section><h4>规则基本信息</h4><div class="form-grid">
             <el-form-item label="规则名称" required><el-input v-model="form.name" maxlength="40" show-word-limit placeholder="请输入可识别的业务规则名称"/></el-form-item>
-            <el-form-item label="规则分类" required><el-select v-model="form.category"><el-option label="活码分配" value="活码分配"/><el-option label="营期名单流转" value="营期名单流转"/><el-option label="等级规则" value="等级规则"/></el-select></el-form-item>
+            <el-form-item label="规则分类" required><el-input model-value="等级规则" disabled/></el-form-item>
             <el-form-item label="适用范围" required><el-input v-model="form.scope" placeholder="例如：全部一转活码 / 一转事业部"/></el-form-item>
             <el-form-item label="执行优先级"><el-input-number v-model="form.priority" :min="1" :max="999"/><small>数值越小越先执行；相同对象规则按优先级依次判断。</small></el-form-item>
             <el-form-item label="规则说明" class="span-2"><el-input v-model="form.description" type="textarea" :rows="3" placeholder="说明业务目的、适用边界和负责人"/></el-form-item>
           </div></section>
-          <section><h4>触发方式</h4><el-radio-group v-model="form.triggerMode" class="trigger-options"><el-radio-button value="事件触发">事件触发</el-radio-button><el-radio-button value="定时触发">定时触发</el-radio-button><el-radio-button value="手动试算">手动试算</el-radio-button></el-radio-group><div v-if="form.category === '活码分配'" class="trigger-tip"><b>推荐：事件触发</b><span>客户扫码或执行批量轮询时实时判断接待资格。</span></div><div v-else-if="form.category === '营期名单流转'" class="trigger-tip"><b>推荐：营期结束后定时执行</b><span>每日 02:00 重算，可手动补跑；同一员工不会重复加入同一目标营期。</span></div><div v-else class="trigger-tip"><b>固定：有效问卷事件触发</b><span>答卷完成关联与解析后自动计算；规则变更可发起受控重算。</span></div></section>
+          <section><h4>触发方式</h4><el-input model-value="有效问卷提交 / 重新解析" disabled/><div class="trigger-tip"><b>固定：有效问卷事件触发</b><span>家庭教育需求问卷完成关联与解析后自动计算；规则变更可发起受控重算。</span></div></section>
         </template>
 
         <template v-else-if="currentStep === 1">
           <section v-if="form.category === '活码分配'"><h4>活码分配条件</h4><div class="condition-list"><el-checkbox v-model="form.liveCodeStatus">活码状态为启用</el-checkbox><el-checkbox v-model="form.employeeStatus">员工账号在职且启用</el-checkbox><el-checkbox v-model="form.underLimit">员工当前接量未达到活码配置上限</el-checkbox></div><div class="business-note"><b>规则边界</b><span>员工接量上限仅约束自动轮询。人工指定分配不受营期活码名单和接量上限限制。</span></div></section>
           <section v-else-if="form.category === '营期名单流转'"><h4>营期名单流转条件</h4><div class="form-grid"><el-form-item label="来源营期" required><el-select v-model="form.sourceCamp" filterable><el-option label="2026 暑期第 3 营" value="2026 暑期第 3 营"/><el-option label="2026 暑期第 2 营" value="2026 暑期第 2 营"/></el-select></el-form-item><el-form-item label="目标营期" required><el-select v-model="form.targetCamp" filterable><el-option label="2026 秋季体验营" value="2026 秋季体验营"/><el-option label="2026 暑期第 3 营" value="2026 暑期第 3 营"/></el-select></el-form-item><el-form-item label="最小有效分配量"><el-input-number v-model="form.minLeads" :min="1"/><small>避免少量样本造成虚高转化率。</small></el-form-item><el-form-item label="最低转化率"><el-input-number v-model="form.conversionRate" :min="0" :max="100"><template #suffix>%</template></el-input-number><small>转化率=已转化有效线索数÷有效分配线索数。</small></el-form-item></div><el-checkbox v-model="form.employeeStatus">仅同步在职且启用的员工</el-checkbox></section>
-          <section v-else><h4>问卷等级条件</h4><div class="form-grid"><el-form-item label="适用问卷" required><el-select v-model="form.questionnaireTemplate" filterable><el-option label="家庭教育需求问卷" value="家庭教育需求问卷"/><el-option label="直播课预约问卷" value="直播课预约问卷"/></el-select></el-form-item><el-form-item label="评级对象"><el-input model-value="线索；建档后转为客户当前等级" disabled/></el-form-item><el-form-item label="S级最低分"><el-input-number v-model="form.sMin" :min="1" :max="100"/></el-form-item><el-form-item label="A级最低分"><el-input-number v-model="form.aMin" :min="1" :max="100"/></el-form-item><el-form-item label="B级最低分"><el-input-number v-model="form.bMin" :min="1" :max="100"/></el-form-item><el-form-item label="C级区间"><el-input :model-value="`低于 ${form.bMin} 分`" disabled/></el-form-item></div><div class="business-note"><b>优先级规则</b><span>问卷自动评级生成系统结果；人工调整拥有更高优先级。人工结果解除前，后续问卷重算只生成候选结果，不覆盖当前等级。</span></div></section>
+          <section v-else><h4>问卷等级条件</h4><div class="form-grid"><el-form-item label="适用问卷" required><el-input model-value="家庭教育需求问卷" disabled/></el-form-item><el-form-item label="评级对象"><el-input model-value="线索；建档后转为客户当前等级" disabled/></el-form-item><el-form-item label="S级最低分"><el-input-number v-model="form.sMin" :min="1" :max="100"/></el-form-item><el-form-item label="A级最低分"><el-input-number v-model="form.aMin" :min="1" :max="100"/></el-form-item><el-form-item label="B级最低分"><el-input-number v-model="form.bMin" :min="1" :max="100"/></el-form-item><el-form-item label="C级区间"><el-input :model-value="`低于 ${form.bMin} 分`" disabled/></el-form-item></div><div class="business-note"><b>优先级规则</b><span>问卷自动评级生成系统结果；人工调整拥有更高优先级。人工结果解除前，后续问卷重算只生成候选结果，不覆盖当前等级。</span></div></section>
           <section><h4>执行动作与冲突处理</h4><div class="form-grid"><el-form-item label="执行动作"><el-select v-if="form.category === '活码分配'" v-model="form.allocationMode"><el-option label="轮询分配" value="轮询分配"/><el-option label="按顺序分配" value="按顺序分配"/></el-select><el-input v-else-if="form.category === '营期名单流转'" :model-value="`加入 ${form.targetCamp} 活码轮询名单`" disabled/><el-input v-else model-value="生成线索等级并写入评级历史" disabled/></el-form-item><el-form-item label="同对象规则冲突"><el-select v-model="form.conflictStrategy"><el-option label="命中后停止" value="命中后停止"/><el-option label="合并非冲突动作" value="合并非冲突动作"/><el-option label="高优先级覆盖" value="高优先级覆盖"/></el-select></el-form-item><el-form-item label="失败处理"><el-select v-model="form.failureStrategy"><el-option label="进入异常中心" value="进入异常中心"/><el-option label="自动重试3次后转人工" value="自动重试3次后转人工"/></el-select></el-form-item><el-form-item label="重复数据策略"><el-input :model-value="form.category === '等级规则' ? '保留全部评级历史，人工结果不被自动覆盖' : '已在目标名单则跳过，不删除人工加入人员'" disabled/></el-form-item></div></section>
         </template>
 
         <template v-else>
           <section><h4>发布前预览</h4><div class="preview-chain"><div><small>触发</small><b>{{ ruleTrigger() }}</b></div><i>→</i><div><small>条件</small><b>{{ ruleCondition() }}</b></div><i>→</i><div><small>动作</small><b>{{ ruleAction() }}</b></div></div></section>
-          <section><h4>规则试算</h4><div class="simulation-card"><div><span>模拟数据范围</span><b>{{ form.category === '活码分配' ? '近 7 日扫码线索' : form.category === '营期名单流转' ? form.sourceCamp : '近30日有效答卷' }}</b></div><div><span>预计命中</span><b>{{ form.category === '活码分配' ? '1,284 条线索' : form.category === '营期名单流转' ? '18 名员工' : 'S 126 / A 368 / B 512 / C 94' }}</b></div><div><span>冲突 / 异常</span><b>0 / 2</b></div><el-button :icon="VideoPlay" @click="ElMessage.success('试算完成，明细已刷新')">重新试算</el-button></div></section>
           <section><h4>版本信息</h4><div class="form-grid"><el-form-item label="计划生效时间"><el-date-picker v-model="form.effectiveAt" type="datetime" placeholder="发布后立即生效"/></el-form-item><el-form-item label="版本说明" required><el-input v-model="form.versionNote" placeholder="说明本次新增或变更内容"/></el-form-item></div><div class="publish-note">发布后生成不可变版本；再次编辑将创建新草稿，可从版本记录回退。</div></section>
         </template>
       </el-form>
@@ -239,7 +207,6 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
 
     <el-drawer v-model="detailVisible" title="规则详情与版本" size="620px"><template v-if="activeRule"><div class="detail-head"><el-tag :type="statusType(activeRule.status)">{{ activeRule.status }}</el-tag><h2>{{ activeRule.name }}</h2><p>{{ activeRule.code }} · {{ activeRule.version }}</p></div><el-descriptions :column="1" border><el-descriptions-item label="规则分类">{{ activeRule.category }}</el-descriptions-item><el-descriptions-item label="适用范围">{{ activeRule.scope }}</el-descriptions-item><el-descriptions-item label="优先级">P{{ activeRule.priority }}</el-descriptions-item><el-descriptions-item label="触发方式">{{ activeRule.trigger }}</el-descriptions-item><el-descriptions-item label="判断条件">{{ activeRule.condition }}</el-descriptions-item><el-descriptions-item label="执行动作">{{ activeRule.action }}</el-descriptions-item><el-descriptions-item label="更新信息">{{ activeRule.updatedBy }} · {{ activeRule.updatedAt }}</el-descriptions-item></el-descriptions><h3 class="history-title">版本记录</h3><el-timeline><el-timeline-item :timestamp="activeRule.updatedAt" type="primary"><b>{{ activeRule.version }} 当前版本</b><p>规则配置更新并完成冲突检测。</p></el-timeline-item><el-timeline-item timestamp="2026-08-10 09:20"><b>V1.0 首次发布</b><p>建立规则基础条件与执行动作。</p></el-timeline-item></el-timeline></template></el-drawer>
 
-    <el-dialog v-model="simulateVisible" title="规则试算结果" width="680px"><template v-if="activeRule"><div class="simulate-result"><div><span>规则</span><b>{{ activeRule.name }}</b></div><div><span>试算范围</span><b>{{ activeRule.scope }}</b></div><div><span>命中对象</span><b>{{ activeRule.category === '活码分配' ? '1,284 条线索' : '18 名员工' }}</b></div><div><span>未命中</span><b>{{ activeRule.category === '活码分配' ? '126 条线索' : '7 名员工' }}</b></div></div><el-alert title="试算不会写入业务数据" description="结果基于当前模拟数据和规则版本生成，发布前可下载明细复核。" type="info" show-icon :closable="false"/></template><template #footer><el-button @click="simulateVisible = false">关闭</el-button><el-button type="primary" @click="ElMessage.success('试算明细已导出')">导出明细</el-button></template></el-dialog>
   </section>
 </template>
 

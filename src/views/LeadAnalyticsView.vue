@@ -62,6 +62,8 @@ const operatingColumnOptions=[
   {value:'refundRate',label:'退款率'},{value:'finalConversionRate',label:'最终转化率'},{value:'gmvRate',label:'GMV完成率'},{value:'peopleServiceRatio',label:'人服比'},{value:'perCapitaGmv',label:'单人净GMV'},{value:'conversionDispersion',label:'团队转化离散率'},{value:'online',label:'当前在线'},{value:'grossGmv',label:'毛GMV'},{value:'refundAmount',label:'退款金额'},{value:'netGmv',label:'净GMV'}
 ]
 const operatingColumnStorageKey='heshu_boss_analytics_operating_columns_v1'
+const mutedOperatingColumns=new Set(['day1ArrivalRate','day1CompletionRate','day2ArrivalRate','day2CompletionRate','day3ArrivalRate','day3CompletionRate','refundRate','finalConversionRate','gmvRate','peopleServiceRatio','perCapitaGmv','conversionDispersion','online','grossGmv','refundAmount','netGmv'])
+const isMutedOperatingMetric=(columnKey:string)=>mutedOperatingColumns.has(columnKey)
 function loadOperatingColumns(){try{const saved=JSON.parse(localStorage.getItem(operatingColumnStorageKey)||'[]');return Array.isArray(saved)&&saved.length?[...new Set([...saved,'period','validLeads'])]:operatingColumnOptions.map(item=>item.value)}catch{return operatingColumnOptions.map(item=>item.value)}}
 const operatingVisibleColumns=ref<string[]>(loadOperatingColumns()),operatingColumnSettingVisible=ref(false)
 const showOperatingColumn=(key:string)=>key==='period'||operatingVisibleColumns.value.includes(key)
@@ -271,13 +273,13 @@ onMounted(async () => {
           <table class="period-operating-table">
             <thead>
               <tr><th rowspan="2" class="period-column">期次</th><th v-for="group in periodOperatingGroups" :key="group.label" :colspan="group.metrics.length" :class="['group-head', group.tone]">{{ group.label }}</th></tr>
-              <tr><template v-for="group in periodOperatingGroups" :key="`${group.label}-labels`"><th v-for="metric in group.metrics" :key="metric.label">{{ metric.label }}</th></template></tr>
+              <tr><template v-for="group in periodOperatingGroups" :key="`${group.label}-labels`"><th v-for="metric in group.metrics" :key="metric.label" :class="{ 'metric-muted': isMutedOperatingMetric(metric.columnKey) }">{{ metric.label }}</th></template></tr>
             </thead>
             <tbody>
               <tr v-for="row in operatingRows" :key="row.label||'all-summary'">
                 <th class="period-value">{{ row.label }}</th>
                 <template v-for="group in row.groups" :key="`${row.label}-${group.label}-values`">
-                  <td v-for="metric in group.metrics" :key="metric.label" :class="{ warning: metric.warning, highlight: metric.highlight }">
+                  <td v-for="metric in group.metrics" :key="metric.label" :class="{ warning: metric.warning, highlight: metric.highlight, 'metric-muted': isMutedOperatingMetric(metric.columnKey) }">
                     <button type="button" :class="{ clickable: metric.key }" :disabled="!metric.key" @click="metric.key && openDrilldown(metric.key, metric.label, metric.count || 0)">
                       <strong>{{ metric.value }}</strong><small v-if="metric.sub">{{ metric.sub }}</small>
                       <i v-if="metric.progress !== undefined" class="metric-progress"><em :style="{ width: `${metric.progress}%` }"></em></i>
@@ -380,6 +382,12 @@ onMounted(async () => {
 .period-operating-table td.warning strong{color:#c66d08}
 .period-operating-table td.highlight{background:#f3f8ff}
 .period-operating-table td.highlight strong{color:var(--analytics-blue)}
+.period-operating-table th.metric-muted,.period-operating-table td.metric-muted{background:#f2f4f7;color:#9aa4b2}
+.period-operating-table td.metric-muted strong,.period-operating-table td.metric-muted.warning strong,.period-operating-table td.metric-muted.highlight strong{color:#8f99a7}
+.period-operating-table td.metric-muted small,.period-operating-table td.metric-muted span{color:#a8b0bc}
+.period-operating-table td.metric-muted>button.clickable:hover,.period-operating-table td.metric-muted>button.clickable:focus-visible{background:#e9ecf1}
+.period-operating-table td.metric-muted .metric-progress{background:#dfe3e9}
+.period-operating-table td.metric-muted .metric-progress em{background:#aab2bd}
 .metric-progress{display:block;width:78%;height:6px;margin-top:9px;border-radius:999px;background:#e7edf5;overflow:hidden}
 .metric-progress em{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#28b7aa,#2875e6)}
 @media(max-width:900px){.period-operating-panel{padding:16px}.period-operating-heading{align-items:flex-start;flex-direction:column}.period-heading-actions{width:100%;justify-content:space-between}.period-operating-table{min-width:1400px}}
