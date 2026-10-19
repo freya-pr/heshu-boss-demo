@@ -3,6 +3,7 @@ import AppLayout from '../layouts/AppLayout.vue'
 import { menuLeaves } from '../config/menu'
 
 const specificComponents: Record<string, () => Promise<any>> = {
+  '/home/workbench': () => import('../views/WorkbenchView.vue'),
   '/leads/drainage': () => import('../views/LeadsView.vue'),
   '/leads/periods': () => import('../views/AcquisitionPeriodManagementView.vue'),
   '/leads/analytics': () => import('../views/LeadAnalyticsView.vue'),
@@ -51,7 +52,7 @@ const menuRoutes: RouteRecordRaw[] = menuLeaves.map(item => ({
 }))
 
 menuRoutes.push({ path: 'leads/channel-analysis', redirect: '/leads/channels?tab=analysis' })
-menuRoutes.push({ path: 'dashboard', redirect: '/leads/analytics' })
+menuRoutes.push({ path: 'dashboard', redirect: '/home/workbench' })
 
 menuRoutes.push({ path: 'profile', redirect: '/personal/profile' })
 menuRoutes.push({ path: 'system/applications', component: () => import('../views/ModulePlaceholderView.vue'), meta: { title: '应用管理', groupName: '业务配置', groupCode: 'BUSINESS_CONFIG', description: '管理接入合数BOSS的外部应用。', features: ['新增', '编辑', '启停', '连接校验', '凭证轮换'] } })
@@ -62,14 +63,14 @@ const router = createRouter({
     : createWebHistory(),
   routes: [
     { path: '/login', component: () => import('../views/LoginView.vue') },
-    { path: '/', component: AppLayout, redirect: '/leads/analytics', children: menuRoutes },
-    { path: '/:pathMatch(.*)*', redirect: '/leads/analytics' }
+    { path: '/', component: AppLayout, redirect: '/home/workbench', children: menuRoutes },
+    { path: '/:pathMatch(.*)*', redirect: '/home/workbench' }
   ]
 })
 
 router.beforeEach(to => {
   if (to.path !== '/login' && !localStorage.getItem('scrm_token')) return '/login'
-  if (to.path === '/login' && localStorage.getItem('scrm_token')) return '/leads/analytics'
+  if (to.path === '/login' && localStorage.getItem('scrm_token')) return '/home/workbench'
 })
 
 export default router

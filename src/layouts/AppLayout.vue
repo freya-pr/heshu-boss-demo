@@ -37,6 +37,7 @@ const groupIcons: Record<string, Component> = {
 }
 
 const leafIcons: Record<string, Component> = {
+  '/home/workbench': Platform,
   '/leads/analytics': DataLine,
   '/leads/drainage': Promotion,
   '/leads/third-party': Link,

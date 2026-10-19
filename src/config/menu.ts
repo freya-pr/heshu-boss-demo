@@ -15,7 +15,8 @@ export interface MenuGroup {
 export const v1Menus: MenuGroup[] = [
   {
     name: '首页', code: 'HOME', children: [
-      { name: '线索概览', path: '/leads/analytics', description: '作为合数BOSS默认首页，按引流期次概览线索从加微、问卷到成交退款的全链路经营表现。', features: ['日期/期次筛选', '店铺筛选', 'IP大类筛选', 'IP渠道筛选', 'IP名称筛选', '经营数据', '转化链路', '渠道分析', 'IP渠道分析', 'GMV与退款', '团队效能', '指标口径', '关键指标下钻', '经营报表导出'] }
+      { name: '工作台', path: '/home/workbench', description: '汇总当前用户的常用入口、最新业务动态和使用帮助，作为登录后的默认首页。', features: ['欢迎信息', '今日待办', '快捷导航配置', '最新动态', '用户手册'] },
+      { name: '线索概览', path: '/leads/analytics', description: '按引流期次概览线索从加微、问卷到成交退款的全链路经营表现。', features: ['日期/期次筛选', '店铺筛选', 'IP大类筛选', 'IP渠道筛选', 'IP名称筛选', '经营数据', '转化链路', '渠道分析', 'IP渠道分析', 'GMV与退款', '团队效能', '指标口径', '关键指标下钻', '经营报表导出'] }
     ]
   },
   {
