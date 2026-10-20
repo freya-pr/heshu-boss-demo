@@ -26,6 +26,7 @@ const ipCategoryOptions = ref(loadIpCategoryOptions())
 
 const groupIcons: Record<string, Component> = {
   HOME: House,
+  DATA_OVERVIEW: DataLine,
   LEAD: Promotion,
   CUSTOMER: User,
   DELIVERY: School,
@@ -79,7 +80,7 @@ function leafIcon(item: MenuItem) { return item.path ? leafIcons[item.path] || D
 function itemActive(item:MenuItem):boolean { return item.path===route.path||Boolean(item.children?.some(itemActive)) }
 function groupActive(group: MenuItem) { return Boolean(group.children?.some(itemActive)) }
 function subKey(group:MenuItem,item:MenuItem){return `${groupKey(group)}:${item.name}`}
-function isDirectGroup(_group: MenuItem) { return false }
+function isDirectGroup(group: MenuItem) { return group.code === 'HOME' }
 function toggleGroup(group: MenuItem) { openGroups[groupKey(group)] = !openGroups[groupKey(group)] }
 function openPage(item: MenuItem) { if (item.path) router.push(item.path) }
 function handleGroupClick(group: MenuItem) {

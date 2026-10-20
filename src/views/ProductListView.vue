@@ -25,8 +25,13 @@ const loading = ref(false)
 const syncPanelVisible = ref(false)
 const syncRunning = ref(false)
 const remarkVisible = ref(false)
+const assignmentVisible = ref(false)
 const activeProduct = ref<ProductRow | null>(null)
 const remark = ref('')
+const assignmentForm = reactive({ group: '默认分组', qrCode: '', purchaseReminder: '', authorizationReminder: '', manualReminder: '' })
+const groupOptions = ['默认分组', '阿留皮皮', '周老师', '北京店播']
+const qrOptions = ['0830 8.25', '0830 周老师', '8月第3期 · 抖音一转', '家庭教育体验课承接码']
+const reminderOptions = ['短信模版一', '短信模版二', '不发送']
 const page = ref(1)
 const pageSize = ref(10)
 const syncPlatforms = [
@@ -80,6 +85,20 @@ async function syncProducts(platforms = syncPlatforms.map(item => item.code)) {
 function resetSyncState() { syncPlatforms.forEach(item => { syncState[item.code] = 'IDLE' }) }
 function closeSyncPanel() { if (!syncRunning.value) syncPanelVisible.value = false }
 function openRemark(row: ProductRow) { activeProduct.value = row; remark.value = row.remark; remarkVisible.value = true }
+function openAssignment(row: ProductRow) {
+  activeProduct.value = row
+  Object.assign(assignmentForm, { group: '默认分组', qrCode: '', purchaseReminder: '', authorizationReminder: '', manualReminder: '' })
+  assignmentVisible.value = true
+}
+function saveAssignment() {
+  if (!assignmentForm.group || !assignmentForm.qrCode || !assignmentForm.purchaseReminder || !assignmentForm.authorizationReminder || !assignmentForm.manualReminder) return ElMessage.warning('请完成全部必填配置')
+  if (activeProduct.value) {
+    activeProduct.value.qrAssigned = true
+    activeProduct.value.updatedAt = new Date().toLocaleString('zh-CN', { hour12: false }).replaceAll('/', '-')
+  }
+  assignmentVisible.value = false
+  ElMessage.success('活码分配已保存')
+}
 function saveRemark() {
   if (activeProduct.value) activeProduct.value.remark = remark.value.trim()
   remarkVisible.value = false
@@ -127,7 +146,7 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
         <el-table-column label="商品状态" width="100"><template #default="{ row }"><el-tag :type="row.status === '在线' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column prop="storeName" label="店铺名称" min-width="180" />
         <el-table-column prop="storeType" label="店铺类型" width="105" />
-        <el-table-column label="操作" width="110" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openRemark(row)">修改备注</el-button></template></el-table-column>
+        <el-table-column label="操作" width="180" fixed="right"><template #default="{ row }"><el-button v-if="!row.qrAssigned" link type="success" @click="openAssignment(row)">分配活码</el-button><el-button link type="primary" @click="openRemark(row)">修改备注</el-button></template></el-table-column>
       </el-table>
       <footer><el-pagination v-model:current-page="page" v-model:page-size="pageSize" background layout="total, sizes, prev, pager, next, jumper" :total="filteredRows.length" :page-sizes="[10, 20, 50]" /></footer>
     </article>
@@ -137,12 +156,28 @@ function exportRows() { ElMessage.success(`已创建 ${filteredRows.value.length
       <el-input v-model="remark" type="textarea" :rows="4" maxlength="100" show-word-limit placeholder="请输入内部备注，不会同步至第三方平台" />
       <template #footer><el-button @click="remarkVisible = false">取消</el-button><el-button type="primary" @click="saveRemark">保存备注</el-button></template>
     </el-dialog>
+
+    <el-dialog v-model="assignmentVisible" title="分配活码" width="680px" class="assignment-dialog" destroy-on-close>
+      <section class="assignment-product">
+        <span>商品名称</span>
+        <div><b>{{ activeProduct?.name }}</b><small>{{ activeProduct?.storeType }}　{{ activeProduct?.storeName }}</small><p>备注：{{ activeProduct?.remark || '--' }}</p></div>
+      </section>
+      <el-form label-width="130px" class="assignment-form">
+        <el-form-item label="分组" required><el-select v-model="assignmentForm.group" style="width:100%"><el-option v-for="item in groupOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+        <el-form-item label="活码" required><el-select v-model="assignmentForm.qrCode" filterable placeholder="请选择活码" style="width:100%"><el-option v-for="item in qrOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+        <el-form-item label="购买后提醒" required><el-select v-model="assignmentForm.purchaseReminder" placeholder="请选择购买后提醒" style="width:100%"><el-option v-for="item in reminderOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+        <el-form-item label="授权后提醒" required><el-select v-model="assignmentForm.authorizationReminder" placeholder="请选择授权后提醒" style="width:100%"><el-option v-for="item in reminderOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+        <el-form-item label="手动提醒" required><el-select v-model="assignmentForm.manualReminder" placeholder="请选择手动提醒" style="width:100%"><el-option v-for="item in reminderOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
+      </el-form>
+      <template #footer><el-button @click="assignmentVisible=false">取消</el-button><el-button type="success" @click="saveAssignment">保存</el-button></template>
+    </el-dialog>
   </section>
 </template>
 
 <style scoped>
 .product-page{--ink:#152640;--blue:#2875e6}.ip-context{display:flex;align-items:center;gap:10px;padding:12px 16px;margin-bottom:14px;border:1px solid #cfe0f7;border-left:4px solid var(--blue);border-radius:9px;background:#f4f8ff;color:#6d7e96;font-size:12px}.ip-context code,.product-ledger code,.remark-product code{padding:4px 7px;border:1px solid #dae5f2;border-radius:6px;background:#f2f6fb;color:#426790;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}.ip-context b{color:var(--ink)}.ip-context button{margin-left:auto;border:0;background:none;color:var(--blue);font-weight:700;cursor:pointer}.product-filter{display:grid;grid-template-columns:1.5fr repeat(4,.72fr) auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.product-ledger{padding:0 18px 18px}.product-ledger>header{height:62px;display:flex;align-items:center;justify-content:space-between}.product-ledger header>div{display:flex;align-items:baseline;gap:9px}.product-ledger h3{margin:0;color:var(--ink)}.product-ledger header span,.product-ledger header p{color:#8b99ab;font-size:10px}.product-ledger footer{display:flex;justify-content:flex-end;padding-top:18px}.product-name b,.product-name small,.ip-cell b,.ip-cell code{display:block}.product-name b{color:var(--ink)}.product-name small{margin-top:5px;color:#8796aa;font-size:10px}.ip-cell b{margin-bottom:5px;color:var(--ink);font-size:12px}.ip-cell code{width:max-content;padding:2px 5px;font-size:8px}.remark-product{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;margin-bottom:14px;border-radius:8px;background:#f5f8fc}.remark-product b{color:var(--ink)}@media(max-width:1200px){.product-filter{grid-template-columns:repeat(3,1fr)}}
 .product-filter{grid-template-columns:1.5fr repeat(3,.72fr) auto auto}
+.assignment-product{display:grid;grid-template-columns:120px 1fr;gap:14px;padding:4px 0 18px}.assignment-product>span{text-align:right;color:#687589}.assignment-product div{display:grid;gap:6px}.assignment-product b{color:var(--ink)}.assignment-product small{color:#8b99ab}.assignment-product p{margin:0;color:#526177}.assignment-form{padding-right:28px}.assignment-form :deep(.el-form-item){margin-bottom:18px}.assignment-dialog :deep(.el-dialog__footer){padding-top:6px}
 </style>
 
 <style>

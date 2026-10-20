@@ -8,7 +8,7 @@ export interface WorkTab {
   closable: boolean
 }
 
-const HOME_TAB: WorkTab = { path: '/home/workbench', title: '工作台', groupName: '首页', closable: false }
+const HOME_TAB: WorkTab = { path: '/home/workbench', title: '首页', groupName: '首页', closable: false }
 const NON_TAB_PAGE_PATHS = new Set<string>(['/system/applications'])
 
 function restore(): WorkTab[] {

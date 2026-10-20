@@ -30,9 +30,9 @@ const seed: DemoDb = {
     { id: 3, customer_no: 'C202608160003', name: '吴女士', mobile: '13800003333', union_id: 'union_wu_003', grade: 'S', grade_source: 'LEAD_INHERITED', lifecycle: 'DEAL', add_method: 'BUSINESS_CARD', source_name: '抖音 · 直播间', source_lead_no: 'L202608150008', camp_name: '2026暑期高年级1班', owner_id: 2, owner_name: '王老师', owner_employee_no: 'B00126', owner_organization_id: 3, owner_organization_name: '一转一组', status: 'ACTIVE', created_at: '2026-08-15 15:20:00' }
   ],
   collisionCases: [
-    { id: 1, collision_no: 'DC202608250001', source_type: 'LEAD_CONVERT', source_business_no: 'TP202608250019', source_lead_no: 'L202608250019', incoming_name: '周女士', mobile: '13800001111', union_id: 'union_qian_002', mobile_customer_id: 1, union_customer_id: 2, risk_level: 'HIGH', status: 'PENDING', requested_by: '系统', requested_at: '2026-08-25 09:18:36', handler_name: '', handled_at: '', resolution_type: '', resolution_reason: '', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: '2026-08-25 09:18:36', detail: '线索转客户时，手机号与 UnionID 分别命中不同客户，已阻断自动建档。' }] },
-    { id: 2, collision_no: 'DC202608250002', source_type: 'WECOM_SYNC', source_business_no: 'WECOM-EVT-88261', source_lead_no: '', incoming_name: '吴女士', mobile: '13800003333', union_id: 'union_zhou_001', mobile_customer_id: 3, union_customer_id: 1, risk_level: 'HIGH', status: 'PROCESSING', requested_by: '企微回调', requested_at: '2026-08-25 10:06:12', handler_name: '林校长', started_at: '2026-08-25 10:12:08', handled_at: '', resolution_type: '', resolution_reason: '', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: '2026-08-25 10:06:12', detail: '企微外部联系人同步触发身份冲突。' }, { action: 'START', operator: '林校长', occurred_at: '2026-08-25 10:12:08', detail: '开始人工核验。' }] },
-    { id: 3, collision_no: 'DC202608240006', source_type: 'IMPORT', source_business_no: 'IMPORT-20260824-08', source_lead_no: '', incoming_name: '钱女士', mobile: '13800002222', union_id: 'union_wu_003', mobile_customer_id: 2, union_customer_id: 3, risk_level: 'MEDIUM', status: 'RESOLVED', requested_by: '张铭钰', requested_at: '2026-08-24 16:40:21', handler_name: '林校长', handled_at: '2026-08-24 17:08:43', resolution_type: 'KEEP_SEPARATE', resolution_reason: '经手机号回访及企微头像核验，确认是两个不同自然人，保留两个独立客户档案。', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '张铭钰', occurred_at: '2026-08-24 16:40:21', detail: '导入解密数据时触发身份冲突。' }, { action: 'RESOLVE', operator: '林校长', occurred_at: '2026-08-24 17:08:43', detail: '确认不同人，保留独立档案。' }] }
+    { id: 1, collision_no: 'DC202608250001', source_type: 'LEAD_CONVERT', source_business_no: 'TP202608250019', source_lead_no: 'L202608250019', incoming_name: '周女士', mobile: '13800001111', union_id: 'union_qian_002', hit_type: 'MOBILE', mobile_customer_id: 1, union_customer_id: 2, risk_level: 'HIGH', status: 'PENDING', requested_by: '系统', requested_at: '2026-08-25 09:18:36', handler_name: '', handled_at: '', resolution_type: '', resolution_reason: '', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: '2026-08-25 09:18:36', detail: '线索转客户时，手机号与 UnionID 分别命中不同客户，已阻断自动建档。' }] },
+    { id: 2, collision_no: 'DC202608250002', source_type: 'WECOM_SYNC', source_business_no: 'WECOM-EVT-88261', source_lead_no: '', incoming_name: '吴女士', mobile: '13800003333', union_id: 'union_zhou_001', hit_type: 'UNION_ID', mobile_customer_id: 3, union_customer_id: 1, risk_level: 'HIGH', status: 'PENDING', requested_by: '企微回调', requested_at: '2026-08-25 10:06:12', handler_name: '', handled_at: '', resolution_type: '', resolution_reason: '', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '系统', occurred_at: '2026-08-25 10:06:12', detail: '企微外部联系人同步触发身份冲突。' }] },
+    { id: 3, collision_no: 'DC202608240006', source_type: 'IMPORT', source_business_no: 'IMPORT-20260824-08', source_lead_no: '', incoming_name: '钱女士', mobile: '13800002222', union_id: 'union_wu_003', hit_type: 'MOBILE', mobile_customer_id: 2, union_customer_id: 3, risk_level: 'MEDIUM', status: 'RESOLVED', requested_by: '张铭钰', requested_at: '2026-08-24 16:40:21', handler_name: '林校长', handled_at: '2026-08-24 17:08:43', resolution_type: 'KEEP_SEPARATE', resolution_reason: '经手机号回访及企微头像核验，确认是两个不同自然人，保留两个独立客户档案。', target_customer_id: null, audit_logs: [{ action: 'CREATE', operator: '张铭钰', occurred_at: '2026-08-24 16:40:21', detail: '导入解密数据时触发身份冲突。' }, { action: 'RESOLVE', operator: '林校长', occurred_at: '2026-08-24 17:08:43', detail: '确认不同人，保留独立档案。' }] }
   ],
   messages: [
     { id: 1, receiver_username: 'admin', message_type: 'NEW_LEAD', title: '新线索已进入待分配队列', summary: '合作渠道 A 新增 1 条线索，请及时处理。', level: 'IMPORTANT', read_status: 'UNREAD', process_status: 'PENDING', created_at: '2026-08-16 10:30:09' },
@@ -65,6 +65,7 @@ function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) }
 function normalizeEmployeeNo(value: unknown) { const text=String(value||'');return /^B\d{5}$/.test(text)?`B0${text.slice(1)}`:text }
 function normalizeDb(source: DemoDb): DemoDb {
   source.collisionCases ||= clone(seed.collisionCases)
+  source.collisionCases.forEach(item=>{item.hit_type=item.hit_type||(Number(item.id)%2===0?'UNION_ID':'MOBILE');if(item.status==='PROCESSING'){item.status='PENDING';item.handler_name='';item.started_at='';item.audit_logs=(item.audit_logs||[]).filter((log:Row)=>log.action!=='START')}})
   source.employees.forEach(item=>{item.employee_no=normalizeEmployeeNo(item.employee_no)})
   source.leads.forEach(item=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.history_owner_employee_no=normalizeEmployeeNo(item.history_owner_employee_no);item.demand_mined=Boolean(item.demand_mined||item.demand_mined_at);item.mobile_change_history ||= [];if(item.order_status==='NO_ORDER')item.order_status=''})
   source.customers.forEach((item,index)=>{item.owner_employee_no=normalizeEmployeeNo(item.owner_employee_no);item.grade_source=item.grade_source||'LEAD_INHERITED';item.lifecycle=item.lifecycle||(item.order_count>0?'DEAL':item.demand_mined?'INTENT':'LEAD');item.add_method=item.add_method||(['QR_CODE','LINK','BUSINESS_CARD'][index%3]);item.source_name=item.source_name||'历史数据';item.source_lead_no=item.source_lead_no||'';item.camp_name=item.camp_name||''})
@@ -194,6 +195,7 @@ function recordCollision(input: Row, byMobile: Row, byUnion: Row) {
     source_type: input.sourceType || input.source_type || (input.lead_no ? 'LEAD_CONVERT' : 'CUSTOMER_CREATE'),
     source_business_no: input.order_no || input.sourceBusinessNo || '', source_lead_no: input.lead_no || '',
     incoming_name: input.name || '', mobile: input.mobile, union_id: input.unionId,
+    hit_type: input.hitType || input.hit_type || 'MOBILE',
     mobile_customer_id: byMobile.id, union_customer_id: byUnion.id,
     risk_level: 'HIGH', status: 'PENDING', requested_by: currentUser().displayName,
     requested_at: requestedAt, handler_name: '', handled_at: '', resolution_type: '',
@@ -582,21 +584,11 @@ export const demoHttp = {
       Object.assign(customer, { previous_grade: customer.grade || 'UNRATED', grade: body.grade, grade_source: 'CUSTOMER_MANUAL', grade_change_reason: String(body.reason).trim(), grade_changed_by: currentUser().displayName, grade_changed_at: changedAt, grade_history: history })
       save(); return ok({ grade: customer.grade, source: customer.grade_source })
     }
-    const startCollision = path.match(/^\/customers\/collisions\/(\d+)\/start$/)
-    if (startCollision) {
-      const collision = db.collisionCases.find(item => item.id === Number(startCollision[1]))
-      if (!collision) return fail('撞单案件不存在')
-      if (collision.status !== 'PENDING') return fail(collision.status === 'RESOLVED' ? '案件已处理完成，不能重复领取' : '案件已被领取，请刷新后查看处理人')
-      const operator = currentUser().displayName
-      collision.status = 'PROCESSING'; collision.handler_name = operator; collision.started_at ||= nowText()
-      collision.audit_logs ||= []; collision.audit_logs.unshift({ action: 'START', operator, occurred_at: nowText(), detail: '领取案件并开始人工核验。' })
-      save(); return ok(enrichCollision(collision))
-    }
     const resolveCollision = path.match(/^\/customers\/collisions\/(\d+)\/resolve$/)
     if (resolveCollision) {
       const collision = db.collisionCases.find(item => item.id === Number(resolveCollision[1]))
       if (!collision) return fail('撞单案件不存在')
-      if (collision.status !== 'PROCESSING') return fail(collision.status === 'RESOLVED' ? '案件已处理完成，不能重复裁决' : '请先领取案件，再提交裁决')
+      if (collision.status !== 'PENDING') return fail('案件已处理完成，不能重复裁决')
       const resolutionType = String(body.resolutionType || '')
       const reason = String(body.reason || '').trim()
       if (!['MERGE_TO_MOBILE', 'MERGE_TO_UNION', 'KEEP_SEPARATE'].includes(resolutionType)) return fail('请选择有效的处理结论')

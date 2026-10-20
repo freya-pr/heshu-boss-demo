@@ -15,7 +15,11 @@ export interface MenuGroup {
 export const v1Menus: MenuGroup[] = [
   {
     name: '首页', code: 'HOME', children: [
-      { name: '工作台', path: '/home/workbench', description: '汇总当前用户的常用入口、最新业务动态和使用帮助，作为登录后的默认首页。', features: ['欢迎信息', '今日待办', '快捷导航配置', '最新动态', '用户手册'] },
+      { name: '首页', path: '/home/workbench', description: '汇总当前用户的常用入口、最新业务动态和使用帮助，作为人员进入系统后的固定首页。', features: ['欢迎信息', '今日待办', '快捷导航配置', '最新动态', '用户手册'] }
+    ]
+  },
+  {
+    name: '数据概览', code: 'DATA_OVERVIEW', children: [
       { name: '线索概览', path: '/leads/analytics', description: '按引流期次概览线索从加微、问卷到成交退款的全链路经营表现。', features: ['日期/期次筛选', '店铺筛选', 'IP大类筛选', 'IP渠道筛选', 'IP名称筛选', '经营数据', '转化链路', '渠道分析', 'IP渠道分析', 'GMV与退款', '团队效能', '指标口径', '关键指标下钻', '经营报表导出'] }
     ]
   },
@@ -36,7 +40,7 @@ export const v1Menus: MenuGroup[] = [
     name: '客户中心', code: 'CUSTOMER', children: [
       { name: '客户总览', path: '/customers/overview', description: '在当前数据权限范围内查看客户规模、生命周期、等级、来源与添加方式分布，并下钻客户明细。', features: ['组织筛选', '来源筛选', '等级筛选', '添加方式筛选', '生命周期分布', '负责人负载', '进入明细'] },
       { name: '客户列表', path: '/customers/list', description: '以唯一客户编码管理家长客户档案；区分首次来源和添加方式，建档时继承线索等级，之后可在客户操作中独立调整并保留历史。', features: ['查看360档案', '添加方式', '首次来源', '负责人', '标签', '继承线索等级', '编辑客户等级', '等级变更历史'] },
-      { name: '撞单管理', path: '/customers/collisions', description: '手机号与 UnionID 分别命中不同客户时阻断自动建档，通过证据核验完成身份划归并保留完整审计链路。', features: ['冲突自动建案', '待处理队列', '强身份证据对比', '领取处理', '合并至指定主档', '确认不同人', '审计记录', '历史保留'] },
+      { name: '撞单管理', path: '/customers/collisions', description: '手机号与 UnionID 分别命中不同客户时阻断自动建档，通过证据核验完成身份划归并保留完整审计链路。', features: ['冲突自动建案', '待处理队列', '强身份证据对比', '开始处理', '合并至指定主档', '确认不同人', '审计记录', '历史保留'] },
       { name: '企微标签', path: '/customers/tags', description: '按企业微信标签组维护企微企业标签，并与当前企业主体同步。', features: ['企微企业标签', '适用部门多选', '标签分组', '批量新增标签', '编辑', '删除', '同步企微标签'] }
     ]
   },
