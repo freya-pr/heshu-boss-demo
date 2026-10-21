@@ -170,12 +170,12 @@ function validateLeadMobileChange(lead: Row, rawMobile: unknown) {
   if (newMobile === currentMobile) return { status: 'BLOCKED_SAME_MOBILE', title: '新手机号与当前手机号一致', message: '无需变更，请重新输入其他手机号。', current_profile: currentProfile, target_profile: null, validation_token: '' }
   const targetCustomer = db.customers.find(item => item.status !== 'MERGED' && item.mobile === newMobile)
   const targetLead = db.leads.find(item => item.id !== lead.id && [item.decrypted_mobile, item.mobile].includes(newMobile))
-  if (!targetCustomer && !targetLead) return { status: 'AVAILABLE', title: '手机号未被占用', message: '校验通过，可直接变更当前线索及关联客户的主手机号。', current_profile: currentProfile, target_profile: null, validation_token: `${lead.id}:${newMobile}:AVAILABLE` }
   const resolvedTargetLead = targetLead || db.leads.find(item => item.customer_no && item.customer_no === targetCustomer?.customer_no) || { id: null, name: targetCustomer?.name, owner_id: targetCustomer?.owner_id, owner_name: targetCustomer?.owner_name, owner_employee_no: targetCustomer?.owner_employee_no }
-  const targetProfile = mobileProfile(resolvedTargetLead as Row, targetCustomer)
-  const sameOwner = Boolean(currentProfile.owner_id && targetProfile.owner_id && Number(currentProfile.owner_id) === Number(targetProfile.owner_id)) || Boolean(currentProfile.owner_employee_no && targetProfile.owner_employee_no && currentProfile.owner_employee_no === targetProfile.owner_employee_no)
-  if (sameOwner) return { status: 'MERGE_ALLOWED', title: '手机号已存在，可合并档案', message: `两个手机号均归属于一转负责人 ${currentProfile.owner_name || targetProfile.owner_name}，禁止直接覆盖，但允许确认后合并相关档案。`, current_profile: currentProfile, target_profile: targetProfile, validation_token: `${lead.id}:${newMobile}:MERGE_ALLOWED` }
-  return { status: 'BLOCKED_OWNER_CONFLICT', title: '手机号已存在且客户归属不同', message: `当前手机号客户归属于 ${currentProfile.owner_name || '未分配'}，新手机号客户归属于 ${targetProfile.owner_name || '未分配'}，不允许变更或自动合并。`, current_profile: currentProfile, target_profile: targetProfile, validation_token: '' }
+  const targetProfile = targetCustomer || targetLead ? mobileProfile(resolvedTargetLead as Row, targetCustomer) : null
+  if (lead.customer_no) return { status: 'LEAD_ONLY', title: targetCustomer ? '手机号已存在客户' : '手机号可以变更', message: '本次只更新当前线索手机号，关联客户主手机号保持不变。', current_profile: currentProfile, target_profile: targetProfile, validation_token: `${lead.id}:${newMobile}:LEAD_ONLY` }
+  const unionCustomer = lead.union_id ? db.customers.find(item => item.status !== 'MERGED' && item.union_id === lead.union_id) : undefined
+  if (targetCustomer && unionCustomer && targetCustomer.id !== unionCustomer.id) return { status: 'COLLISION_PENDING', title: '身份分别命中不同客户', message: '保存手机号后将阻断自动建档并生成待处理撞单案件。', current_profile: currentProfile, target_profile: targetProfile, validation_token: `${lead.id}:${newMobile}:COLLISION_PENDING` }
+  return { status: 'MATCH_READY', title: targetCustomer || unionCustomer ? '将关联已有客户' : '将创建新客户', message: targetCustomer || unionCustomer ? '手机号或 UnionID 已命中有效客户，保存后将关联原客户。' : '手机号和 UnionID 均未命中，保存后将创建新客户。', current_profile: currentProfile, target_profile: targetProfile, validation_token: `${lead.id}:${newMobile}:MATCH_READY` }
 }
 function enrichCollision(item: Row): Row {
   return {
@@ -192,7 +192,7 @@ function recordCollision(input: Row, byMobile: Row, byUnion: Row) {
   const nextId = Math.max(0, ...db.collisionCases.map(item => Number(item.id) || 0)) + 1
   const collision = {
     id: nextId, collision_no: `DC${new Date().toISOString().replace(/\D/g, '').slice(0, 14)}${String(nextId).padStart(3, '0')}`,
-    source_type: input.sourceType || input.source_type || (input.lead_no ? 'LEAD_CONVERT' : 'CUSTOMER_CREATE'),
+    source_type: input.sourceType || input.source_type || (input.lead_no ? 'LEAD_CONVERT' : 'IMPORT'),
     source_business_no: input.order_no || input.sourceBusinessNo || '', source_lead_no: input.lead_no || '',
     incoming_name: input.name || '', mobile: input.mobile, union_id: input.unionId,
     hit_type: input.hitType || input.hit_type || 'MOBILE',
@@ -224,7 +224,7 @@ function createCustomer(body: Row): Row & { _reused: boolean; _match_by: string 
   const owner = db.employees.find(item => item.name === ownerName || item.legal_name === ownerName)
   const ownerOrganization = db.organizations.find(item => Number(item.id) === Number(owner?.organization_id))
   const inheritedGrade = effectiveLeadGrade(body)
-  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: inheritedGrade, grade_source: 'LEAD_INHERITED', lifecycle: body.lifecycle || 'LEAD', add_method: body.addMethod || body.add_method || 'LINK', source_name: body.source_name || body.lead_source || '人工建档', source_lead_no: body.lead_no || '', camp_name: body.camp_name || '', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
+  const customer = { id: Math.max(0, ...db.customers.map(item => item.id)) + 1, customer_no: id('C'), name: body.name, mobile, union_id: unionId, grade: inheritedGrade, grade_source: 'LEAD_INHERITED', lifecycle: body.lifecycle || 'LEAD', add_method: body.addMethod || body.add_method || 'LINK', source_name: body.source_name || body.lead_source || '业务数据建档', source_lead_no: body.lead_no || '', camp_name: body.camp_name || '', owner_id: owner?.id || null, owner_name: ownerName, owner_employee_no: owner?.employee_no || '', owner_organization_id: owner?.organization_id || null, owner_organization_name: ownerOrganization?.name || '', status: 'ACTIVE', created_at: new Date().toLocaleString('zh-CN', { hour12: false }) }
   db.customers.unshift(customer); save(); return { ...customer, _reused: false, _match_by: 'NONE' }
 }
 
@@ -496,40 +496,34 @@ export const demoHttp = {
       const lead = db.leads.find(item => item.id === Number(mobileChange[1]))
       if (!lead) return fail('线索不存在')
       const result = validateLeadMobileChange(lead, body.newMobile)
-      const requestedAction = String(body.action || '')
-      if (!['AVAILABLE', 'MERGE_ALLOWED'].includes(result.status)) return fail(result.message)
-      if ((result.status === 'AVAILABLE' && requestedAction !== 'CHANGE') || (result.status === 'MERGE_ALLOWED' && requestedAction !== 'MERGE')) return fail('手机号校验结果已变化，请重新校验后提交')
+      if (!['LEAD_ONLY', 'MATCH_READY', 'COLLISION_PENDING'].includes(result.status)) return fail(result.message)
+      if (String(body.action || '') !== 'CHANGE') return fail('手机号校验结果已变化，请重新校验后提交')
       const newMobile = String(body.newMobile || '').replace(/[\s-]/g, '').replace(/^\+86/, '')
       const oldMobile = String(lead.decrypted_mobile || lead.mobile || '')
       const occurredAt = nowText()
       const operatorName = currentUser().displayName
       lead.mobile_change_history ||= []
-      if (result.status === 'AVAILABLE') {
-        const currentCustomer = db.customers.find(item => item.status !== 'MERGED' && (item.customer_no === lead.customer_no || item.mobile === oldMobile))
+      if (result.status === 'LEAD_ONLY') {
         Object.assign(lead, { mobile: newMobile, decrypted_mobile: newMobile, updated_at: occurredAt })
-        if (currentCustomer) Object.assign(currentCustomer, { mobile: newMobile, updated_at: occurredAt })
-        lead.mobile_change_history.unshift({ action: 'CHANGE', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `手机号由 ${maskMobile(oldMobile)} 变更为 ${maskMobile(newMobile)}；原手机号与操作记录已保留审计。` })
+        lead.mobile_change_history.unshift({ action: 'LEAD_ONLY_CHANGE', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `仅更新线索手机号：${maskMobile(oldMobile)} → ${maskMobile(newMobile)}；客户 ${lead.customer_no} 的主手机号及关联关系保持不变。` })
         save()
-        return ok({ action: 'CHANGE', customerNo: currentCustomer?.customer_no || lead.customer_no || '' })
+        return ok({ action: 'LEAD_ONLY', customerNo: lead.customer_no || '' })
       }
-      const currentCustomer = db.customers.find(item => item.status !== 'MERGED' && (item.customer_no === lead.customer_no || item.mobile === oldMobile))
-      const targetCustomer = db.customers.find(item => item.status !== 'MERGED' && item.mobile === newMobile)
-      const targetLead = db.leads.find(item => item.id !== lead.id && [item.decrypted_mobile, item.mobile].includes(newMobile))
-      if (!targetCustomer && !targetLead) return fail('目标档案已变化，请重新校验')
-      const targetCustomerNo = targetCustomer?.customer_no || targetLead?.customer_no || ''
-      if (currentCustomer && targetCustomer && currentCustomer.id !== targetCustomer.id) {
-        const gradePriority: Record<string, number> = { S: 4, A: 3, B: 2, C: 1, UNRATED: 0 }
-        if ((gradePriority[currentCustomer.grade] || 0) > (gradePriority[targetCustomer.grade] || 0)) targetCustomer.grade = currentCustomer.grade
-        if (!targetCustomer.union_id && currentCustomer.union_id) targetCustomer.union_id = currentCustomer.union_id
-        db.leads.filter(item => item.customer_no === currentCustomer.customer_no).forEach(item => Object.assign(item, { customer_id: targetCustomer.id, customer_no: targetCustomer.customer_no, customer_name: targetCustomer.name, updated_at: occurredAt }))
-        Object.assign(currentCustomer, { mobile: null, union_id: null, status: 'MERGED', merged_into_customer_no: targetCustomer.customer_no, merged_at: occurredAt, merged_by: operatorName })
-        targetCustomer.merge_history ||= []
-        targetCustomer.merge_history.unshift({ source_customer_no: currentCustomer.customer_no, source_mobile: maskMobile(oldMobile), merged_at: occurredAt, merged_by: operatorName, scope: ['线索', '问卷', '订单', '服务记录', '旅程日志'] })
+      Object.assign(lead, { mobile: newMobile, decrypted_mobile: newMobile, updated_at: occurredAt })
+      if (result.status === 'COLLISION_PENDING') {
+        const byMobile = db.customers.find(item => item.status !== 'MERGED' && item.mobile === newMobile)
+        const byUnion = db.customers.find(item => item.status !== 'MERGED' && item.union_id === lead.union_id)
+        if (!byMobile || !byUnion || byMobile.id === byUnion.id) return fail('身份命中结果已变化，请重新校验')
+        const collision = recordCollision({ ...lead, mobile: newMobile, unionId: lead.union_id, sourceType: 'LEAD_MOBILE_CHANGE' }, byMobile, byUnion)
+        lead.mobile_change_history.unshift({ action: 'CHANGE_AND_COLLISION', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `线索手机号已更新；手机号与 UnionID 分别命中不同客户，生成撞单案件 ${collision.collision_no}。` })
+        save()
+        return ok({ action: 'COLLISION', collisionNo: collision.collision_no })
       }
-      Object.assign(lead, { mobile: newMobile, decrypted_mobile: newMobile, customer_id: targetCustomer?.id || targetLead?.customer_id || lead.customer_id, customer_no: targetCustomerNo || lead.customer_no, customer_name: targetCustomer?.name || targetLead?.customer_name || lead.customer_name, merged_into_lead_id: targetLead?.id || null, updated_at: occurredAt })
-      lead.mobile_change_history.unshift({ action: 'MERGE', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `同属一转负责人 ${lead.owner_name || result.current_profile.owner_name}，以 ${targetCustomerNo || '新手机号档案'} 为主档完成合并；原手机号 ${maskMobile(oldMobile)} 保留审计映射。` })
+      const customer = createCustomer({ ...lead, mobile: newMobile, unionId: lead.union_id, ownerName: lead.owner_name, sourceType: 'LEAD_MOBILE_CHANGE' })
+      Object.assign(lead, { customer_id: customer.id, customer_no: customer.customer_no, customer_name: customer.name, customer_linked_at: occurredAt })
+      lead.mobile_change_history.unshift({ action: 'CHANGE_AND_MATCH', old_mobile: oldMobile, new_mobile: newMobile, operator_name: operatorName, occurred_at: occurredAt, detail: `线索手机号已更新，并${customer._reused ? '关联已有' : '创建'}客户 ${customer.customer_no}。` })
       save()
-      return ok({ action: 'MERGE', customerNo: targetCustomerNo, mergedCustomerNo: currentCustomer?.customer_no || '' })
+      return ok({ action: 'CREATE_OR_LINK', customerNo: customer.customer_no, created: !customer._reused })
     }
     if (path === '/leads') {
       const now = new Date().toLocaleString('zh-CN', { hour12: false })

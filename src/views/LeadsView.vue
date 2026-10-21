@@ -270,23 +270,22 @@ async function validateNewMobile() {
 }
 
 async function submitMobileChange() {
-  if (!mobileValidation.value || !['AVAILABLE', 'MERGE_ALLOWED'].includes(mobileValidation.value.status)) return
-  const isMerge = mobileValidation.value.status === 'MERGE_ALLOWED'
+  if (!mobileValidation.value || !['LEAD_ONLY', 'MATCH_READY', 'COLLISION_PENDING'].includes(mobileValidation.value.status)) return
   try {
     await ElMessageBox.confirm(
-      isMerge
-        ? '新手机号已存在且双方归属于同一位一转负责人。确认后将以新手机号对应客户为主档，迁移当前客户的线索、问卷、订单、服务与旅程关联，原客户档案标记为“已合并”。此操作不可直接撤销。'
-        : '确认将当前线索及其关联客户的主手机号变更为新手机号？原手机号与变更记录将保留在审计日志中。',
-      isMerge ? '确认合并客户档案' : '确认变更手机号',
-      { confirmButtonText: isMerge ? '确认合并' : '确认变更', cancelButtonText: '取消', type: 'warning' }
+      activeLead.value.customer_no
+        ? '本次仅更新当前线索手机号，不会修改关联客户的主手机号、客户编号或业务关系。'
+        : '本次将更新线索手机号，并使用手机号和 UnionID 自动执行客户建档匹配。',
+      '确认变更手机号',
+      { confirmButtonText: '确认变更', cancelButtonText: '取消', type: 'warning' }
     )
     mobileChangeSubmitting.value = true
     const result: any = await http.post(`/leads/${activeLead.value.id}/mobile-change`, {
       newMobile: newMobile.value.replace(/[\s-]/g, ''),
-      action: isMerge ? 'MERGE' : 'CHANGE',
+      action: 'CHANGE',
       validationToken: mobileValidation.value.validation_token
     })
-    ElMessage.success(isMerge ? `档案合并完成，主客户：${result.data.customerNo || '已存在客户'}` : '手机号变更成功')
+    ElMessage.success(result.data.action === 'COLLISION' ? `手机号已更新，客户建档已进入撞单处理：${result.data.collisionNo}` : result.data.action === 'CREATE_OR_LINK' ? `手机号已更新并关联客户：${result.data.customerNo}` : '线索手机号变更成功，客户主手机号保持不变')
     mobileChangeVisible.value = false
     await load()
   } catch (e: any) {
@@ -1067,24 +1066,24 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
 
     <el-dialog v-model="mobileChangeVisible" title="变更手机号" width="680px" class="mobile-change-dialog" @closed="mobileValidation = null">
       <div v-if="activeLead" class="mobile-change-content">
-        <el-alert type="info" :closable="false" show-icon title="先校验、后变更" description="系统会同时检查线索与客户主档。新手机号未占用时可直接变更；已占用时禁止直接覆盖，仅在双方归属于同一位一转负责人时允许合并档案。"/>
+        <el-alert type="info" :closable="false" show-icon title="先校验、后变更" :description="activeLead.customer_no ? '当前线索已关联客户，本次仅更新线索手机号，不会修改客户主手机号。如需修改客户身份，请前往客户列表执行“变更手机号”。' : '当前线索未关联客户，变更手机号后将自动使用手机号和 UnionID 执行客户身份匹配。'"/>
         <div class="mobile-change-form">
           <label><span>当前手机号</span><strong>{{ maskedMobile(activeLead.decrypted_mobile || activeLead.mobile) }}</strong><small>{{ activeLead.customer_name || activeLead.name || '未建档线索' }} · 一转负责人 {{ activeLead.owner_name || '未分配' }}</small></label>
           <label><span>新手机号</span><el-input v-model="newMobile" maxlength="11" clearable placeholder="请输入新的 11 位手机号" @input="mobileValidation = null" @keyup.enter="validateNewMobile"><template #append><el-button :loading="mobileChangeLoading" @click="validateNewMobile">校验手机号</el-button></template></el-input></label>
         </div>
 
         <section v-if="mobileValidation" class="mobile-validation-card" :class="mobileValidation.status.toLowerCase()">
-          <header><div><b>{{ mobileValidation.title }}</b><span>{{ mobileValidation.message }}</span></div><el-tag :type="mobileValidation.status === 'AVAILABLE' ? 'success' : mobileValidation.status === 'MERGE_ALLOWED' ? 'warning' : 'danger'">{{ mobileValidation.status === 'AVAILABLE' ? '可直接变更' : mobileValidation.status === 'MERGE_ALLOWED' ? '可合并' : '禁止变更' }}</el-tag></header>
+          <header><div><b>{{ mobileValidation.title }}</b><span>{{ mobileValidation.message }}</span></div><el-tag :type="mobileValidation.status === 'BLOCKED_SAME_MOBILE' ? 'danger' : mobileValidation.status === 'COLLISION_PENDING' ? 'warning' : 'success'">{{ mobileValidation.status === 'BLOCKED_SAME_MOBILE' ? '无需变更' : mobileValidation.status === 'COLLISION_PENDING' ? '将进入撞单' : '可以变更' }}</el-tag></header>
           <div v-if="mobileValidation.target_profile" class="mobile-profile-compare">
             <article><small>当前手机号档案</small><b>{{ mobileValidation.current_profile?.customer_name || mobileValidation.current_profile?.lead_name || '当前线索' }}</b><span>{{ mobileValidation.current_profile?.customer_no || mobileValidation.current_profile?.order_no || '未建档' }}</span><em>一转负责人：{{ mobileValidation.current_profile?.owner_name || '未分配' }}</em></article>
             <i>→</i>
             <article class="target"><small>新手机号命中档案</small><b>{{ mobileValidation.target_profile.customer_name || mobileValidation.target_profile.lead_name }}</b><span>{{ mobileValidation.target_profile.customer_no || mobileValidation.target_profile.order_no || '未建档' }}</span><em>一转负责人：{{ mobileValidation.target_profile.owner_name || '未分配' }}</em></article>
           </div>
-          <p v-if="mobileValidation.status === 'MERGE_ALLOWED'">合并后以新手机号命中的客户档案为主档，迁移关联线索、问卷、订单、服务记录与旅程日志；原档案保留审计关系并标记“已合并”。</p>
-          <p v-if="mobileValidation.status === 'BLOCKED_OWNER_CONFLICT'">双方一转负责人不同，系统不会改号或自动合并。如确认为同一自然人，应先完成客户归属协调，再重新发起。</p>
+          <p v-if="activeLead.customer_no">客户编号及线索与客户关联关系保持不变；新手机号即使命中其他客户，也不会触发客户合并或撞单。</p>
+          <p v-else-if="mobileValidation.status === 'COLLISION_PENDING'">手机号和 UnionID 分别命中不同客户，保存换号后将生成待处理撞单案件。</p>
         </section>
       </div>
-      <template #footer><el-button @click="mobileChangeVisible = false">取消</el-button><el-button v-if="mobileValidation && ['AVAILABLE','MERGE_ALLOWED'].includes(mobileValidation.status)" type="primary" :loading="mobileChangeSubmitting" @click="submitMobileChange">{{ mobileValidation.status === 'MERGE_ALLOWED' ? '确认合并档案' : '确认变更手机号' }}</el-button></template>
+      <template #footer><el-button @click="mobileChangeVisible = false">取消</el-button><el-button v-if="mobileValidation && ['LEAD_ONLY','MATCH_READY','COLLISION_PENDING'].includes(mobileValidation.status)" type="primary" :loading="mobileChangeSubmitting" @click="submitMobileChange">确认变更手机号</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="wechatStatusVisible" title="修改加微状态" width="640px" destroy-on-close>

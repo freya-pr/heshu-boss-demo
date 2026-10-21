@@ -129,9 +129,7 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
 
 <template>
   <section class="page rule-page">
-    <PageHeader title="线索规则中心" description="管理家庭教育需求问卷的线索等级规则、版本发布与冲突控制。">
-      <el-button :icon="DataAnalysis" @click="ElMessage.success('检测完成：当前规则无阻断冲突')">冲突检测</el-button>
-    </PageHeader>
+    <PageHeader title="线索规则中心" description="管理家庭教育需求问卷的线索等级规则与版本发布。" />
 
     <div class="rule-summary surface">
       <div><span>规则总数</span><b>{{ rules.length }}</b></div>
@@ -169,7 +167,7 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
             <el-table-column label="优先级" width="82"><template #default="{ row }"><span class="priority">P{{ row.priority }}</span></template></el-table-column>
             <el-table-column label="状态" width="90"><template #default="{ row }"><el-tag :type="statusType(row.status)" effect="light">{{ row.status }}</el-tag></template></el-table-column>
             <el-table-column label="最后更新" width="145"><template #default="{ row }"><div class="update-cell"><b>{{ row.updatedBy }}</b><span>{{ row.updatedAt }}</span></div></template></el-table-column>
-            <el-table-column label="操作" width="205" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="showDetail(row)">详情</el-button><el-button link type="primary" @click="openEdit(row)">编辑</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="ElMessage.info(`${row.name} 当前版本：${row.version}`)">版本记录</el-dropdown-item><el-dropdown-item divided @click="toggleRule(row)">{{ row.status === '已发布' ? '停用规则' : '启用规则' }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
+            <el-table-column label="操作" width="145" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="showDetail(row)">详情</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="ElMessage.info(`${row.name} 当前版本：${row.version}`)">版本记录</el-dropdown-item><el-dropdown-item divided @click="toggleRule(row)">{{ row.status === '已发布' ? '停用规则' : '启用规则' }}</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>
           </el-table>
           <el-empty v-if="!filteredRules.length" description="暂无符合条件的规则" />
         </article>
@@ -205,7 +203,7 @@ function statusType(status: RuleStatus) { return status === '已发布' ? 'succe
       <template #footer><div class="drawer-footer"><el-button v-if="currentStep > 0" @click="currentStep--">上一步</el-button><span></span><el-button @click="drawerVisible = false">取消</el-button><el-button v-if="currentStep < 2" type="primary" @click="currentStep++">下一步</el-button><template v-else><el-button @click="saveDraft(false)">保存草稿</el-button><el-button type="primary" @click="saveDraft(true)">发布规则</el-button></template></div></template>
     </el-drawer>
 
-    <el-drawer v-model="detailVisible" title="规则详情与版本" size="620px"><template v-if="activeRule"><div class="detail-head"><el-tag :type="statusType(activeRule.status)">{{ activeRule.status }}</el-tag><h2>{{ activeRule.name }}</h2><p>{{ activeRule.code }} · {{ activeRule.version }}</p></div><el-descriptions :column="1" border><el-descriptions-item label="规则分类">{{ activeRule.category }}</el-descriptions-item><el-descriptions-item label="适用范围">{{ activeRule.scope }}</el-descriptions-item><el-descriptions-item label="优先级">P{{ activeRule.priority }}</el-descriptions-item><el-descriptions-item label="触发方式">{{ activeRule.trigger }}</el-descriptions-item><el-descriptions-item label="判断条件">{{ activeRule.condition }}</el-descriptions-item><el-descriptions-item label="执行动作">{{ activeRule.action }}</el-descriptions-item><el-descriptions-item label="更新信息">{{ activeRule.updatedBy }} · {{ activeRule.updatedAt }}</el-descriptions-item></el-descriptions><h3 class="history-title">版本记录</h3><el-timeline><el-timeline-item :timestamp="activeRule.updatedAt" type="primary"><b>{{ activeRule.version }} 当前版本</b><p>规则配置更新并完成冲突检测。</p></el-timeline-item><el-timeline-item timestamp="2026-08-10 09:20"><b>V1.0 首次发布</b><p>建立规则基础条件与执行动作。</p></el-timeline-item></el-timeline></template></el-drawer>
+    <el-drawer v-model="detailVisible" title="规则详情与版本" size="620px"><template v-if="activeRule"><div class="detail-head"><el-tag :type="statusType(activeRule.status)">{{ activeRule.status }}</el-tag><h2>{{ activeRule.name }}</h2><p>{{ activeRule.code }} · {{ activeRule.version }}</p></div><el-descriptions :column="1" border><el-descriptions-item label="规则分类">{{ activeRule.category }}</el-descriptions-item><el-descriptions-item label="适用范围">{{ activeRule.scope }}</el-descriptions-item><el-descriptions-item label="优先级">P{{ activeRule.priority }}</el-descriptions-item><el-descriptions-item label="触发方式">{{ activeRule.trigger }}</el-descriptions-item><el-descriptions-item label="判断条件">{{ activeRule.condition }}</el-descriptions-item><el-descriptions-item label="执行动作">{{ activeRule.action }}</el-descriptions-item><el-descriptions-item label="更新信息">{{ activeRule.updatedBy }} · {{ activeRule.updatedAt }}</el-descriptions-item></el-descriptions><h3 class="history-title">版本记录</h3><el-timeline><el-timeline-item :timestamp="activeRule.updatedAt" type="primary"><b>{{ activeRule.version }} 当前版本</b><p>规则配置更新并发布生效。</p></el-timeline-item><el-timeline-item timestamp="2026-08-10 09:20"><b>V1.0 首次发布</b><p>建立规则基础条件与执行动作。</p></el-timeline-item></el-timeline></template></el-drawer>
 
   </section>
 </template>

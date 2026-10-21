@@ -19,7 +19,7 @@ const submitting = ref(false)
 const resolution = ref({ resolutionType: '', reason: '', confirmed: false })
 
 const statusLabels: Record<string, string> = { PENDING: '待处理', RESOLVED: '已解决' }
-const sourceLabels: Record<string, string> = { LEAD_CONVERT: '线索转客户', CUSTOMER_CREATE: '人工建档', WECOM_SYNC: '企微同步', IMPORT: '数据导入' }
+const sourceLabels: Record<string, string> = { LEAD_CONVERT: '线索建档', LEAD_MOBILE_CHANGE: '未关联线索换号', WECOM_SYNC: '企微同步', ORDER_SYNC: '订单同步', IMPORT: '数据导入' }
 const hitTypeLabels: Record<string, string> = { MOBILE: '手机号', UNION_ID: 'UnionID' }
 const resolutionLabels: Record<string, string> = { MERGE_TO_MOBILE: '合并至手机号命中客户', MERGE_TO_UNION: '合并至 UnionID 命中客户', KEEP_SEPARATE: '确认不同人，保留独立档案' }
 const statusTag: Record<string, string> = { PENDING: 'danger', RESOLVED: 'success' }
