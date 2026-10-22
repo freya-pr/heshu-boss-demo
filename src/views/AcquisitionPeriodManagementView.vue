@@ -8,6 +8,8 @@ import { loadAcquisitionPeriods, saveAcquisitionPeriods, type AcquisitionPeriod,
 const periods = ref<AcquisitionPeriod[]>(isDemoMode ? loadAcquisitionPeriods() : [])
 const keyword = ref('')
 const statusFilter = ref('')
+const startTimeFilter = ref('')
+const endTimeFilter = ref('')
 const editVisible = ref(false)
 const batchVisible = ref(false)
 const logVisible = ref(false)
@@ -21,7 +23,9 @@ const batch = reactive({ range: 'MONTH' as 'MONTH'|'YEAR', startDate: '2026-09-0
 
 const filteredRows = computed(() => periods.value.filter(row => {
   const matchesKeyword = !keyword.value.trim() || `${row.name}${row.id}`.toLowerCase().includes(keyword.value.trim().toLowerCase())
-  return matchesKeyword && (!statusFilter.value || row.status === statusFilter.value)
+  const matchesStartTime = !startTimeFilter.value || new Date(row.startAt) >= new Date(startTimeFilter.value)
+  const matchesEndTime = !endTimeFilter.value || new Date(row.endAt) <= new Date(endTimeFilter.value)
+  return matchesKeyword && (!statusFilter.value || row.status === statusFilter.value) && matchesStartTime && matchesEndTime
 }))
 const metrics = computed(() => ({
   total: periods.value.length,
@@ -63,10 +67,14 @@ function mapApiPeriod(row: any): AcquisitionPeriod {
   return { id: String(row.id), name: row.period_name, stage: stageFromApi[row.period_stage] || '接量期', startAt: String(row.start_at).replace('T', ' '), endAt: String(row.end_at).replace('T', ' '), status: row.status === 'ACTIVE' ? '启用' : '停用', remark: row.remark || '', creatorName: row.created_by, createdAt: String(row.created_at).replace('T', ' '), qrRefCount: Number(row.qr_ref_count || 0), businessDataCount: Number(row.business_data_count || 0) }
 }
 async function loadPeriods() {
+  if (startTimeFilter.value && endTimeFilter.value && new Date(startTimeFilter.value) > new Date(endTimeFilter.value)) {
+    ElMessage.warning('开始时间不能晚于结束时间')
+    return
+  }
   if (isDemoMode) { periods.value = loadAcquisitionPeriods(); return }
   loading.value = true
   try {
-    const response = await http.get('/acquisition-periods', { params: { keyword: keyword.value || undefined, status: statusFilter.value ? (statusFilter.value === '启用' ? 'ACTIVE' : 'INACTIVE') : undefined } })
+    const response = await http.get('/acquisition-periods', { params: { keyword: keyword.value || undefined, status: statusFilter.value ? (statusFilter.value === '启用' ? 'ACTIVE' : 'INACTIVE') : undefined, startTime: startTimeFilter.value || undefined, endTime: endTimeFilter.value || undefined } })
     periods.value = response.data.map(mapApiPeriod)
   } catch (error: any) { ElMessage.error(error.message || '期次加载失败') }
   finally { loading.value = false }
@@ -77,7 +85,7 @@ function findDuplicatePeriodName(name: string, excludeId = '') {
   const normalizedName = normalizePeriodName(name)
   return periods.value.find(item => item.id !== excludeId && normalizePeriodName(item.name) === normalizedName)
 }
-function resetFilters() { keyword.value = ''; statusFilter.value = '' }
+function resetFilters() { keyword.value = ''; statusFilter.value = ''; startTimeFilter.value = ''; endTimeFilter.value = '' }
 function openCreate() {
   editingId.value = ''
   Object.assign(form, { name: '', startAt: '', endAt: '', status: '启用', remark: '' })
@@ -175,6 +183,8 @@ onMounted(loadPeriods)
     <section class="panel filter-panel">
       <el-input v-model="keyword" placeholder="期次名称 / 期次编号" clearable />
       <el-select v-model="statusFilter" placeholder="启停状态" clearable><el-option label="启用" value="启用" /><el-option label="停用" value="停用" /></el-select>
+      <el-date-picker v-model="startTimeFilter" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" placeholder="开始时间" clearable />
+      <el-date-picker v-model="endTimeFilter" type="datetime" value-format="YYYY-MM-DD HH:mm:ss" format="YYYY-MM-DD HH:mm:ss" placeholder="结束时间" clearable />
       <el-button type="primary" @click="loadPeriods">查询</el-button><el-button @click="resetFilters(); loadPeriods()">重置</el-button>
       <div class="grow" /><el-button @click="batchVisible = true">批量创建</el-button><el-button type="primary" @click="openCreate">新建期次</el-button>
     </section>
@@ -209,5 +219,5 @@ onMounted(loadPeriods)
 </template>
 
 <style scoped>
-.period-page{padding:28px;background:#f4f7fb;min-height:100%}.panel,.metric-grid article{background:#fff;border:1px solid #e2e9f3;border-radius:16px;box-shadow:0 8px 24px rgba(29,57,95,.05)}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0}.metric-grid article{padding:20px}.metric-grid span,.metric-grid small{display:block;color:#7b8ba5}.metric-grid b{display:block;font-size:30px;color:#172b4d;margin:10px 0}.filter-panel{display:flex;align-items:center;gap:12px;padding:18px;margin-bottom:16px}.filter-panel .el-input{width:260px}.filter-panel .el-select{width:150px}.grow{flex:1}.table-panel{padding:0 18px 18px}.table-panel header{display:flex;justify-content:space-between;align-items:center;padding:20px 4px}.table-panel h2{margin:0;color:#172b4d}.table-panel p{margin:6px 0 0;color:#7b8ba5}.sub{display:block;color:#91a0b7;margin-top:5px}.field-tip{display:block;margin-top:6px;color:#91a0b7}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form-grid .el-date-editor,.form-grid .el-select{width:100%}.batch-form{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}.batch-form .el-select,.batch-form .el-date-editor{width:100%}.unit{margin-left:8px;color:#7b8ba5}.preview{border-top:1px solid #e5ebf4;padding-top:14px}.preview h3{color:#172b4d}.preview :deep(.el-date-editor){width:100%}@media(max-width:1000px){.metric-grid{grid-template-columns:1fr 1fr}.filter-panel{flex-wrap:wrap}.batch-form{grid-template-columns:1fr 1fr}}
+.period-page{padding:28px;background:#f4f7fb;min-height:100%}.panel,.metric-grid article{background:#fff;border:1px solid #e2e9f3;border-radius:16px;box-shadow:0 8px 24px rgba(29,57,95,.05)}.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:18px 0}.metric-grid article{padding:20px}.metric-grid span,.metric-grid small{display:block;color:#7b8ba5}.metric-grid b{display:block;font-size:30px;color:#172b4d;margin:10px 0}.filter-panel{display:flex;align-items:center;gap:12px;padding:18px;margin-bottom:16px;flex-wrap:wrap}.filter-panel .el-input{width:230px}.filter-panel .el-select{width:140px}.filter-panel .el-date-editor{width:190px}.grow{flex:1}.table-panel{padding:0 18px 18px}.table-panel header{display:flex;justify-content:space-between;align-items:center;padding:20px 4px}.table-panel h2{margin:0;color:#172b4d}.table-panel p{margin:6px 0 0;color:#7b8ba5}.sub{display:block;color:#91a0b7;margin-top:5px}.field-tip{display:block;margin-top:6px;color:#91a0b7}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.form-grid .el-date-editor,.form-grid .el-select{width:100%}.batch-form{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:18px 0}.batch-form .el-select,.batch-form .el-date-editor{width:100%}.unit{margin-left:8px;color:#7b8ba5}.preview{border-top:1px solid #e5ebf4;padding-top:14px}.preview h3{color:#172b4d}.preview :deep(.el-date-editor){width:100%}@media(max-width:1000px){.metric-grid{grid-template-columns:1fr 1fr}.batch-form{grid-template-columns:1fr 1fr}}
 </style>

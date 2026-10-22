@@ -21,7 +21,6 @@ type IpRow = {
   name: string
   category: string
   channelCode: string
-  description: string
   platforms: string[]
   products: Product[]
   creator: string
@@ -41,7 +40,7 @@ const platformMeta: Record<string, { code: string; color: string }> = {
 
 const rows = ref<IpRow[]>([
   {
-    id: 1, ipNo: 'IP000001', name: '阿留皮皮', category: 'EDUCATION_PLANNING', channelCode: 'CH000002', description: '面向家庭教育与亲子关系的老师IP',
+    id: 1, ipNo: 'IP000001', name: '阿留皮皮', category: 'EDUCATION_PLANNING', channelCode: 'CH000002',
     platforms: ['抖音', '有赞', '小鹅通', '视频号', '小红书'], creator: '林校长', createdAt: '2026-08-01 09:20', status: '启用',
     products: [
       { id: 1, name: '教育规划陪跑营6.0', thirdPartyId: 'DY-EDU-6001', platform: '抖音', store: '合数教育官方旗舰店', status: '在售' },
@@ -52,7 +51,7 @@ const rows = ref<IpRow[]>([
     ]
   },
   {
-    id: 2, ipNo: 'IP000002', name: '周老师', category: 'EDUCATION_PLANNING', channelCode: 'CH000001', description: '聚焦青少年学习习惯与学习能力提升',
+    id: 2, ipNo: 'IP000002', name: '周老师', category: 'EDUCATION_PLANNING', channelCode: 'CH000001',
     platforms: ['抖音', '小鹅通', '视频号'], creator: '李士文', createdAt: '2026-08-05 14:10', status: '启用',
     products: [
       { id: 6, name: '学习力诊断课', thirdPartyId: 'DY-STUDY-100', platform: '抖音', store: '合数教育官方旗舰店', status: '在售' },
@@ -61,7 +60,7 @@ const rows = ref<IpRow[]>([
     ]
   },
   {
-    id: 3, ipNo: 'IP000003', name: '王老师', category: 'EDUCATION_PLANNING', channelCode: 'CH000001', description: '升学规划、选科与家庭决策内容IP',
+    id: 3, ipNo: 'IP000003', name: '王老师', category: 'EDUCATION_PLANNING', channelCode: 'CH000001',
     platforms: ['小红书', '百家号', '抖音', '快手'], creator: '王老师', createdAt: '2026-08-10 11:45', status: '停用',
     products: [
       { id: 9, name: '1V1升学诊断', thirdPartyId: 'XHS-PLAN-01', platform: '小红书', store: '合数教育体验课', status: '在售' },
@@ -82,7 +81,7 @@ const platformDialogVisible = ref(false)
 const editorVisible = ref(false)
 const activeRow = ref<IpRow | null>(null)
 const editingRow = ref<IpRow | null>(null)
-const form = reactive({ ipNo: '', name: '', category: 'EDUCATION_PLANNING', channelCode: 'CH000001', description: '', platforms: [] as string[] })
+const form = reactive({ ipNo: '', name: '', category: 'EDUCATION_PLANNING', channelCode: 'CH000001', platforms: [] as string[] })
 
 const filteredRows = computed(() => {
   const term = query.keyword.trim().toLowerCase()
@@ -111,7 +110,7 @@ function openPlatforms(row: IpRow) { activeRow.value = row; platformDialogVisibl
 function openProducts(row: IpRow) { router.push({ path: '/leads/products', query: { ipNo: row.ipNo } }) }
 function openEditor(row?: IpRow) {
   loadIpCategories(); editingRow.value = row || null
-  Object.assign(form, row ? { ipNo: row.ipNo, name: row.name, category: row.category, channelCode: row.channelCode, description: row.description, platforms: [...row.platforms] } : { ipNo: '', name: '', category: categoryOptions.value[0]?.value || 'EDUCATION_PLANNING', channelCode: ipChannels[0].code, description: '', platforms: [] })
+  Object.assign(form, row ? { ipNo: row.ipNo, name: row.name, category: row.category, channelCode: row.channelCode, platforms: [...row.platforms] } : { ipNo: '', name: '', category: categoryOptions.value[0]?.value || 'EDUCATION_PLANNING', channelCode: ipChannels[0].code, platforms: [] })
   editorVisible.value = true
 }
 function saveIp() {
@@ -121,8 +120,8 @@ function saveIp() {
   if (!ipNo) return ElMessage.warning('请输入IP编码')
   if (rows.value.some(row => row.ipNo.toLowerCase() === ipNo.toLowerCase() && row.id !== editingRow.value?.id)) return ElMessage.warning('IP编码已存在，请重新输入')
   if (!form.name.trim()) return ElMessage.warning('请输入IP名称')
-  if (editingRow.value) { Object.assign(editingRow.value, { ipNo, name: form.name.trim(), category: form.category, channelCode: form.channelCode, description: form.description.trim(), platforms: [...form.platforms] }); persistIpBindings(); editorVisible.value = false; ElMessage.success('IP信息已更新'); return }
-  rows.value.unshift({ id: Date.now(), ipNo, name: form.name.trim(), category: form.category, channelCode: form.channelCode, description: form.description.trim(), platforms: [...form.platforms], products: [], creator: '林校长', createdAt: '2026-08-20 10:30', status: '启用' })
+  if (editingRow.value) { Object.assign(editingRow.value, { ipNo, name: form.name.trim(), category: form.category, channelCode: form.channelCode, platforms: [...form.platforms] }); persistIpBindings(); editorVisible.value = false; ElMessage.success('IP信息已更新'); return }
+  rows.value.unshift({ id: Date.now(), ipNo, name: form.name.trim(), category: form.category, channelCode: form.channelCode, platforms: [...form.platforms], products: [], creator: '林校长', createdAt: '2026-08-20 10:30', status: '启用' })
   persistIpBindings()
   editorVisible.value = false
   ElMessage.success('IP主档已创建')
@@ -150,7 +149,7 @@ function meta(name: string) { return platformMeta[name] || { code: name.slice(0,
       <el-table :data="filteredRows" row-key="id">
         <el-table-column label="IP大类" width="205"><template #default="{ row }"><div class="category-cell"><el-tag type="primary" effect="plain">{{ categoryLabel(row.category) }}</el-tag></div></template></el-table-column>
         <el-table-column label="IP渠道" width="145"><template #default="{ row }"><div class="channel-cell"><b>{{ channelInfo(row.channelCode).name }}</b><code>{{ channelInfo(row.channelCode).code }}</code></div></template></el-table-column>
-        <el-table-column label="IP名称" min-width="250"><template #default="{ row }"><div class="ip-name"><b>{{ row.name }}</b><code>{{ row.ipNo }}</code><small>{{ row.description }}</small></div></template></el-table-column>
+        <el-table-column label="IP名称" min-width="250"><template #default="{ row }"><div class="ip-name"><b>{{ row.name }}</b><code>{{ row.ipNo }}</code></div></template></el-table-column>
         <el-table-column prop="creator" label="创建人" width="100" />
         <el-table-column prop="createdAt" label="创建时间" width="150" />
         <el-table-column label="状态" width="85"><template #default="{ row }"><el-tag :type="row.status === '启用' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
@@ -164,7 +163,6 @@ function meta(name: string) { return platformMeta[name] || { code: name.slice(0,
         <el-form-item label="IP渠道" required><el-select v-model="form.channelCode" filterable placeholder="请选择渠道名称或编号"><el-option v-for="item in ipChannels" :key="item.code" :label="`${item.name} · ${item.code}`" :value="item.code" /></el-select><small>渠道编号用于稳定归因，渠道更名不影响历史数据。</small></el-form-item>
         <el-form-item label="IP编码" required><el-input v-model="form.ipNo" maxlength="30" show-word-limit placeholder="例如：IP000004" /><small>请输入唯一IP编码，保存时将校验是否与已有编码重复。</small></el-form-item>
         <el-form-item label="IP名称" required><el-input v-model="form.name" maxlength="40" show-word-limit placeholder="例如：阿留皮皮" /><small>IP名称使用老师对外名称或老师姓名。</small></el-form-item>
-        <el-form-item label="IP说明"><el-input v-model="form.description" type="textarea" :rows="3" maxlength="120" show-word-limit placeholder="简要说明该IP的定位和内容方向" /></el-form-item>
       </el-form>
       <template #footer><el-button @click="editorVisible = false">取消</el-button><el-button type="primary" @click="saveIp">{{ editingRow ? '保存修改' : '创建IP' }}</el-button></template>
     </el-drawer>

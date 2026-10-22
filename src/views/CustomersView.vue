@@ -27,7 +27,6 @@ const customerGradeForm = ref({ grade: 'UNRATED', reason: '' })
 const scopeFilters = ref<BusinessScopeValue>({ viewScope: 'AUTHORIZED', organizationId: null, ownerId: null })
 const permissionLabel = computed(() => auth.user?.role === 'ADMIN' ? '当前公司全部数据' : '本人数据')
 const gradeType: any = { S: 'danger', A: 'warning', B: 'primary', C: 'info', UNRATED: 'info' }
-const customerStatusLabels: Record<string, string> = { ACTIVE: '正常', PENDING_HANDOVER: '待移交', INACTIVE: '停用' }
 const addMethodLabels: Record<AddMethod, string> = { LINK: '通过链接添加', BUSINESS_CARD: '名片', QR_CODE: '扫描二维码' }
 const lifecycleLabels: Record<string, string> = { LEAD: '线索客户', INTENT: '意向客户', DEAL: '成交客户' }
 type CustomerTag={name:string;source:'系统'|'企业微信'}
@@ -56,7 +55,7 @@ const customerTimeline=computed(()=>[
   { time: '2026-08-18 20:05:12', title: '订单成交', detail: '正式课订单支付成功，客户生命周期更新为成交客户' }
 ])
 const mandatoryColumns = ['customer_no', 'name', 'operation']
-const defaultColumns = ['customer_no', 'name', 'lifecycle', 'mobile', 'tags', 'add_method', 'source_name', 'grade', 'owner', 'organization', 'status', 'created_at', 'operation']
+const defaultColumns = ['customer_no', 'name', 'lifecycle', 'mobile', 'tags', 'add_method', 'source_name', 'grade', 'owner', 'organization', 'created_at', 'operation']
 const columnOptions = [
   { value: 'customer_no', label: '客户编号', mandatory: true },
   { value: 'name', label: '客户名称', mandatory: true },
@@ -68,12 +67,11 @@ const columnOptions = [
   { value: 'grade', label: '等级' },
   { value: 'owner', label: '客户负责人' },
   { value: 'organization', label: '归属组织' },
-  { value: 'status', label: '客户状态' },
   { value: 'created_at', label: '客户添加时间' },
   { value: 'operation', label: '操作', mandatory: true }
 ]
 const columnStorageKey = 'heshu_boss_customer_table_columns_v1'
-function loadColumnPreference(){try{const saved=JSON.parse(localStorage.getItem(columnStorageKey)||'[]');return Array.isArray(saved)&&saved.length?[...new Set([...saved,...mandatoryColumns])]:[...defaultColumns]}catch{return [...defaultColumns]}}
+function loadColumnPreference(){try{const saved=JSON.parse(localStorage.getItem(columnStorageKey)||'[]');const supported=new Set(columnOptions.map(item=>item.value));return Array.isArray(saved)&&saved.length?[...new Set([...saved.filter(item=>supported.has(item)),...mandatoryColumns])]:[...defaultColumns]}catch{return [...defaultColumns]}}
 const visibleColumns=ref<string[]>(loadColumnPreference())
 const columnSettingVisible=ref(false)
 const showColumn=(key:string)=>mandatoryColumns.includes(key)||visibleColumns.value.includes(key)
@@ -143,7 +141,6 @@ onMounted(()=>{ const tagName=typeof route.query.tagName==='string'?route.query.
           <el-table-column v-if="showColumn('grade')" prop="grade" label="等级" width="130"><template #default="{row}"><el-tag :type="gradeType[row.grade]">{{ row.grade==='UNRATED'?'未定级':row.grade }}</el-tag><small class="cell-sub">{{ row.grade_source==='CUSTOMER_MANUAL'?'客户人工调整':row.grade_source==='LEAD_INHERITED'?'继承线索等级':'系统状态' }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('owner')" label="客户负责人" min-width="150"><template #default="{row}"><b>{{ row.owner_name||'待分配' }}</b><small class="cell-sub">{{ row.owner_employee_no||'—' }}</small></template></el-table-column>
           <el-table-column v-if="showColumn('organization')" label="归属组织" min-width="150"><template #default="{row}">{{ row.owner_organization_name||'—' }}</template></el-table-column>
-          <el-table-column v-if="showColumn('status')" prop="status" label="客户状态" width="100"><template #default="{row}">{{ customerStatusLabels[row.status]||row.status }}</template></el-table-column>
           <el-table-column v-if="showColumn('created_at')" prop="created_at" label="客户添加时间" width="168" />
           <el-table-column label="操作" width="260" fixed="right"><template #default="{row}"><el-button link type="primary" @click="openDetail(row)">客户档案</el-button><el-button link type="primary" @click="openGradeEditor(row)">编辑等级</el-button><el-button link type="primary" @click="openMobileChange(row)">变更手机号</el-button></template></el-table-column>
         </el-table>
