@@ -103,13 +103,6 @@ const filteredRows = computed(() => {
     && (!query.status || row.status === query.status)
     && matchesArchiveDate(row))
 })
-const summary = computed(() => ({
-  total: filteredRows.value.length,
-  leads: filteredRows.value.reduce((sum, item) => sum + item.metrics.leads, 0),
-  adds: filteredRows.value.reduce((sum, item) => sum + item.metrics.wechatAdds, 0),
-  paidOrders: filteredRows.value.reduce((sum, item) => sum + item.metrics.paidOrders, 0),
-  netGmv: filteredRows.value.reduce((sum, item) => sum + item.metrics.gmv - item.metrics.refundAmount, 0)
-}))
 const funnelStages = computed(() => {
   const metrics = activeStore.value?.metrics
   if (!metrics) return []
@@ -213,13 +206,6 @@ function drillDown(name: string) { ElMessage.info(`正在打开“${name}”归�
       <el-button type="primary" :icon="Plus" @click="openCreate">新增店铺</el-button>
     </PageHeader>
 
-    <div class="store-summary">
-      <article><i class="metric-mark store-mark">店</i><span><small>店铺总数</small><b>{{ summary.total }}</b></span></article>
-      <article><i class="metric-mark lead-mark">线</i><span><small>归因线索</small><b>{{ summary.leads.toLocaleString() }}</b></span></article>
-      <article><i class="metric-mark wechat-mark">微</i><span><small>加微人数</small><b>{{ summary.adds.toLocaleString() }}</b></span></article>
-      <article><i class="metric-mark money-mark">¥</i><span><small>净GMV</small><b>{{ formatMoney(summary.netGmv) }}</b></span></article>
-    </div>
-
     <div class="store-filter surface">
       <div class="filter-heading"><span>店铺档案筛选</span><small>查询店铺自身资料，不改变经营数据的统计口径</small></div>
       <div class="filter-controls">
@@ -232,25 +218,12 @@ function drillDown(name: string) { ElMessage.info(`正在打开“${name}”归�
       </div>
     </div>
 
-    <div class="stats-scope surface">
-      <div class="scope-heading"><span>经营统计范围</span><small>列表指标统一采用线索归因口径</small></div>
-      <el-tag type="primary" effect="dark" size="large">线索归因口径</el-tag>
-      <el-select v-model="analyticsDateType" class="business-date-select" placeholder="业务日期类型"><el-option v-for="item in analyticsDateOptions" :key="item" :label="item" :value="item" /></el-select>
-      <el-date-picker v-model="analyticsRange" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="业务开始日期" end-placeholder="业务结束日期" />
-      <el-select v-model="analyticsCamp" filterable placeholder="所属期次"><el-option label="全部期次" value="全部期次"/><el-option label="2026年8月第1期" value="2026年8月第1期"/><el-option label="2026年8月第2期" value="2026年8月第2期"/><el-option label="2026年8月第3期" value="2026年8月第3期"/></el-select>
-      <el-button type="primary" plain @click="ElMessage.success('经营指标已按当前口径刷新')">刷新</el-button>
-      <div class="scope-rule"><i>口径</i><span>{{ analyticsRuleText }}</span></div>
-    </div>
-
     <article class="store-ledger surface">
-      <header><div><h3>店铺列表</h3><span>共 {{ filteredRows.length }} 家店铺</span></div><p>{{ analyticsMode }} · {{ analyticsDateType }} · {{ analyticsRange[0] }} 至 {{ analyticsRange[1] }}</p></header>
+      <header><div><h3>店铺列表</h3><span>共 {{ filteredRows.length }} 家店铺</span></div></header>
       <el-table :data="filteredRows" row-key="id">
         <el-table-column label="平台类型" width="130"><template #default="{ row }"><div class="platform-cell"><i :style="{ background: platformMeta(row.platform).color }">{{ platformMeta(row.platform).code }}</i><b>{{ row.platform }}</b></div></template></el-table-column>
         <el-table-column label="店铺名称" min-width="220"><template #default="{ row }"><div class="store-name"><b>{{ row.name }}</b><span>{{ row.status === '启用' ? '正常承接线索' : '已停止新线索归因' }}</span></div></template></el-table-column>
         <el-table-column label="第三方店铺ID" min-width="190"><template #default="{ row }"><code class="store-id">{{ row.thirdPartyStoreId }}</code></template></el-table-column>
-        <el-table-column label="线索 / 加微" width="150"><template #default="{ row }"><div class="metric-pair"><p><b>{{ row.metrics.leads.toLocaleString() }}</b><span>{{ row.metrics.wechatAdds.toLocaleString() }}</span></p><small>加微率 {{ percentage(row.metrics.wechatAdds, row.metrics.validLeads) }}%</small></div></template></el-table-column>
-        <el-table-column label="下单 / 支付" width="150"><template #default="{ row }"><div class="metric-pair order"><p><b>{{ row.metrics.orders.toLocaleString() }}</b><span>{{ row.metrics.paidOrders.toLocaleString() }}</span></p><small>支付率 {{ percentage(row.metrics.paidOrders, row.metrics.orders) }}%</small></div></template></el-table-column>
-        <el-table-column label="净GMV" width="135"><template #default="{ row }"><div class="gmv-cell"><b>{{ formatMoney(netGmv(row)) }}</b><span>退款 {{ formatMoney(row.metrics.refundAmount) }}</span></div></template></el-table-column>
         <el-table-column label="创建信息" width="170"><template #default="{ row }"><div class="created-cell"><b>{{ row.createdBy }}</b><span>{{ row.createdAt }}</span></div></template></el-table-column>
         <el-table-column label="状态" width="88"><template #default="{ row }"><el-tag :type="row.status === '启用' ? 'success' : 'info'">{{ row.status }}</el-tag></template></el-table-column>
         <el-table-column label="操作" width="145" fixed="right"><template #default="{ row }"><el-button link type="primary" :icon="EditPen" @click="openEdit(row)">编辑</el-button><el-dropdown trigger="click"><el-button link type="primary">更多⌄</el-button><template #dropdown><el-dropdown-menu><el-dropdown-item @click="toggleStatus(row)">{{ row.status === '启用' ? '停用店铺' : '启用店铺' }}</el-dropdown-item><el-dropdown-item @click="ElMessage.info(`最近更新：${row.updatedAt}`)">查看变更时间</el-dropdown-item></el-dropdown-menu></template></el-dropdown></template></el-table-column>

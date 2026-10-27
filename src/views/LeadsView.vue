@@ -98,7 +98,7 @@ const sourceType = computed(() => route.path === '/leads/third-party' ? 'THIRD_P
 const pageTitle = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '三方品线索' : '引流线索')
 const pageDescription = computed(() => sourceType.value === 'THIRD_PRODUCT' ? '统一处理合作类及三方品线索，保留三方业务扩展字段与同步历史。' : '统一处理广告、直播、活动等引流线索，保留来源、分配依据和状态变化。')
 const mandatoryColumns = ['order_no', 'lead_source', 'operation']
-const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','owner_department','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','follow_status','created_at','wechat_added_at','period_name','remark','operation']
+const defaultColumns = ['order_no','lead_source','ip_category','lead_grade','lead_tags','demand_mined','third_party_product_id','source_type','order_status','related_customer','wechat_nickname','original_mobile','decrypted_mobile','first_product_name','paid_amount','owner','owner_department','assignment_status','decrypt_status','sms_status','lead_mark','conversion_status','created_at','wechat_added_at','period_name','remark','operation']
 const columnOptions = [
   { value: 'order_no', label: '订单编号', mandatory: true }, { value: 'source_type', label: '线索类型' },
   { value: 'order_status', label: '订单状态' }, { value: 'related_customer', label: '关联客户' }, { value: 'wechat_nickname', label: '微信昵称' },
@@ -108,8 +108,8 @@ const columnOptions = [
   { value: 'paid_amount', label: '实付金额' }, { value: 'owner', label: '当前负责人/员工编号' }, { value: 'owner_department', label: '负责人部门' },
   { value: 'assignment_status', label: '分配状态' }, { value: 'decrypt_status', label: '解密状态' }, { value: 'sms_status', label: '短信状态' },
   { value: 'wechat_status', label: '加微状态' }, { value: 'questionnaire_status', label: '问卷状态' }, { value: 'assessment_status', label: '测评状态' },
-  { value: 'lead_mark', label: '线索标记' }, { value: 'conversion_status', label: '转化状态' }, { value: 'follow_status', label: '跟进状态' },
-  { value: 'first_follow_at', label: '首次跟进时间' }, { value: 'created_at', label: '线索创建时间' }, { value: 'assigned_at', label: '线索分配时间' },
+  { value: 'lead_mark', label: '线索标记' }, { value: 'conversion_status', label: '转化状态' },
+  { value: 'created_at', label: '线索创建时间' }, { value: 'assigned_at', label: '线索分配时间' },
   { value: 'wechat_added_at', label: '加微时间' }, { value: 'decrypted_at', label: '解密时间' }, { value: 'questionnaire_at', label: '问卷填写时间' },
   { value: 'assessment_at', label: '测评时间' }, { value: 'customer_linked_at', label: '客户建档时间' }, { value: 'converted_at', label: '转化时间' },
   { value: 'after_sale_at', label: '售后时间' }, { value: 'entry_method', label: '添加方式' }, { value: 'wechat_method', label: '加微方式' },
@@ -117,10 +117,12 @@ const columnOptions = [
   { value: 'operation', label: '操作', mandatory: true }
 ]
 const columnStorageKey = 'heshu_boss_lead_table_columns_v11'
+const availableColumnKeys = new Set(columnOptions.map(item => item.value))
 function loadColumnPreference() {
   try {
     const saved = JSON.parse(localStorage.getItem(columnStorageKey) || '[]')
-    return Array.isArray(saved) && saved.length ? [...new Set([...saved, ...mandatoryColumns])] : [...defaultColumns]
+    const validSaved = Array.isArray(saved) ? saved.filter(key => availableColumnKeys.has(key)) : []
+    return validSaved.length ? [...new Set([...validSaved, ...mandatoryColumns])] : [...defaultColumns]
   } catch { return [...defaultColumns] }
 }
 const visibleColumns = ref<string[]>(loadColumnPreference())
@@ -767,14 +769,13 @@ const orderLabels: any = {
   REFUNDED_AFTER_RECEIPT: '收货后退款完结',
   PARTIAL_REFUNDED: '部分退款'
 }
-const followLabels: any = { NOT_FOLLOWED: '未跟进', FOLLOWING: '跟进中', FOLLOWED: '已跟进' }
 const entryLabels: any = { CHANNEL: '渠道', PRIVATE_DOMAIN: '公域', IMPORT: '导入', PARTNER_PUSH: '合作推送', REFERRAL: '转介绍' }
 const wechatLabels: any = { WECOM: '企微', PERSONAL_WECHAT: '个微' }
 const sourceLabels: any = { DRAINAGE: '引流线索', THIRD_PRODUCT: '三方品线索', REFERRAL: '转介绍' }
 const leadSourceOptions = ['抖店','小红书','淘宝','百家号','视频号','有赞','快手','小鹅通','伴鱼','火花思维','自有系统','支付宝','公户','抖音','星橙','飞策']
 const dateFieldOptions = [
   { value: 'created_at', label: '线索创建时间' }, { value: 'assigned_at', label: '线索分配时间' },
-  { value: 'decrypted_at', label: '解密时间' }, { value: 'first_follow_at', label: '首次跟进时间' },
+  { value: 'decrypted_at', label: '解密时间' },
   { value: 'wechat_added_at', label: '加微时间' }, { value: 'questionnaire_at', label: '问卷填写时间' },
   { value: 'assessment_at', label: '测评时间' }, { value: 'customer_linked_at', label: '客户建档时间' },
   { value: 'converted_at', label: '转化时间' }, { value: 'after_sale_at', label: '售后时间' }
@@ -900,8 +901,6 @@ const textOrDash = (value: any) => value === null || value === undefined || valu
           <el-table-column v-if="showColumn('paid_amount')" label="实付金额" width="110"><template #default="{ row }">{{ Number(row.paid_amount || 0) ? `¥${Number(row.paid_amount).toFixed(2)}` : '—' }}</template></el-table-column>
           <el-table-column v-if="showColumn('owner')" label="当前线索负责人/员工编号" width="190"><template #default="{ row }"><strong>{{ textOrDash(row.owner_name) }}</strong><small class="cell-sub">{{ textOrDash(row.owner_employee_no) }}</small></template></el-table-column>
           <el-table-column v-if="sourceType === 'DRAINAGE' && showColumn('owner_department')" label="负责人部门" width="150"><template #default="{ row }">{{ ownerDepartmentName(row) }}</template></el-table-column>
-          <el-table-column v-if="showColumn('follow_status')" label="跟进状态" width="100"><template #default="{ row }">{{ followLabels[row.follow_status] || textOrDash(row.follow_status) }}</template></el-table-column>
-          <el-table-column v-if="showColumn('first_follow_at')" prop="first_follow_at" label="首次跟进时间" width="168"><template #default="{ row }">{{ textOrDash(row.first_follow_at) }}</template></el-table-column>
           <el-table-column v-if="showColumn('created_at')" prop="created_at" label="线索创建时间" width="168"/>
           <el-table-column v-if="showColumn('assigned_at')" prop="assigned_at" label="线索分配时间" width="168"><template #default="{ row }">{{ textOrDash(row.assigned_at) }}</template></el-table-column>
           <el-table-column v-if="showColumn('wechat_added_at')" prop="wechat_added_at" label="加微时间" width="168"><template #default="{ row }">{{ textOrDash(row.wechat_added_at) }}</template></el-table-column>
