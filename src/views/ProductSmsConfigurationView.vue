@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Setting } from '@element-plus/icons-vue'
+import { MoreFilled, Plus, Search } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 
 type SmsConfigRow = {
@@ -29,9 +29,7 @@ const rows = ref<SmsConfigRow[]>([
 
 const groups = ref(['全部', '默认分组', '阿留皮皮', '周老师', '北京店播'])
 const activeGroup = ref('全部')
-const selectedRows = ref<SmsConfigRow[]>([])
 const dialogVisible = ref(false)
-const batchMode = ref(false)
 const editingId = ref<number | null>(null)
 const query = reactive({ keyword: '', storeType: '', status: '' })
 const form = reactive({ group: '默认分组', productId: '', qrCode: '', purchaseReminder: '短信模版一', authorizationReminder: '短信模版二', manualReminder: '短信模版一', status: '启用' as '启用' | '停用' })
@@ -50,27 +48,16 @@ const selectedProduct = computed(() => products.value.find(item => item.id === f
 
 function resetQuery() { Object.assign(query, { keyword: '', storeType: '', status: '' }) }
 function resetForm() { Object.assign(form, { group: '默认分组', productId: '', qrCode: '', purchaseReminder: '短信模版一', authorizationReminder: '短信模版二', manualReminder: '短信模版一', status: '启用' }) }
-function openCreate() { batchMode.value = false; editingId.value = null; resetForm(); dialogVisible.value = true }
+function openCreate() { editingId.value = null; resetForm(); dialogVisible.value = true }
 function openEdit(row: SmsConfigRow) {
-  batchMode.value = false
   editingId.value = row.id
   Object.assign(form, row)
   dialogVisible.value = true
 }
-function openBatch() {
-  if (!selectedRows.value.length) return ElMessage.warning('请先勾选需要批量设置的商品')
-  batchMode.value = true
-  editingId.value = null
-  resetForm()
-  dialogVisible.value = true
-}
 function save() {
-  if (!batchMode.value && (!form.productId || !form.qrCode)) return ElMessage.warning('请选择商品和活码')
+  if (!form.productId || !form.qrCode) return ElMessage.warning('请选择商品和活码')
   const now = '2026-08-25 16:30:00'
-  if (batchMode.value) {
-    selectedRows.value.forEach(row => Object.assign(row, { purchaseReminder: form.purchaseReminder, authorizationReminder: form.authorizationReminder, manualReminder: form.manualReminder, status: form.status, updatedAt: now }))
-    ElMessage.success(`已更新 ${selectedRows.value.length} 条短信配置`)
-  } else if (editingId.value) {
+  if (editingId.value) {
     const row = rows.value.find(item => item.id === editingId.value)
     if (row) Object.assign(row, form, selectedProduct.value ? { productName: selectedProduct.value.name, storeName: selectedProduct.value.store, storeType: selectedProduct.value.storeType } : {}, { updatedAt: now })
     ElMessage.success('短信配置已更新')
@@ -88,23 +75,52 @@ async function remove(row: SmsConfigRow) {
 async function addGroup() {
   const result = await ElMessageBox.prompt('请输入短信分组名称', '新增分组', { inputPlaceholder: '例如：秋季营', inputValidator: value => Boolean(value.trim()) || '请输入分组名称' })
   const name = result.value.trim()
-  if (!groups.value.includes(name)) groups.value.push(name)
+  if (groups.value.includes(name)) return ElMessage.warning('已存在同名分组')
+  groups.value.push(name)
   activeGroup.value = name
   ElMessage.success('短信分组已创建')
+}
+function groupCount(group: string) { return group === '全部' ? rows.value.length : rows.value.filter(row => row.group === group).length }
+async function renameGroup(group: string) {
+  if (group === '默认分组') return ElMessage.warning('默认分组不允许修改')
+  const result = await ElMessageBox.prompt('请输入新的分组名称', '修改分组', { inputValue: group, inputValidator: value => Boolean(value.trim()) || '请输入分组名称', confirmButtonText: '保存', cancelButtonText: '取消' })
+  const name = result.value.trim()
+  if (groups.value.some(item => item !== group && item === name)) return ElMessage.warning('已存在同名分组')
+  const index = groups.value.indexOf(group)
+  if (index >= 0) groups.value[index] = name
+  rows.value.filter(row => row.group === group).forEach(row => { row.group = name })
+  if (activeGroup.value === group) activeGroup.value = name
+  ElMessage.success(`分组“${group}”已修改为“${name}”`)
+}
+async function deleteGroup(group: string) {
+  if (group === '默认分组') return ElMessage.warning('默认分组不允许删除')
+  const count = groupCount(group)
+  await ElMessageBox.confirm(count ? `该分组下有 ${count} 条短信配置，删除后将自动移入默认分组。` : `确定删除分组“${group}”吗？`, '删除分组', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' })
+  rows.value.filter(row => row.group === group).forEach(row => { row.group = '默认分组' })
+  groups.value = groups.value.filter(item => item !== group)
+  if (activeGroup.value === group) activeGroup.value = '全部'
+  ElMessage.success('分组已删除，原短信配置已移入默认分组')
 }
 </script>
 
 <template>
   <section class="page sms-config-page">
     <PageHeader eyebrow="PRODUCT MESSAGE POLICY" title="短信配置" description="为第三方商品绑定活码和提醒策略；签名、模板与发送回执仍由业务配置—短信管理统一维护。">
-      <el-button :icon="Setting" :disabled="!selectedRows.length" @click="openBatch">批量设置</el-button>
       <el-button type="primary" :icon="Plus" @click="openCreate">新增配置</el-button>
     </PageHeader>
 
     <div class="sms-layout">
       <aside class="group-panel surface">
         <header><div><b>短信分组</b><small>按IP、团队或营期整理</small></div><button type="button" @click="addGroup">＋添加</button></header>
-        <nav><button v-for="group in groups" :key="group" type="button" :class="{ active: activeGroup === group }" @click="activeGroup = group"><span>{{ group }}</span><em>{{ group === '全部' ? rows.length : rows.filter(row => row.group === group).length }}</em></button></nav>
+        <nav>
+          <div v-for="group in groups" :key="group" :class="['group-row', { active: activeGroup === group }]">
+            <button type="button" @click="activeGroup = group"><span>{{ group }}</span><em>{{ groupCount(group) }}</em></button>
+            <el-dropdown v-if="group !== '全部'" trigger="click">
+              <el-button circle size="small" :icon="MoreFilled" aria-label="更多分组操作" />
+              <template #dropdown><el-dropdown-menu><el-dropdown-item :disabled="group === '默认分组'" @click="renameGroup(group)">修改分组</el-dropdown-item><el-dropdown-item :disabled="group === '默认分组'" divided @click="deleteGroup(group)">删除分组</el-dropdown-item></el-dropdown-menu></template>
+            </el-dropdown>
+          </div>
+        </nav>
       </aside>
 
       <main>
@@ -117,8 +133,7 @@ async function addGroup() {
 
         <article class="sms-ledger surface">
           <header><div><h3>商品短信策略</h3><span>共 {{ filteredRows.length }} 条</span></div><p>同一商品可按不同活码配置不同提醒策略</p></header>
-          <el-table :data="filteredRows" row-key="id" @selection-change="selectedRows = $event">
-            <el-table-column type="selection" width="48"/>
+          <el-table :data="filteredRows" row-key="id">
             <el-table-column label="创建/更新时间" width="150"><template #default="{row}"><div class="date-stack"><span>{{ row.createdAt }}</span><small>{{ row.updatedAt }}</small></div></template></el-table-column>
             <el-table-column label="店铺" width="150"><template #default="{row}"><div class="store-cell"><el-tag type="success" effect="light">{{ row.storeType }}</el-tag><span>{{ row.storeName }}</span></div></template></el-table-column>
             <el-table-column label="商品名称" min-width="230"><template #default="{row}"><b class="product-title">{{ row.productName }}</b></template></el-table-column>
@@ -134,14 +149,11 @@ async function addGroup() {
       </main>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="batchMode ? `批量设置（${selectedRows.length}条）` : editingId ? '编辑短信配置' : '新增短信配置'" width="680px">
-      <el-alert v-if="batchMode" title="仅更新提醒策略和状态，商品、活码及分组保持不变。" type="info" :closable="false"/>
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑短信配置' : '新增短信配置'" width="680px">
       <el-form label-position="top" class="sms-form">
-        <template v-if="!batchMode">
-          <el-form-item label="分组" required><el-select v-model="form.group" filterable style="width:100%"><el-option v-for="group in groups.filter(item => item !== '全部')" :key="group" :label="group" :value="group"/></el-select></el-form-item>
-          <el-form-item label="商品名称" required><el-select v-model="form.productId" filterable placeholder="请选择商品" style="width:100%"><el-option v-for="item in products" :key="item.id" :label="`${item.name} · ${item.store}`" :value="item.id"/></el-select></el-form-item>
-          <el-form-item label="活码" required><el-select v-model="form.qrCode" filterable placeholder="请选择活码" style="width:100%"><el-option v-for="item in qrOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
-        </template>
+        <el-form-item label="分组" required><el-select v-model="form.group" filterable style="width:100%"><el-option v-for="group in groups.filter(item => item !== '全部')" :key="group" :label="group" :value="group"/></el-select></el-form-item>
+        <el-form-item label="商品名称" required><el-select v-model="form.productId" filterable placeholder="请选择商品" style="width:100%"><el-option v-for="item in products" :key="item.id" :label="`${item.name} · ${item.store}`" :value="item.id"/></el-select></el-form-item>
+        <el-form-item label="活码" required><el-select v-model="form.qrCode" filterable placeholder="请选择活码" style="width:100%"><el-option v-for="item in qrOptions" :key="item" :label="item" :value="item"/></el-select></el-form-item>
         <div class="form-grid">
           <el-form-item label="购买后提醒" required><el-select v-model="form.purchaseReminder" style="width:100%"><el-option v-for="item in ['短信模版一','短信模版二']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
           <el-form-item label="授权后提醒" required><el-select v-model="form.authorizationReminder" style="width:100%"><el-option v-for="item in ['短信模版一','短信模版二']" :key="item" :label="item" :value="item"/></el-select></el-form-item>
@@ -155,5 +167,5 @@ async function addGroup() {
 </template>
 
 <style scoped>
-.sms-config-page{--ink:#172943;--muted:#8190a5}.sms-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:14px}.group-panel{min-height:610px;padding:18px 12px}.group-panel header{display:flex;align-items:flex-start;justify-content:space-between;padding:0 8px 15px;border-bottom:1px solid #edf1f6}.group-panel header div{display:grid;gap:4px}.group-panel header b{color:var(--ink);font-size:15px}.group-panel header small{color:var(--muted);font-size:10px}.group-panel header button{border:0;background:none;color:#2875e6;font-weight:700;cursor:pointer}.group-panel nav{display:grid;gap:5px;padding-top:12px}.group-panel nav button{display:flex;align-items:center;justify-content:space-between;padding:12px 13px;border:0;border-radius:9px;background:transparent;color:#5c6d84;text-align:left;cursor:pointer}.group-panel nav button:hover{background:#f5f8fc}.group-panel nav button.active{background:#eaf2ff;color:#2170df;font-weight:800}.group-panel nav em{font-style:normal;font-size:10px}.sms-layout main{min-width:0}.sms-filter{display:grid;grid-template-columns:minmax(260px,1.4fr) .65fr .6fr auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.sms-ledger{padding:0 18px 18px;overflow:hidden}.sms-ledger>header{height:62px;display:flex;align-items:center;justify-content:space-between}.sms-ledger header>div{display:flex;align-items:baseline;gap:10px}.sms-ledger h3{margin:0;color:var(--ink)}.sms-ledger header span,.sms-ledger header p{color:var(--muted);font-size:10px}.date-stack,.store-cell{display:grid;gap:5px}.date-stack small{color:#95a1b1}.store-cell .el-tag{width:max-content}.store-cell span{color:#5d6d83;font-size:11px}.product-title{color:var(--ink);line-height:1.6}.sms-ledger code{padding:4px 7px;border:1px solid #dae5f2;border-radius:6px;background:#f2f6fb;color:#426790;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}.sms-form{padding-top:14px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}@media(max-width:1100px){.sms-layout{grid-template-columns:1fr}.group-panel{min-height:auto}.group-panel nav{grid-template-columns:repeat(3,1fr)}.sms-filter{grid-template-columns:repeat(2,1fr)}}
+.sms-config-page{--ink:#172943;--muted:#8190a5}.sms-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:14px}.group-panel{min-height:610px;padding:18px 12px}.group-panel header{display:flex;align-items:flex-start;justify-content:space-between;padding:0 8px 15px;border-bottom:1px solid #edf1f6}.group-panel header div{display:grid;gap:4px}.group-panel header b{color:var(--ink);font-size:15px}.group-panel header small{color:var(--muted);font-size:10px}.group-panel header button{border:0;background:none;color:#2875e6;font-weight:700;cursor:pointer}.group-panel nav{display:grid;gap:5px;padding-top:12px}.group-row{display:flex;align-items:center;border-radius:9px}.group-row>button{display:flex;flex:1;align-items:center;justify-content:space-between;padding:12px 13px;border:0;border-radius:9px;background:transparent;color:#5c6d84;text-align:left;cursor:pointer}.group-row:hover{background:#f5f8fc}.group-row.active{background:#eaf2ff}.group-row.active>button{color:#2170df;font-weight:800}.group-row :deep(.el-dropdown){padding-right:7px}.group-row :deep(.el-button){border:0;background:transparent}.group-panel nav em{font-style:normal;font-size:10px}.sms-layout main{min-width:0}.sms-filter{display:grid;grid-template-columns:minmax(260px,1.4fr) .65fr .6fr auto auto;gap:9px;padding:14px 16px;margin-bottom:14px}.sms-ledger{padding:0 18px 18px;overflow:hidden}.sms-ledger>header{height:62px;display:flex;align-items:center;justify-content:space-between}.sms-ledger header>div{display:flex;align-items:baseline;gap:10px}.sms-ledger h3{margin:0;color:var(--ink)}.sms-ledger header span,.sms-ledger header p{color:var(--muted);font-size:10px}.date-stack,.store-cell{display:grid;gap:5px}.date-stack small{color:#95a1b1}.store-cell .el-tag{width:max-content}.store-cell span{color:#5d6d83;font-size:11px}.product-title{color:var(--ink);line-height:1.6}.sms-ledger code{padding:4px 7px;border:1px solid #dae5f2;border-radius:6px;background:#f2f6fb;color:#426790;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace}.sms-form{padding-top:14px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}@media(max-width:1100px){.sms-layout{grid-template-columns:1fr}.group-panel{min-height:auto}.group-panel nav{grid-template-columns:repeat(3,1fr)}.sms-filter{grid-template-columns:repeat(2,1fr)}}
 </style>
